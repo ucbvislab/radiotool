@@ -6,11 +6,13 @@
 from math import sqrt
 
 import numpy as N
+
 from scikits.audiolab import Sndfile, Format
 # import scikits.talkbox as talk
 import segmentaxis
 import mfcc
 from scipy.spatial import distance
+from scipy.signal import resample
 # import arraypad
 from numpy import pad as arraypad
 
@@ -44,33 +46,57 @@ def RMS_energy(frames):
 
 def IS_distance(p1, p2):
     """Calculate the Itakura-Saito spectral distance between power spectra"""
-    # see 
+    # see
     # http://www.ee.ic.ac.uk/hp/staff/dmb/voicebox/doc/voicebox/distispf.html
-   
-    # but implementing this... 
-    # http://hil.t.u-tokyo.ac.jp/~kameoka/SAP/papers/El-Jaroudi1991__Discrete-All_Pole_Modeling.pdf
+    # but implementing this...
+    # http://hil.t.u-tokyo.ac.jp/~kameoka/SAP/papers/
+    #  El-Jaroudi1991__Discrete-All_Pole_Modeling.pdf
     # equation 14
-    
-    if len(N.where(p2 == 0)[0]) > 0: return 0
+
+    if len(N.where(p2 == 0)[0]) > 0:
+        return 0
     q = p1 / p2
-    if N.isinf(N.mean(q - N.log(q))): return 0
+    if N.isinf(N.mean(q - N.log(q))):
+        return 0
     return N.mean(q - N.log(q)) - 1
-    
+
+
 def COSH_distance(p1, p2):
     """IS distance is asymmetric, so this accounts for that"""
     return (IS_distance(p1, p2) + IS_distance(p2, p1)) / 2
+
 
 def robust_logistic_regression(features):
     mu = N.mean(features)
     sigma = N.std(features)
     gamma = N.log(99) # natural log
-    return 1 / (1 + N.exp(-gamma*(features-mu)/sigma))
-    
+    return 1 / (1 + N.exp(-gamma * (features - mu) / sigma))
+
+
 def normalize_features(features):
     return (features - N.min(features)) / (N.max(features) - N.min(features))
 
+
+def zero_crossing_before(frames, n):
+    """finds the first zero crossing in frames before frame n"""
+    frames = N.array(frames)
+    crossings = N.where(frames[:n] * frames[1:n + 1] < 0)
+    if len(crossings[0]) == 0:
+        raise Exception("No zero crossing before frame %d" % n)
+    return crossings[0][-1]
+
+
+def zero_crossing_after(frames, n):
+    """finds the first zero crossing in frames after frame n"""
+    frames = N.array(frames)
+    crossings = N.where(frames[n - 1:-1] * frames[n:] < 0)
+    if len(crossings[0]) == 0:
+        raise Exception("No zero crossing after frame %d" % n)
+    return crossings[0][0] + n
+
+
 class Track:
-    # TODO: add in mp3 compatibility (convert to wav if necessary)
+    
     def __init__(self, fn, name="No name"):
         """Create a Track object from a music filename"""
         self.filename = fn
@@ -86,21 +112,26 @@ class Track:
         if self.channels == 1:
             out = N.zeros(n)
         elif self.channels == 2:
-            out = N.zeros((n,2))
+            out = N.zeros((n, 2))
         else:
             print "Input needs to have 1 or 2 channels"
             return
         if n > self.remaining_frames():
             print "Trying to retrieve too many frames!"
+            print "Asked for", n
             n = self.remaining_frames()
         self.current_frame += n
-        out[:n, :] = self.sound.read_frames(n)
+
+        if self.channels == 1:
+            out = self.sound.read_frames(n)
+        elif self.channels == 2:
+            out[:n, :] = self.sound.read_frames(n)
         return out
-        
+
     def set_frame(self, n):
         self.sound.seek(n)
         self.current_frame = n
-    
+
     def reset(self):
         self.set_frame(0)
         self.current_frame = 0
@@ -147,8 +178,21 @@ class Track:
     
     def refine_cut(self, cut_point, window_size=1):
         return cut_point
-    
+        
+    def zero_crossing_before(self, n):
+        """n is in seconds, finds the first zero crossing before n seconds"""
+        n_in_samples = n * self.samplerate()
+        frame = zero_crossing_before(self.all_as_mono(), n_in_samples)
+        return frame / float(self.samplerate())
+
+    def zero_crossing_after(self, n):
+        n_in_samples = n * self.samplerate()
+        frame = zero_crossing_after(self.all_as_mono(), n_in_samples)
+        return frame / float(self.samplerate())
+
+
 class Song(Track):
+
     def __init__(self, fn, name="Song name"):
         Track.__init__(self, fn, name)
         
@@ -477,6 +521,24 @@ class Segment:
         self.score_location = int(score_location * self.samplerate)
         self.start = int(start * self.samplerate)
         self.duration = int(duration * self.samplerate)
+
+    def get_frames(self):
+        self.track.set_frame(self.start)
+        frames = self.track.read_frames(self.duration)
+        self.track.set_frame(0)
+        return frames
+
+class TimeStretchSegment(Segment):
+    def __init__(self, track, score_location, start, orig_duration, new_duration):
+        Segment.__init__(self, track, score_location, start, new_duration)
+        self.orig_duration = int(orig_duration * self.samplerate)
+
+    def get_frames(self):
+        self.track.set_frame(self.start)
+        frames = self.track.read_frames(self.orig_duration)
+        frames = resample(frames, self.duration)
+        self.track.set_frame(0)
+        return frames
         
 class Dynamic:
     def __init__(self, track, score_location, duration):
@@ -500,7 +562,7 @@ class Volume(Dynamic):
     def to_array(self):
         return N.linspace(self.volume, self.volume, 
                         self.duration*2).reshape(self.duration, 2)
-        
+
 class Fade(Dynamic):
     # linear, exponential, (TODO: cosine)
     def __init__(self, track, score_location, duration, 
@@ -513,24 +575,27 @@ class Fade(Dynamic):
     def to_array(self):
         if self.fade_type == "linear":
             return N.linspace(self.in_volume, self.out_volume, 
-                            self.duration*2).reshape(self.duration, 2)
+                self.duration * self.track.channels)\
+                .reshape(self.duration, self.track.channels)
         elif self.fade_type == "exponential":
             if self.in_volume < self.out_volume:
-                return (N.logspace(8, 1, self.duration*2, base=.5) * (
-                                self.out_volume - self.in_volume) / 0.5 + 
-                                self.in_volume).reshape(self.duration, 2)
+                return (N.logspace(8, 1, self.duration * self.track.channels,
+                    base=.5) * (
+                        self.out_volume - self.in_volume) / 0.5 + 
+                        self.in_volume).reshape(self.duration, self.track.channels)
             else:
-                return (N.logspace(1, 8, self.duration*2, base=.5) * (
-                                self.in_volume - self.out_volume) / 0.5 + 
-                                self.out_volume).reshape(self.duration, 2)
+                return (N.logspace(1, 8, self.duration * self.track.channels, base=.5
+                    ) * (self.in_volume - self.out_volume) / 0.5 + 
+                    self.out_volume).reshape(self.duration, self.track.channels)
         elif self.fade_type == "cosine":
             return
 
 class Composition:
-    def __init__(self, tracks=[]):
+    def __init__(self, tracks=[], channels=2):
         self.tracks = set(tracks)
         self.score = []
         self.dynamics = []
+        self.channels = channels
 
     def add_track(self, track):
         self.tracks.add(track)
@@ -546,7 +611,58 @@ class Composition:
         
     def add_dynamics(self, dyns):
         self.dynamics.extend(dyns)
-    
+        
+    def fade_in(self, segment, duration):
+        """extends the beginning of the segment and adds a fade in
+        (duration in seconds)"""
+        dur = int(round(duration * segment.track.samplerate()))
+        if segment.start - dur >= 0:
+            segment.start -= dur
+        else:
+            raise Exception(
+                "Cannot create fade-in that extends past the track's beginning")
+        if segment.score_location - dur >= 0:
+            segment.score_location -= dur
+        else:
+            raise Exception(
+                "Cannot create fade-in the extends past the score's beginning")
+
+        segment.duration += dur
+        
+        score_loc_in_seconds = (segment.score_location) /\
+            float(segment.track.samplerate())
+
+        f = Fade(segment.track, score_loc_in_seconds, duration, 0.0, 1.0)
+        self.add_dynamic(f)
+        return f
+
+    def fade_out(self, segment, duration):
+        """extends the end of the segment and adds a fade out
+        (duration in seconds)"""
+        dur = int(round(duration * segment.track.samplerate()))
+        if segment.start + segment.duration + dur <\
+            segment.track.total_frames():
+            segment.duration += dur
+        else:
+            raise Exception(
+                "Cannot create fade-out that extends past the track's end")
+        score_loc_in_seconds = (segment.score_location + segment.duration - dur) /\
+            float(segment.track.samplerate())
+        f = Fade(segment.track, score_loc_in_seconds, duration, 1.0, 0.0)
+        print f
+        print segment.duration
+        self.add_dynamic(f)
+        return f
+
+    def cross_fade(self, seg1, seg2, duration):
+        if seg1.score_location + seg1.duration - seg2.score_location < 2:
+            self.fade_out(seg1, duration)
+            self.fade_in(seg2, duration)
+        else:
+            print seg1.score_location + seg1.duration, seg2.score_location
+            raise Exception("Segments must be adjacent to add a crossfade (%d, %d)"
+                % (seg1.score_location + seg1.duration, seg2.score_location))
+
     def add_music_cue(self, track, score_cue, song_cue, duration=6.0,
                       padding_before=12.0, padding_after=12.0):
         self.tracks.add(track)
@@ -650,7 +766,6 @@ class Composition:
             return frames[:new_cut_point]
         return frames
 
-    
     def build_score(self, **kwargs):
         track_list = kwargs.pop('track', self.tracks)
         adjust_dynamics = kwargs.pop('adjust_dynamics', True)
@@ -668,15 +783,14 @@ class Composition:
                               key=lambda k: k.score_location)
             if len(segments) > 0:
                 parts[track] = N.zeros( (segments[-1].score_location + 
-                                         segments[-1].duration, 2) )
+                                         segments[-1].duration, self.channels) )
                 if segments[-1].score_location +\
                    segments[-1].duration > longest_part:
                     longest_part = segments[-1].score_location +\
                                    segments[-1].duration
                 for s in segments:
                     # print "### segment ", s, s.track
-                    track.set_frame(s.start)
-                    frames = track.read_frames(s.duration)
+                    frames = s.get_frames()
                     
                     # for universal volume adjustment
                     if adjust_dynamics:
@@ -689,8 +803,8 @@ class Composition:
                             speech_frames = N.append(speech_frames,
                                 self._remove_end_silence(frames.flatten()))
                     
-                    parts[track].put(N.arange(s.score_location*2, 
-                                    ( s.score_location+s.duration )*2), 
+                    parts[track].put(N.arange(s.score_location * self.channels, 
+                                    (s.score_location + s.duration) * self.channels), 
                                       frames)
                     # print "last frame of segment is: ",\
                            # s.score_location + s.duration
@@ -699,16 +813,16 @@ class Composition:
                            key=lambda k: k.score_location)
             for d in dyns:
                 # EXPLAIN -2 addend! Array indexing, basically. Starts at 0.
-                dyn_range = N.arange(d.score_location * 2 - 2, 
-                                       (d.score_location+d.duration)*2 - 2)
+                dyn_range = N.arange(d.score_location * track.channels - track.channels,
+                    (d.score_location + d.duration) * track.channels - track.channels)
                 adjusted = (parts[track].take(dyn_range).\
-                           reshape(d.duration, 2) * d.to_array())
-                print adjusted
-                parts[track].put(N.arange(d.score_location * 2 - 2,
-                                     (d.score_location+d.duration) * 2 - 2),
+                           reshape(d.duration, track.channels) * d.to_array())
+                # print adjusted
+                parts[track].put(N.arange(d.score_location * track.channels - track.channels,
+                                     (d.score_location+d.duration) * track.channels - track.channels),
                                       adjusted)
                 print "last frame of dynamic is: ",\
-                    d.score_location+d.duration
+                    d.score_location + d.duration
                 
                 # dyn_range = N.arange(d.score_location * 2, 
                 #                      (d.score_location+d.duration)*2)
@@ -735,7 +849,7 @@ class Composition:
             
         print "\n\n### Multiplying song signal by ", dyn_adj
         
-        out = N.zeros( (longest_part, 2))
+        out = N.zeros((longest_part, self.channels))
         for track, part in parts.iteritems():
             # TODO: -3 second hack -- fix later
             # out[:len(part)-132300] += part[:-132300]
@@ -754,6 +868,7 @@ class Composition:
         filetype = kwargs.pop('filetype', 'wav')
         adjust_dynamics = kwargs.pop('adjust_dynamics', True)
         samplerate = kwargs.pop('samplerate', 44100)
+        channels = kwargs.pop('channels', 2)
         separate_tracks = kwargs.pop('separate_tracks', False)
         
         if separate_tracks:
@@ -762,15 +877,14 @@ class Composition:
                                        adjust_dynamics=adjust_dynamics)
                 out_file = Sndfile(filename +"-" + track.name + "." +
                                    filetype, 'w', Format(filetype),
-                                   2, samplerate)
+                                   channels, samplerate)
                 out_file.write_frames(out)
                 out_file.close()
 
         # always build the complete score
         out = self.build_score(adjust_dynamics=adjust_dynamics)
         out_file = Sndfile(filename + "." + filetype, 'w',
-                           Format(filetype), 2, samplerate)
+                           Format(filetype), channels, samplerate)
         out_file.write_frames(out)
         out_file.close()
         return out
-        

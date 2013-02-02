@@ -7,4 +7,6 @@ setup(name='radiotool',
       author='Steve Rubin',
       author_email='srubin@cs.berkeley.edu',
       packages=['radiotool'],
+      install_requires=[
+      ],
       zip_safe=False)
