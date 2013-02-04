@@ -7,6 +7,5 @@ setup(name='radiotool',
       author='Steve Rubin',
       author_email='srubin@cs.berkeley.edu',
       packages=['radiotool'],
-      install_requires=[
-      ],
+      install_requires=['numpy', 'scipy', 'scikits.audiolab'],
       zip_safe=False)

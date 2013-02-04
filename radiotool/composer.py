@@ -611,8 +611,26 @@ class Composition:
         
     def add_dynamics(self, dyns):
         self.dynamics.extend(dyns)
-        
+
     def fade_in(self, segment, duration):
+        """adds a fade in (duration in seconds)"""
+        dur = int(round(duration * segment.track.samplerate()))
+        score_loc_in_seconds = (segment.score_location) /\
+            float(segment.track.samplerate())
+        f = Fade(segment.track, score_loc_in_seconds, duration, 0.0, 1.0)
+        self.add_dynamic(f)
+        return f
+
+    def fade_out(self, segment, duration):
+        """adds a fade out (duration in seconds)"""
+        dur = int(round(duration * segment.track.samplerate()))
+        score_loc_in_seconds = (segment.score_location + segment.duration - dur) /\
+            float(segment.track.samplerate())
+        f = Fade(segment.track, score_loc_in_seconds, duration, 1.0, 0.0)
+        self.add_dynamic(f)
+        return f
+
+    def extended_fade_in(self, segment, duration):
         """extends the beginning of the segment and adds a fade in
         (duration in seconds)"""
         dur = int(round(duration * segment.track.samplerate()))
@@ -636,7 +654,7 @@ class Composition:
         self.add_dynamic(f)
         return f
 
-    def fade_out(self, segment, duration):
+    def extended_fade_out(self, segment, duration):
         """extends the end of the segment and adds a fade out
         (duration in seconds)"""
         dur = int(round(duration * segment.track.samplerate()))
@@ -656,8 +674,8 @@ class Composition:
 
     def cross_fade(self, seg1, seg2, duration):
         if seg1.score_location + seg1.duration - seg2.score_location < 2:
-            self.fade_out(seg1, duration)
-            self.fade_in(seg2, duration)
+            self.extended_fade_out(seg1, duration)
+            self.extended_fade_in(seg2, duration)
         else:
             print seg1.score_location + seg1.duration, seg2.score_location
             raise Exception("Segments must be adjacent to add a crossfade (%d, %d)"
@@ -871,20 +889,27 @@ class Composition:
         channels = kwargs.pop('channels', 2)
         separate_tracks = kwargs.pop('separate_tracks', False)
         
+        encoding = 'pcm16'
+        if filetype == 'ogg':
+            encoding = 'vorbis'
+        
         if separate_tracks:
             for track in self.tracks:
                 out = self.build_score(track=[track],
                                        adjust_dynamics=adjust_dynamics)
                 out_file = Sndfile(filename +"-" + track.name + "." +
-                                   filetype, 'w', Format(filetype),
+                                   filetype, 'w',
+                                   Format(filetype, encoding=encoding),
                                    channels, samplerate)
                 out_file.write_frames(out)
                 out_file.close()
 
         # always build the complete score
         out = self.build_score(adjust_dynamics=adjust_dynamics)
+        print out
         out_file = Sndfile(filename + "." + filetype, 'w',
-                           Format(filetype), channels, samplerate)
+                           Format(filetype, encoding=encoding), 
+                           channels, samplerate)
         out_file.write_frames(out)
         out_file.close()
         return out
