@@ -12,7 +12,8 @@ from scikits.audiolab import Sndfile, Format
 import segmentaxis
 import mfcc
 from scipy.spatial import distance
-from scipy.signal import resample
+# problem on the server with resample...
+#from scipy.signal import resample
 # import arraypad
 from numpy import pad as arraypad
 
