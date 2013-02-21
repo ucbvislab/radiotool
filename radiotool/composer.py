@@ -523,18 +523,26 @@ class Segment:
         self.start = int(start * self.samplerate)
         self.duration = int(duration * self.samplerate)
 
-    def get_frames(self):
+    def get_frames(self, channels=2):
         self.track.set_frame(self.start)
         frames = self.track.read_frames(self.duration)
         self.track.set_frame(0)
-        return frames
+        
+        print "IN GET FRAMES", channels, self.track.channels
+        
+        if channels == self.track.channels:
+            return frames
+        elif channels == 2 and self.track.channels == 1:
+            return N.hstack((frames, frames))
+        elif channels == 1 and self.track.channels == 2:
+            return N.mean(frames, axis=1)
 
 class TimeStretchSegment(Segment):
     def __init__(self, track, score_location, start, orig_duration, new_duration):
         Segment.__init__(self, track, score_location, start, new_duration)
         self.orig_duration = int(orig_duration * self.samplerate)
 
-    def get_frames(self):
+    def get_frames(self, channels=2):
         self.track.set_frame(self.start)
         frames = self.track.read_frames(self.orig_duration)
         frames = resample(frames, self.duration)
@@ -600,6 +608,9 @@ class Composition:
 
     def add_track(self, track):
         self.tracks.add(track)
+    
+    def add_tracks(self, tracks):
+        self.tracks.update(tracks)
         
     def add_score_segment(self, segment):
         self.score.append(segment)
@@ -809,7 +820,7 @@ class Composition:
                                    segments[-1].duration
                 for s in segments:
                     # print "### segment ", s, s.track
-                    frames = s.get_frames()
+                    frames = s.get_frames(channels=self.channels)
                     
                     # for universal volume adjustment
                     if adjust_dynamics:
@@ -866,17 +877,17 @@ class Composition:
         else:
             dyn_adj = 1
             
-        print "\n\n### Multiplying song signal by ", dyn_adj
+        print "### Multiplying song signal by ", dyn_adj
         
         out = N.zeros((longest_part, self.channels))
         for track, part in parts.iteritems():
             # TODO: -3 second hack -- fix later
             # out[:len(part)-132300] += part[:-132300]
             if isinstance(track, Song):
-                print "Dyn adjusting song"
+                print "### Dyn adjusting song"
                 out[:len(part)-132300] += part[:-132300] * dyn_adj
             else:
-                print "Dyn adjusting speech"
+                print "### Dyn adjusting speech"
                 out[:len(part)] += part
         
         return out
@@ -907,7 +918,7 @@ class Composition:
 
         # always build the complete score
         out = self.build_score(adjust_dynamics=adjust_dynamics)
-        print out
+        # print out
         out_file = Sndfile(filename + "." + filetype, 'w',
                            Format(filetype, encoding=encoding), 
                            channels, samplerate)
