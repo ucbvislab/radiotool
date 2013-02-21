@@ -3,20 +3,24 @@
 # Has all the classes for speech, songs, and fade types
 # Additionally, has class for actual composition
 
+import sys
+
 from math import sqrt
 
 import numpy as N
 
 from scikits.audiolab import Sndfile, Format
+
 # import scikits.talkbox as talk
 import segmentaxis
 import mfcc
 from scipy.spatial import distance
+
 # problem on the server with resample...
 #from scipy.signal import resample
+
 # import arraypad
 from numpy import pad as arraypad
-
 ### Uncomment for MATLAB
 # from mlabwrap import mlab as matlab
 
@@ -26,7 +30,6 @@ from numpy import pad as arraypad
 
 LOG_TO_DB = False
 DEBUG = False
-
 
 if LOG_TO_DB:
     import MySQLdb
@@ -538,6 +541,8 @@ class Segment:
             return N.mean(frames, axis=1)
 
 class TimeStretchSegment(Segment):
+    #from scipy.signal import resample
+
     def __init__(self, track, score_location, start, orig_duration, new_duration):
         Segment.__init__(self, track, score_location, start, new_duration)
         self.orig_duration = int(orig_duration * self.samplerate)
