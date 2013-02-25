@@ -815,10 +815,12 @@ class Composition:
         
         for track in track_list:
             segments = sorted([v for v in self.score if v.track == track], 
-                              key=lambda k: k.score_location)
+                              key=lambda k: k.score_location + k.duration)
             if len(segments) > 0:
                 parts[track] = N.zeros( (segments[-1].score_location + 
-                                         segments[-1].duration, self.channels) )
+                                         segments[-1].duration,
+                                         self.channels) )
+                
                 if segments[-1].score_location +\
                    segments[-1].duration > longest_part:
                     longest_part = segments[-1].score_location +\
@@ -837,7 +839,6 @@ class Composition:
                         elif isinstance(track, Speech):
                             speech_frames = N.append(speech_frames,
                                 self._remove_end_silence(frames.flatten()))
-                    
                     parts[track].put(N.arange(s.score_location * self.channels, 
                                     (s.score_location + s.duration) * self.channels), 
                                       frames)
