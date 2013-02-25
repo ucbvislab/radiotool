@@ -804,7 +804,7 @@ class Composition:
     def build_score(self, **kwargs):
         track_list = kwargs.pop('track', self.tracks)
         adjust_dynamics = kwargs.pop('adjust_dynamics', True)
-        
+
         parts = {}
         longest_part = 0
         
@@ -848,13 +848,13 @@ class Composition:
                            key=lambda k: k.score_location)
             for d in dyns:
                 # EXPLAIN -2 addend! Array indexing, basically. Starts at 0.
-                dyn_range = N.arange(d.score_location * track.channels - track.channels,
-                    (d.score_location + d.duration) * track.channels - track.channels)
+                dyn_range = N.arange(d.score_location * self.channels - self.channels,
+                    (d.score_location + d.duration) * self.channels - self.channels)
                 adjusted = (parts[track].take(dyn_range).\
-                           reshape(d.duration, track.channels) * d.to_array())
+                           reshape(d.duration, self.channels) * d.to_array())
                 # print adjusted
-                parts[track].put(N.arange(d.score_location * track.channels - track.channels,
-                                     (d.score_location+d.duration) * track.channels - track.channels),
+                parts[track].put(N.arange(d.score_location * self.channels - self.channels,
+                                     (d.score_location+d.duration) * self.channels - self.channels),
                                       adjusted)
                 print "last frame of dynamic is: ",\
                     d.score_location + d.duration
