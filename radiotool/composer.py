@@ -98,6 +98,48 @@ def zero_crossing_after(frames, n):
         raise Exception("No zero crossing after frame %d" % n)
     return crossings[0][0] + n
 
+# Crossfading helper methods
+# borrowed from echonest remix
+
+def log_factor(arr):
+    return N.power(arr, 0.6)
+
+
+def limiter(arr):
+    dyn_range = 32767.0 / 32767.0
+    lim_thresh = 30000.0 / 32767.0
+    lim_range = dyn_range - lim_thresh
+
+    new_arr = arr.copy()
+    
+    inds = N.where(arr > lim_thresh)[0]
+
+    new_arr[inds] = (new_arr[inds] - lim_thresh) / lim_range
+    new_arr[inds] = (N.arctan(new_arr[inds]) * 2.0 / N.pi) *\
+        lim_range + lim_thresh
+
+    inds = N.where(arr < -lim_thresh)[0]
+
+    new_arr[inds] = -(new_arr[inds] + lim_thresh) / lim_range
+    new_arr[inds] = -(
+        N.arctan(new_arr[inds]) * 2.0 / N.pi * lim_range + lim_thresh)
+
+    return new_arr
+
+
+def equal_power(arr1, arr2):
+    n = N.shape(arr1)[0]
+    
+    f_in = N.arange(n) / float(n - 1)
+    f_out = N.arange(n - 1, -1, -1) / float(n)
+    
+    f_in = N.tile(f_in, (N.shape(arr2)[1], 1)).T
+    f_out = N.tile(f_out, (N.shape(arr1)[1], 1)).T
+    
+    vals = log_factor(f_out) * arr1 + log_factor(f_in) * arr2
+    
+    return limiter(vals)
+
 
 class Track:
     
@@ -165,6 +207,9 @@ class Track:
         
     def total_frames(self):
         return self.sound.nframes
+    
+    def duration(self):
+        return self.total_frames() / float(self.samplerate())
         
     def loudest_time(self, start=0, duration=0):
         """Find the loudest time in the window given by start and duration
@@ -193,6 +238,61 @@ class Track:
         n_in_samples = n * self.samplerate()
         frame = zero_crossing_after(self.all_as_mono(), n_in_samples)
         return frame / float(self.samplerate())
+
+
+class RawTrack(Track):
+
+    def __init__(self, frames, name="Raw frames name", samplerate=44100):
+        self._sr = samplerate
+        self.frames = frames
+        self.name = name
+        self.filename = "RAW_" + name
+        try:
+            self.channels = N.shape(frames)[1]
+        except:
+            self.channels = 1
+        self.current_frame = 0
+        self._total_frames = N.shape(frames)[0]
+    
+    def samplerate(self):
+        return self._sr
+    
+    def sr(self):
+        return self._sr
+    
+    def set_frame(self, n):
+        self.current_frame = n
+    
+    def total_frames(self):
+        return self._total_frames
+    
+    def remaining_frames(self):
+        return self._total_frames - self.current_frame
+    
+    def reset(self):
+        self.current_frame = 0
+    
+    def read_frames(self, n):
+        if self.channels == 1:
+            out = N.zeros(n)
+        elif self.channels == 2:
+            out = N.zeros((n, 2))
+        else:
+            print "Input needs to have 1 or 2 channels"
+            return
+        if n > self.remaining_frames():
+            print "Trying to retrieve too many frames!"
+            print "Asked for", n
+            n = self.remaining_frames()
+
+        if self.channels == 1:
+            out = self.frames[self.current_frame:self.current_frame + n]
+        elif self.channels == 2:
+            out[:n, :] = self.frames[
+                self.current_frame:self.current_frame + n, :]
+
+        self.current_frame += n
+        return out
 
 
 class Song(Track):
@@ -688,11 +788,48 @@ class Composition:
         print segment.duration
         self.add_dynamic(f)
         return f
-
+    
     def cross_fade(self, seg1, seg2, duration):
+        """equal power crossfade"""
+        if seg1.score_location + seg1.duration - seg2.score_location < 2:
+            dur = int(round(duration * seg1.track.samplerate()))
+
+            
+            # we're going to compute the crossfade and then create a RawTrack
+            # for the resulting frames
+            out_frames = seg1.get_frames(channels=self.channels)[-dur:]
+            seg1.duration -= dur - 1
+            
+            seg2.start -= dur
+            in_frames = seg2.get_frames(channels=self.channels)[:dur]
+            seg2.start += dur
+            
+            # compute the crossfade
+            cf_frames = equal_power(out_frames, in_frames)
+            
+            raw_track = RawTrack(cf_frames, name="crossfade",
+                samplerate=seg1.track.samplerate())
+            
+            rs_score_location = (seg1.score_location + seg1.duration) /\
+                float(seg1.track.samplerate())
+                
+            rs_duration = raw_track.duration()
+            
+            raw_seg = Segment(raw_track, rs_score_location, 0.0, rs_duration)
+            
+            self.add_track(raw_track)
+            self.add_score_segment(raw_seg)
+            
+        else:
+            print seg1.score_location + seg1.duration, seg2.score_location
+            raise Exception("Segments must be adjacent to add a crossfade (%d, %d)" 
+                % (seg1.score_location + seg1.duration, seg2.score_location))
+
+    def cross_fade_linear(self, seg1, seg2, duration):
         if seg1.score_location + seg1.duration - seg2.score_location < 2:
             self.extended_fade_out(seg1, duration)
-            self.extended_fade_in(seg2, duration)
+            self.fade_in(seg2, duration)
+            # self.extended_fade_in(seg2, duration)
         else:
             print seg1.score_location + seg1.duration, seg2.score_location
             raise Exception("Segments must be adjacent to add a crossfade (%d, %d)"
@@ -814,6 +951,7 @@ class Composition:
         speech_frames = N.array([])
         
         for track in track_list:
+            
             segments = sorted([v for v in self.score if v.track == track], 
                               key=lambda k: k.score_location + k.duration)
             if len(segments) > 0:
@@ -849,24 +987,17 @@ class Composition:
                            key=lambda k: k.score_location)
             for d in dyns:
                 # EXPLAIN -2 addend! Array indexing, basically. Starts at 0.
-                dyn_range = N.arange(d.score_location * self.channels - self.channels,
-                    (d.score_location + d.duration) * self.channels - self.channels)
+                dyn_range = N.arange(d.score_location * self.channels,
+                    (d.score_location + d.duration) * self.channels)
                 adjusted = (parts[track].take(dyn_range).\
                            reshape(d.duration, self.channels) * d.to_array())
                 # print adjusted
-                parts[track].put(N.arange(d.score_location * self.channels - self.channels,
-                                     (d.score_location+d.duration) * self.channels - self.channels),
+                parts[track].put(N.arange(d.score_location * self.channels,
+                                     (d.score_location+d.duration) * self.channels),
                                       adjusted)
                 print "last frame of dynamic is: ",\
                     d.score_location + d.duration
-                
-                # dyn_range = N.arange(d.score_location * 2, 
-                #                      (d.score_location+d.duration)*2)
-                # adjusted = (parts[track].take(dyn_range).reshape(d.duration, 2) 
-                #                 * d.to_array())
-                # parts[track].put(N.arange(d.score_location * 2,
-                #                      (d.score_location+d.duration) * 2),
-                #                       adjusted)
+
         
         if adjust_dynamics:
             total_energy = RMS_energy(all_frames)
