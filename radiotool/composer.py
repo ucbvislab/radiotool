@@ -129,12 +129,17 @@ def limiter(arr):
 
 def equal_power(arr1, arr2):
     n = N.shape(arr1)[0]
+    try: 
+        channels = N.shape(arr1)[1]
+    except:
+        channels = 1
     
     f_in = N.arange(n) / float(n - 1)
     f_out = N.arange(n - 1, -1, -1) / float(n)
     
-    f_in = N.tile(f_in, (N.shape(arr2)[1], 1)).T
-    f_out = N.tile(f_out, (N.shape(arr1)[1], 1)).T
+    if channels > 1:
+        f_in = N.tile(f_in, (channels, 1)).T
+        f_out = N.tile(f_out, (channels, 1)).T
     
     vals = log_factor(f_out) * arr1 + log_factor(f_in) * arr2
     
@@ -800,12 +805,20 @@ class Composition:
             out_frames = seg1.get_frames(channels=self.channels)[-dur:]
             seg1.duration -= dur - 1
             
+            print "Got frames 1", out_frames
+            
             seg2.start -= dur
             in_frames = seg2.get_frames(channels=self.channels)[:dur]
             seg2.start += dur
             
+            print "Got frames 2", in_frames
+            
+            print "About to compute cf_frames"
+            
             # compute the crossfade
             cf_frames = equal_power(out_frames, in_frames)
+            
+            print "Computed cf_frames", cf_frames
             
             raw_track = RawTrack(cf_frames, name="crossfade",
                 samplerate=seg1.track.samplerate())
