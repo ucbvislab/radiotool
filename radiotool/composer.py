@@ -126,6 +126,22 @@ def limiter(arr):
 
     return new_arr
 
+def linear(arr1, arr2):
+    n = N.shape(arr1)[0]
+    try: 
+        channels = N.shape(arr1)[1]
+    except:
+        channels = 1
+    
+    f_in = N.arange(n) / float(n - 1)
+    f_out = N.arange(n - 1, -1, -1) / float(n)
+    
+    if channels > 1:
+        f_in = N.tile(f_in, (channels, 1)).T
+        f_out = N.tile(f_out, (channels, 1)).T
+    
+    vals = f_out * arr1 + f_in * arr2
+    return vals
 
 def equal_power(arr1, arr2):
     n = N.shape(arr1)[0]
@@ -142,7 +158,7 @@ def equal_power(arr1, arr2):
         f_out = N.tile(f_out, (channels, 1)).T
     
     vals = log_factor(f_out) * arr1 + log_factor(f_in) * arr2
-    
+
     return limiter(vals)
 
 
@@ -172,7 +188,7 @@ class Track:
             print "Asked for", n
             n = self.remaining_frames()
         self.current_frame += n
-
+        
         if self.channels == 1:
             out = self.sound.read_frames(n)
         elif self.channels == 2:
@@ -637,11 +653,13 @@ class Segment:
         self.track.set_frame(0)
         
         print "IN GET FRAMES", channels, self.track.channels
+        print "START", self.start
+        print "DURATION", self.duration
         
         if channels == self.track.channels:
-            return frames
+            return frames.copy()
         elif channels == 2 and self.track.channels == 1:
-            return N.hstack((frames, frames))
+            return N.hstack((frames.copy(), frames.copy()))
         elif channels == 1 and self.track.channels == 2:
             return N.mean(frames, axis=1)
 
@@ -797,28 +815,41 @@ class Composition:
     def cross_fade(self, seg1, seg2, duration):
         """equal power crossfade"""
         if seg1.score_location + seg1.duration - seg2.score_location < 2:
-            dur = int(round(duration * seg1.track.samplerate()))
+            dur = int(duration * seg1.track.samplerate())
 
-            
+            if dur % 2 == 1:
+                dur -= 1
+                
             # we're going to compute the crossfade and then create a RawTrack
             # for the resulting frames
+
+            seg1.duration += (dur / 2)
             out_frames = seg1.get_frames(channels=self.channels)[-dur:]
-            seg1.duration -= dur - 1
+            seg1.duration -= dur
+
+
+            seg2.track.set_frame(seg2.start - dur / 2)
+            in_frames = seg2.track.read_frames(dur)
             
-            print "Got frames 1", out_frames
+            seg2.start += dur / 2
+            seg2.duration -= dur / 2
+            seg2.score_location += dur / 2
+            seg2.track.set_frame(seg2.start)
             
-            seg2.start -= dur
-            in_frames = seg2.get_frames(channels=self.channels)[:dur]
-            seg2.start += dur
-            
-            print "Got frames 2", in_frames
-            
-            print "About to compute cf_frames"
+            # seg2.start -= (dur / 2)
+            # seg2.duration += (dur / 2)
+            # seg2.score_location -= (dur / 2)
+            # in_frames = seg2.get_frames(channels=self.channels)[:dur]
+            # seg2.start += dur
+            # seg2.duration -= dur
+            # seg2.score_location += dur
             
             # compute the crossfade
+            in_frames = in_frames[:min(map(len, [in_frames, out_frames]))]
+            out_frames = out_frames[:min(map(len, [in_frames, out_frames]))]
             cf_frames = equal_power(out_frames, in_frames)
             
-            print "Computed cf_frames", cf_frames
+            #print "Computed cf_frames", cf_frames
             
             raw_track = RawTrack(cf_frames, name="crossfade",
                 samplerate=seg1.track.samplerate())
@@ -829,6 +860,15 @@ class Composition:
             rs_duration = raw_track.duration()
             
             raw_seg = Segment(raw_track, rs_score_location, 0.0, rs_duration)
+            
+            print 
+            print "###"
+            print "seg1 end", seg1.score_location + seg1.duration
+            print "cf start", raw_seg.score_location
+            print "cf end", raw_seg.score_location + raw_seg.duration
+            print "seg2 start", seg2.score_location
+            print "###"
+            print 
             
             self.add_track(raw_track)
             self.add_score_segment(raw_seg)
@@ -963,8 +1003,7 @@ class Composition:
         song_frames = N.array([])
         speech_frames = N.array([])
         
-        for track in track_list:
-            
+        for track_idx, track in enumerate(track_list):
             segments = sorted([v for v in self.score if v.track == track], 
                               key=lambda k: k.score_location + k.duration)
             if len(segments) > 0:
@@ -978,7 +1017,8 @@ class Composition:
                                    segments[-1].duration
                 for s in segments:
                     # print "### segment ", s, s.track
-                    frames = s.get_frames(channels=self.channels)
+                    frames = s.get_frames(channels=self.channels).\
+                        reshape(-1, self.channels)
                     
                     # for universal volume adjustment
                     if adjust_dynamics:
@@ -990,11 +1030,12 @@ class Composition:
                         elif isinstance(track, Speech):
                             speech_frames = N.append(speech_frames,
                                 self._remove_end_silence(frames.flatten()))
-                    parts[track].put(N.arange(s.score_location * self.channels, 
-                                    (s.score_location + s.duration) * self.channels), 
-                                      frames)
-                    # print "last frame of segment is: ",\
-                           # s.score_location + s.duration
+                                
+                    parts[track][s.score_location :
+                                 s.score_location + s.duration, :] = frames
+                                
+                    print "last frame of segment is: ",\
+                           s.score_location + s.duration
                     
             dyns = sorted([d for d in self.dynamics if d.track == track],
                            key=lambda k: k.score_location)
@@ -1005,9 +1046,10 @@ class Composition:
                 adjusted = (parts[track].take(dyn_range).\
                            reshape(d.duration, self.channels) * d.to_array())
                 # print adjusted
-                parts[track].put(N.arange(d.score_location * self.channels,
-                                     (d.score_location+d.duration) * self.channels),
-                                      adjusted)
+                
+                parts[track][d.score_location :
+                             d.score_location + d.duration, :] = adjusted
+                
                 print "last frame of dynamic is: ",\
                     d.score_location + d.duration
 
