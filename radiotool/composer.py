@@ -684,8 +684,8 @@ class Dynamic:
         self.score_location = int(round(score_location * self.samplerate))
         self.duration = int(round(duration * self.samplerate))
         
-    def to_array(self):
-        return N.ones( (self.duration, 2) )
+    def to_array(self, channels=2):
+        return N.ones( (self.duration, channels) )
         
     def __str__(self):
         return "Dynamic at %d with duration %d" % (self.score_location,
@@ -696,9 +696,28 @@ class Volume(Dynamic):
         Dynamic.__init__(self, track, score_location, duration)
         self.volume = volume
         
-    def to_array(self):
+    def to_array(self, channels=2):
         return N.linspace(self.volume, self.volume, 
-                        self.duration*2).reshape(self.duration, 2)
+            self.duration * channels).reshape(self.duration, channels)
+
+class RawVolume(Dynamic):
+    def __init__(self, segment, volume_frames):
+        self.track = segment.track
+        self.samplerate = segment.track.samplerate()
+        self.score_location = segment.score_location
+        self.duration = segment.duration
+        self.volume_frames = volume_frames
+        if self.duration != len(volume_frames):
+            raise Exception("Duration must be same as volume frame length")
+    
+    def to_array(self, channels=2):
+        if channels == 1:
+            return self.volume_frames.reshape(-1, 1)
+        if channels == 2:
+            return N.tile(self.volume_frames, (1, 2))
+        raise Exception(
+            "RawVolume doesn't know what to do with %s channels" % channels)
+        
 
 class Fade(Dynamic):
     # linear, exponential, (TODO: cosine)
@@ -709,21 +728,21 @@ class Fade(Dynamic):
         self.out_volume = out_volume
         self.fade_type = fade_type
         
-    def to_array(self):
+    def to_array(self, channels=2):
         if self.fade_type == "linear":
             return N.linspace(self.in_volume, self.out_volume, 
-                self.duration * self.track.channels)\
-                .reshape(self.duration, self.track.channels)
+                self.duration * channels)\
+                .reshape(self.duration, channels)
         elif self.fade_type == "exponential":
             if self.in_volume < self.out_volume:
-                return (N.logspace(8, 1, self.duration * self.track.channels,
+                return (N.logspace(8, 1, self.duration * channels,
                     base=.5) * (
                         self.out_volume - self.in_volume) / 0.5 + 
-                        self.in_volume).reshape(self.duration, self.track.channels)
+                        self.in_volume).reshape(self.duration, channels)
             else:
-                return (N.logspace(1, 8, self.duration * self.track.channels, base=.5
+                return (N.logspace(1, 8, self.duration * channels, base=.5
                     ) * (self.in_volume - self.out_volume) / 0.5 + 
-                    self.out_volume).reshape(self.duration, self.track.channels)
+                    self.out_volume).reshape(self.duration, channels)
         elif self.fade_type == "cosine":
             return
 
@@ -872,6 +891,8 @@ class Composition:
             
             self.add_track(raw_track)
             self.add_score_segment(raw_seg)
+            
+            return raw_seg
             
         else:
             print seg1.score_location + seg1.duration, seg2.score_location
@@ -1040,15 +1061,12 @@ class Composition:
             dyns = sorted([d for d in self.dynamics if d.track == track],
                            key=lambda k: k.score_location)
             for d in dyns:
-                # EXPLAIN -2 addend! Array indexing, basically. Starts at 0.
-                dyn_range = N.arange(d.score_location * self.channels,
-                    (d.score_location + d.duration) * self.channels)
-                adjusted = (parts[track].take(dyn_range).\
-                           reshape(d.duration, self.channels) * d.to_array())
-                # print adjusted
+                vol_frames = d.to_array(self.channels)
+                
+                print N.shape(vol_frames)
                 
                 parts[track][d.score_location :
-                             d.score_location + d.duration, :] = adjusted
+                             d.score_location + d.duration, :] *= vol_frames
                 
                 print "last frame of dynamic is: ",\
                     d.score_location + d.duration
