@@ -847,25 +847,26 @@ class Composition:
             seg1.duration -= dur
 
 
-            seg2.track.set_frame(seg2.start - dur / 2)
-            in_frames = seg2.track.read_frames(dur)
+            # seg2.track.set_frame(seg2.start - dur / 2)
+            # in_frames = seg2.track.read_frames(dur)
+            # 
+            # seg2.start += dur / 2
+            # seg2.duration -= dur / 2
+            # seg2.score_location += dur / 2
+            # seg2.track.set_frame(seg2.start)
             
-            seg2.start += dur / 2
-            seg2.duration -= dur / 2
-            seg2.score_location += dur / 2
-            seg2.track.set_frame(seg2.start)
-            
-            # seg2.start -= (dur / 2)
-            # seg2.duration += (dur / 2)
-            # seg2.score_location -= (dur / 2)
-            # in_frames = seg2.get_frames(channels=self.channels)[:dur]
-            # seg2.start += dur
-            # seg2.duration -= dur
-            # seg2.score_location += dur
+            seg2.start -= (dur / 2)
+            seg2.duration += (dur / 2)
+            seg2.score_location -= (dur / 2)
+            in_frames = seg2.get_frames(channels=self.channels)[:dur]
+            seg2.start += dur
+            seg2.duration -= dur
+            seg2.score_location += dur
             
             # compute the crossfade
             in_frames = in_frames[:min(map(len, [in_frames, out_frames]))]
             out_frames = out_frames[:min(map(len, [in_frames, out_frames]))]
+            
             cf_frames = equal_power(out_frames, in_frames)
             
             #print "Computed cf_frames", cf_frames
