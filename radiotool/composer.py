@@ -845,15 +845,6 @@ class Composition:
             seg1.duration += (dur / 2)
             out_frames = seg1.get_frames(channels=self.channels)[-dur:]
             seg1.duration -= dur
-
-
-            # seg2.track.set_frame(seg2.start - dur / 2)
-            # in_frames = seg2.track.read_frames(dur)
-            # 
-            # seg2.start += dur / 2
-            # seg2.duration -= dur / 2
-            # seg2.score_location += dur / 2
-            # seg2.track.set_frame(seg2.start)
             
             seg2.start -= (dur / 2)
             seg2.duration += (dur / 2)
