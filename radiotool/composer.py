@@ -652,10 +652,6 @@ class Segment:
         frames = self.track.read_frames(self.duration)
         self.track.set_frame(0)
         
-        print "IN GET FRAMES", channels, self.track.channels
-        print "START", self.start
-        print "DURATION", self.duration
-        
         if channels == self.track.channels:
             return frames.copy()
         elif channels == 2 and self.track.channels == 1:
@@ -826,8 +822,6 @@ class Composition:
         score_loc_in_seconds = (segment.score_location + segment.duration - dur) /\
             float(segment.track.samplerate())
         f = Fade(segment.track, score_loc_in_seconds, duration, 1.0, 0.0)
-        print f
-        print segment.duration
         self.add_dynamic(f)
         return f
     
@@ -872,15 +866,6 @@ class Composition:
             
             raw_seg = Segment(raw_track, rs_score_location, 0.0, rs_duration)
             
-            print 
-            print "###"
-            print "seg1 end", seg1.score_location + seg1.duration
-            print "cf start", raw_seg.score_location
-            print "cf end", raw_seg.score_location + raw_seg.duration
-            print "seg2 start", seg2.score_location
-            print "###"
-            print 
-            
             self.add_track(raw_track)
             self.add_score_segment(raw_seg)
             
@@ -914,10 +899,10 @@ class Composition:
         if padding_before + pre_fade > score_cue:
             padding_before = score_cue - pre_fade
                  
-        print "Composing %s at %.2f from %.2f to %.2f to %.2f to %.2f" % (
-                track.filename, song_cue, score_cue-padding_before-pre_fade,
-                score_cue, score_cue+duration,
-                score_cue+duration+padding_after+post_fade)
+        # print "Composing %s at %.2f from %.2f to %.2f to %.2f to %.2f" % (
+        #         track.filename, song_cue, score_cue-padding_before-pre_fade,
+        #         score_cue, score_cue+duration,
+        #         score_cue+duration+padding_after+post_fade)
         s = Segment(track, score_cue - padding_before - pre_fade,
                     song_cue - padding_before - pre_fade,
                     pre_fade + padding_before + duration + padding_after + post_fade)
@@ -925,19 +910,8 @@ class Composition:
         self.add_score_segment(s)
         
         d = []
-        # # FUTURE WORK: learn how to adjust volumes -- normalize gain?
-        # # Giving it a shot here (normalizing by RMS energy)
-        # track.set_frame(track.sr() * song_cue)
-        # energy_window = track.sr() * (pre_fade + padding_before + duration +
-        #                               padding_after + post_fade)
-        # energy = RMS_energy(track.read_frames(energy_window))
-        # #print "Music energy", energy
-        # dyn_adj = 0.10 / energy
-        # #track.set_frame(0)
-        # #track.set_frame(track.sr() * song_cue)
+
         dyn_adj = 1
-        
-        #print "Normalized music energy", RMS_energy(track.read_frames(energy_window) * dyn_adj)
         
         track.set_frame(0)
         
@@ -949,7 +923,7 @@ class Composition:
         d.append(Volume(track, score_cue, duration, .4*dyn_adj))
         d.append(Fade(track, score_cue + duration, padding_after,
                       .4*dyn_adj, 0, fade_type="exponential"))
-        print "\n\n\n\n#####", score_cue+duration+padding_after, post_fade
+        # print "\n\n\n\n#####", score_cue+duration+padding_after, post_fade
         d.append(Fade(track, score_cue + duration + padding_after, post_fade,
                       .1*dyn_adj, 0, fade_type="linear"))
         self.add_dynamics(d)
@@ -995,41 +969,37 @@ class Composition:
     
         new_cut_point =  (long_list[0] + 1) * \
                          int(subwindow_n_frames / 2.0)
-        # print "first min subwindow", long_list[0], "total", len(volumes)
-        # # return round(new_cut_point / self.sr(), 2)
-        # print "went from ", len(frames), " to ", new_cut_point
-        # print long_list, min_subwindow_vol_index
-        # print long_list[-1], len(volumes) - 1
+
         if long_list[-1] + 16 > len(volumes):
             return frames[:new_cut_point]
         return frames
-
+    
     def build_score(self, **kwargs):
         track_list = kwargs.pop('track', self.tracks)
         adjust_dynamics = kwargs.pop('adjust_dynamics', True)
 
         parts = {}
-        longest_part = 0
+        starts = {}
         
         # for universal volume adjustment
         all_frames = N.array([])
         song_frames = N.array([])
         speech_frames = N.array([])
         
+        longest_part = max([x.score_location + x.duration for x in self.score])
+        
         for track_idx, track in enumerate(track_list):
             segments = sorted([v for v in self.score if v.track == track], 
                               key=lambda k: k.score_location + k.duration)
             if len(segments) > 0:
-                parts[track] = N.zeros( (segments[-1].score_location + 
-                                         segments[-1].duration,
-                                         self.channels) )
+                start_loc = min([x.score_location for x in segments])
+                end_loc = segments[-1].score_location + segments[-1].duration
                 
-                if segments[-1].score_location +\
-                   segments[-1].duration > longest_part:
-                    longest_part = segments[-1].score_location +\
-                                   segments[-1].duration
+                starts[track] = start_loc
+                
+                parts[track] = N.zeros((end_loc - start_loc, self.channels))
+                
                 for s in segments:
-                    # print "### segment ", s, s.track
                     frames = s.get_frames(channels=self.channels).\
                         reshape(-1, self.channels)
                     
@@ -1044,26 +1014,18 @@ class Composition:
                             speech_frames = N.append(speech_frames,
                                 self._remove_end_silence(frames.flatten()))
                                 
-                    parts[track][s.score_location :
-                                 s.score_location + s.duration, :] = frames
-                                
-                    print "last frame of segment is: ",\
-                           s.score_location + s.duration
-                    
+                    parts[track][s.score_location - start_loc:
+                                 s.score_location - start_loc + s.duration,
+                                 :] = frames
+
             dyns = sorted([d for d in self.dynamics if d.track == track],
                            key=lambda k: k.score_location)
             for d in dyns:
                 vol_frames = d.to_array(self.channels)
-                
-                print N.shape(vol_frames)
-                
-                parts[track][d.score_location :
-                             d.score_location + d.duration, :] *= vol_frames
-                
-                print "last frame of dynamic is: ",\
-                    d.score_location + d.duration
+                parts[track][d.score_location - start_loc :
+                             d.score_location - start_loc + d.duration,
+                             :] *= vol_frames
 
-        
         if adjust_dynamics:
             total_energy = RMS_energy(all_frames)
             song_energy = RMS_energy(song_frames)
@@ -1078,19 +1040,10 @@ class Composition:
                 dyn_adj = 1
         else:
             dyn_adj = 1
-            
-        print "### Multiplying song signal by ", dyn_adj
-        
+
         out = N.zeros((longest_part, self.channels))
         for track, part in parts.iteritems():
-            # TODO: -3 second hack -- fix later
-            # out[:len(part)-132300] += part[:-132300]
-            if isinstance(track, Song):
-                print "### Dyn adjusting song"
-                out[:len(part)-132300] += part[:-132300] * dyn_adj
-            else:
-                print "### Dyn adjusting speech"
-                out[:len(part)] += part
+            out[starts[track]:starts[track] + len(part)] += part
         
         return out
     
@@ -1120,7 +1073,7 @@ class Composition:
 
         # always build the complete score
         out = self.build_score(adjust_dynamics=adjust_dynamics)
-        # print out
+
         out_file = Sndfile(filename + "." + filetype, 'w',
                            Format(filetype, encoding=encoding), 
                            channels, samplerate)
