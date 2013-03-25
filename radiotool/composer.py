@@ -832,6 +832,12 @@ class Composition:
 
             if dur % 2 == 1:
                 dur -= 1
+
+            if dur / 2 > seg1.duration:
+                dur = seg1.duration * 2
+
+            if dur / 2 > seg2.duration:
+                dur = seg2.duration * 2
                 
             # we're going to compute the crossfade and then create a RawTrack
             # for the resulting frames
@@ -847,7 +853,7 @@ class Composition:
             seg2.start += dur
             seg2.duration -= dur
             seg2.score_location += dur
-            
+
             # compute the crossfade
             in_frames = in_frames[:min(map(len, [in_frames, out_frames]))]
             out_frames = out_frames[:min(map(len, [in_frames, out_frames]))]
@@ -993,10 +999,14 @@ class Composition:
                               key=lambda k: k.score_location + k.duration)
             if len(segments) > 0:
                 start_loc = min([x.score_location for x in segments])
-                end_loc = segments[-1].score_location + segments[-1].duration
+                end_loc = max([x.score_location + x.duration for x in segments])
+                # end_loc = segments[-1].score_location + segments[-1].duration
                 
                 starts[track] = start_loc
                 
+                # print "start loc", start_loc, "end loc", end_loc
+                # print "durs", [x.duration for x in segments]
+
                 parts[track] = N.zeros((end_loc - start_loc, self.channels))
                 
                 for s in segments:
