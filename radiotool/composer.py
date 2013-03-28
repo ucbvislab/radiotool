@@ -983,6 +983,7 @@ class Composition:
     def build_score(self, **kwargs):
         track_list = kwargs.pop('track', self.tracks)
         adjust_dynamics = kwargs.pop('adjust_dynamics', True)
+        min_length = kwargs.pop('min_length', None)
 
         parts = {}
         starts = {}
@@ -1051,6 +1052,8 @@ class Composition:
         else:
             dyn_adj = 1
 
+        if longest_part < min_length:
+            longest_part = min_length
         out = N.zeros((longest_part, self.channels))
         for track, part in parts.iteritems():
             out[starts[track]:starts[track] + len(part)] += part
@@ -1065,6 +1068,7 @@ class Composition:
         samplerate = kwargs.pop('samplerate', 44100)
         channels = kwargs.pop('channels', 2)
         separate_tracks = kwargs.pop('separate_tracks', False)
+        min_length = kwargs.pop('min_length', None)
         
         encoding = 'pcm16'
         if filetype == 'ogg':
@@ -1073,7 +1077,8 @@ class Composition:
         if separate_tracks:
             for track in self.tracks:
                 out = self.build_score(track=[track],
-                                       adjust_dynamics=adjust_dynamics)
+                                       adjust_dynamics=adjust_dynamics,
+                                       min_length=min_length)
                 out_file = Sndfile(filename +"-" + track.name + "." +
                                    filetype, 'w',
                                    Format(filetype, encoding=encoding),
@@ -1082,7 +1087,8 @@ class Composition:
                 out_file.close()
 
         # always build the complete score
-        out = self.build_score(adjust_dynamics=adjust_dynamics)
+        out = self.build_score(adjust_dynamics=adjust_dynamics,
+                               min_length=min_length)
 
         out_file = Sndfile(filename + "." + filetype, 'w',
                            Format(filetype, encoding=encoding), 
