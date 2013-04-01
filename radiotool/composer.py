@@ -81,22 +81,26 @@ def normalize_features(features):
     return (features - N.min(features)) / (N.max(features) - N.min(features))
 
 
-def zero_crossing_before(frames, n):
+def zero_crossing_last(frames):
     """finds the first zero crossing in frames before frame n"""
     frames = N.array(frames)
-    crossings = N.where(frames[:n] * frames[1:n + 1] < 0)
+
+    crossings = N.where(N.diff(N.sign(frames)))
+    # crossings = N.where(frames[:n] * frames[1:n + 1] < 0)
+
     if len(crossings[0]) == 0:
-        raise Exception("No zero crossing before frame %d" % n)
+        raise Exception("No zero crossing")
     return crossings[0][-1]
 
 
-def zero_crossing_after(frames, n):
+def zero_crossing_first(frames):
     """finds the first zero crossing in frames after frame n"""
     frames = N.array(frames)
-    crossings = N.where(frames[n - 1:-1] * frames[n:] < 0)
+    crossings = N.where(N.diff(N.sign(frames)))
+    # crossings = N.where(frames[n - 1:-1] * frames[n:] < 0)
     if len(crossings[0]) == 0:
-        raise Exception("No zero crossing after frame %d" % n)
-    return crossings[0][0] + n
+        raise Exception("No zero crossing")
+    return crossings[0][0] + 1
 
 # Crossfading helper methods
 # borrowed from echonest remix
@@ -205,16 +209,20 @@ class Track:
 
     def all_as_mono(self):
         """Get the entire track as 1 combined channel"""
+        return self.range_as_mono(0, self.total_frames())
+
+    def range_as_mono(self, start_sample, end_sample):
+        """Get a range of frames as 1 combined channel"""
         tmp_current = self.current_frame
-        self.reset()
-        tmp_frames = self.read_frames(self.total_frames())
+        self.set_frame(start_sample)
+        tmp_frames = self.read_frames(end_sample - start_sample)
         if self.channels == 2:
-            frames = tmp_frames[:, 0].copy() + tmp_frames[:, 1].copy()
+            frames = N.mean(tmp_frames, axis=1)
         elif self.channels == 1:
             frames = tmp_frames
         else:
             raise IOError("Input audio must have either 1 or 2 channels")
-        self.current_frame = tmp_current
+        self.set_frame(tmp_current)
         return frames
 
     def samplerate(self):
@@ -251,13 +259,28 @@ class Track:
         
     def zero_crossing_before(self, n):
         """n is in seconds, finds the first zero crossing before n seconds"""
-        n_in_samples = n * self.samplerate()
-        frame = zero_crossing_before(self.all_as_mono(), n_in_samples)
+        n_in_samples = int(n * self.samplerate())
+
+        search_start = n_in_samples - self.samplerate() 
+        if search_start < 0:
+            search_start = 0
+
+        frame = zero_crossing_last(
+            self.range_as_mono(search_start, n_in_samples)) + search_start
+
+        # frame = zero_crossing_before(self.all_as_mono(), n_in_samples)
         return frame / float(self.samplerate())
 
     def zero_crossing_after(self, n):
-        n_in_samples = n * self.samplerate()
-        frame = zero_crossing_after(self.all_as_mono(), n_in_samples)
+        n_in_samples = int(n * self.samplerate())
+        search_end = n_in_samples + self.samplerate()
+        if search_end > self.total_frames():
+            search_end = self.total_frames()
+
+        frame = zero_crossing_first(
+            self.range_as_mono(n_in_samples, search_end)) + n_in_samples
+
+        # frame = zero_crossing_after(self.all_as_mono(), n_in_samples)
         return frame / float(self.samplerate())
 
 
