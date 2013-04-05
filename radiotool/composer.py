@@ -89,7 +89,8 @@ def zero_crossing_last(frames):
     # crossings = N.where(frames[:n] * frames[1:n + 1] < 0)
 
     if len(crossings[0]) == 0:
-        raise Exception("No zero crossing")
+        print "No zero crossing"
+        return len(frames) - 1
     return crossings[0][-1]
 
 
@@ -99,7 +100,8 @@ def zero_crossing_first(frames):
     crossings = N.where(N.diff(N.sign(frames)))
     # crossings = N.where(frames[n - 1:-1] * frames[n:] < 0)
     if len(crossings[0]) == 0:
-        raise Exception("No zero crossing")
+        print "No zero crossing"
+        return 0
     return crossings[0][0] + 1
 
 # Crossfading helper methods
@@ -861,7 +863,7 @@ class Composition:
 
             if dur / 2 > seg2.duration:
                 dur = seg2.duration * 2
-                
+
             # we're going to compute the crossfade and then create a RawTrack
             # for the resulting frames
 
