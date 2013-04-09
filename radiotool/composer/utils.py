@@ -1,3 +1,5 @@
+import numpy as N
+
 def log_magnitude_spectrum(window):
     return N.log(N.abs(N.fft.rfft(window)).clip(1e-5, N.inf))
 

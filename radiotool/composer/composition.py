@@ -1,5 +1,6 @@
 import sys
 from math import sqrt
+from warnings import warn
 
 import numpy as N
 
@@ -10,7 +11,11 @@ import mfcc
 from scipy.spatial import distance
 from numpy import pad as arraypad
 
-from utils import equal_power
+from rawtrack import RawTrack
+from fade import Fade
+from segment import Segment
+from volume import Volume
+from utils import equal_power, RMS_energy
 
 class Composition:
     def __init__(self, tracks=[], channels=2):
@@ -26,11 +31,11 @@ class Composition:
         self.tracks.update(tracks)
         
     def add_score_segment(self, segment):
-        raise DeprecationWarning("Use add_segment")
+        warn(DeprecationWarning("Use add_segment"))
         self.segments.append(segment)
         
     def add_score_segments(self, segments):
-        raise DeprecationWarning("Use add_segments")
+        warn(DeprecationWarning("Use add_segments"))
         self.segments.extend(segments)
 
     def add_segment(self, segment):

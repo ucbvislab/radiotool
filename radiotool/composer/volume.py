@@ -1,3 +1,5 @@
+from dynamic import Dynamic
+
 class Volume(Dynamic):
     def __init__(self, track, score_location, duration, volume):
         Dynamic.__init__(self, track, score_location, duration)

@@ -1,3 +1,5 @@
+from segment import Segment
+
 class TimeStretchSegment(Segment):
     #from scipy.signal import resample
 

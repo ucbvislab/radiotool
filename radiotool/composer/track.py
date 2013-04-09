@@ -1,6 +1,8 @@
 from scikits.audiolab import Sndfile, Format
 import numpy as N
 
+from utils import zero_crossing_first, zero_crossing_last
+
 class Track:
     
     def __init__(self, fn, name="No name"):

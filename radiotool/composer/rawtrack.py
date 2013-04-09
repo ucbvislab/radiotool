@@ -1,3 +1,8 @@
+import numpy as N
+
+from track import Track
+
+
 class RawTrack(Track):
 
     def __init__(self, frames, name="Raw frames name", samplerate=44100):

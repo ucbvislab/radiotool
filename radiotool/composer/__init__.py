@@ -4,6 +4,7 @@ from .speech import Speech
 from .song import Song
 from .segment import Segment
 from .dynamic import Dynamic
+from .fade import Fade
 from .volume import Volume
 from .rawvolume import RawVolume
 from .timestretchsegment import TimeStretchSegment

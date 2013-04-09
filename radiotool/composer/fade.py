@@ -1,3 +1,5 @@
+from dynamic import Dynamic
+
 class Fade(Dynamic):
     # linear, exponential, (TODO: cosine)
     def __init__(self, track, score_location, duration, 

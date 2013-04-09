@@ -1,3 +1,5 @@
+from track import Track
+
 class Song(Track):
 
     def __init__(self, fn, name="Song name"):

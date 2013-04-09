@@ -1,3 +1,5 @@
+import numpy as N
+
 class Segment:
     # score_location, start, and duration all in seconds
     # -- may have to change later if this isn't accurate enough

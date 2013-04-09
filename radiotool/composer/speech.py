@@ -1,3 +1,5 @@
+from track import Track
+
 class Speech(Track):
     def __init__(self, fn, name="Speech name"):
         Track.__init__(self, fn, name)
