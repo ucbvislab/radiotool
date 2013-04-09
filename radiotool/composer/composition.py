@@ -1,31 +1,21 @@
-# composer.py
-# (c) 2012 - Steve Rubin - srubin@cs.berkeley.edu
-# Has all the classes for speech, songs, and fade types
-# Additionally, has class for actual composition
-
 import sys
-
 from math import sqrt
 
 import numpy as N
 
 from scikits.audiolab import Sndfile, Format
 
-# import scikits.talkbox as talk
 import segmentaxis
 import mfcc
 from scipy.spatial import distance
-
-# problem on the server with resample...
-#from scipy.signal import resample
-
-# import arraypad
 from numpy import pad as arraypad
+
+from utils import equal_power
 
 class Composition:
     def __init__(self, tracks=[], channels=2):
         self.tracks = set(tracks)
-        self.score = []
+        self.segments = []
         self.dynamics = []
         self.channels = channels
 
@@ -36,10 +26,18 @@ class Composition:
         self.tracks.update(tracks)
         
     def add_score_segment(self, segment):
-        self.score.append(segment)
+        raise DeprecationWarning("Use add_segment")
+        self.segments.append(segment)
         
     def add_score_segments(self, segments):
-        self.score.extend(segments)
+        raise DeprecationWarning("Use add_segments")
+        self.segments.extend(segments)
+
+    def add_segment(self, segment):
+        self.segments.append(segment)
+
+    def add_segments(self, segments):
+        self.segments.extend(segments)
 
     def add_dynamic(self, dyn):
         self.dynamics.append(dyn)
@@ -99,7 +97,8 @@ class Composition:
         else:
             raise Exception(
                 "Cannot create fade-out that extends past the track's end")
-        score_loc_in_seconds = (segment.score_location + segment.duration - dur) /\
+        score_loc_in_seconds = (segment.score_location +
+            segment.duration - dur) /\
             float(segment.track.samplerate())
         f = Fade(segment.track, score_loc_in_seconds, duration, 1.0, 0.0)
         self.add_dynamic(f)
@@ -153,7 +152,7 @@ class Composition:
             raw_seg = Segment(raw_track, rs_score_location, 0.0, rs_duration)
             
             self.add_track(raw_track)
-            self.add_score_segment(raw_seg)
+            self.add_segment(raw_seg)
             
             return raw_seg
             
@@ -184,16 +183,13 @@ class Composition:
             
         if padding_before + pre_fade > score_cue:
             padding_before = score_cue - pre_fade
-                 
-        # print "Composing %s at %.2f from %.2f to %.2f to %.2f to %.2f" % (
-        #         track.filename, song_cue, score_cue-padding_before-pre_fade,
-        #         score_cue, score_cue+duration,
-        #         score_cue+duration+padding_after+post_fade)
+
         s = Segment(track, score_cue - padding_before - pre_fade,
                     song_cue - padding_before - pre_fade,
-                    pre_fade + padding_before + duration + padding_after + post_fade)
+                    pre_fade + padding_before + duration +
+                    padding_after + post_fade)
 
-        self.add_score_segment(s)
+        self.add_segment(s)
         
         d = []
 
@@ -217,8 +213,9 @@ class Composition:
     def _remove_end_silence(self, frames):
         subwindow_n_frames = int(1/16.0 * 44100)
 
-        segments = segmentaxis.segment_axis(frames, subwindow_n_frames, axis=0,
-                                     overlap=int(subwindow_n_frames / 2.0))
+        segments = segmentaxis.segment_axis(
+            frames, subwindow_n_frames, axis=0,
+            overlap=int(subwindow_n_frames / 2.0))
 
         # segments = segments.reshape((-1, subwindow_n_frames * 2))
         #volumes = N.mean(N.abs(segments), 1)
@@ -273,20 +270,18 @@ class Composition:
         song_frames = N.array([])
         speech_frames = N.array([])
         
-        longest_part = max([x.score_location + x.duration for x in self.score])
+        longest_part = max([x.score_location + x.duration
+                            for x in self.segments])
         
         for track_idx, track in enumerate(track_list):
-            segments = sorted([v for v in self.score if v.track == track], 
+            segments = sorted([v for v in self.segments if v.track == track], 
                               key=lambda k: k.score_location + k.duration)
             if len(segments) > 0:
                 start_loc = min([x.score_location for x in segments])
-                end_loc = max([x.score_location + x.duration for x in segments])
-                # end_loc = segments[-1].score_location + segments[-1].duration
+                end_loc = max([x.score_location + x.duration
+                               for x in segments])
                 
                 starts[track] = start_loc
-                
-                # print "start loc", start_loc, "end loc", end_loc
-                # print "durs", [x.duration for x in segments]
 
                 parts[track] = N.zeros((end_loc - start_loc, self.channels))
                 
