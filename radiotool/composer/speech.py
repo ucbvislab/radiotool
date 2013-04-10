@@ -1,4 +1,5 @@
 from track import Track
+from utils import segment_array
 
 class Speech(Track):
     """A :py:class:`radiotool.composer.Track` 
@@ -12,24 +13,18 @@ class Speech(Track):
         frames = self.read_frames(window_size * self.sr())
         subwindow_n_frames = int((window_size / 16.0) * self.sr())
 
-        segments = segmentaxis.segment_axis(frames, subwindow_n_frames, axis=0,
-                                     overlap=int(subwindow_n_frames / 2.0))
+        segments = segment_array(frames, subwindow_n_frames, overlap=.5)
 
         segments = segments.reshape((-1, subwindow_n_frames * 2))
-        #volumes = N.mean(N.abs(segments), 1)
+
         volumes = N.apply_along_axis(RMS_energy, 1, segments)
  
         min_subwindow_vol = min(N.sum(N.abs(segments), 1) / subwindow_n_frames)
         min_subwindow_vol = min(volumes)
 
-        # some threshold? what if there are no zeros?
-        
         min_subwindow_vol_index = N.where(volumes <= 1.1 * 
                                           min_subwindow_vol)
 
-        # first_min_subwindow = min_subwindow_vol_index[0][0]
-        # closest_min_subwindow = find_nearest(min_subwindow_vol_index[0], 
-        #                                      len(volumes)/2)
         
         # find longest span of "silence" and set to the beginning
         # adapted from 
