@@ -12,6 +12,9 @@ scikits.audiolab_, a python wrapper for libsndfile_.
 .. _scikits.audiolab: https://pypi.python.org/pypi/scikits.audiolab/
 .. _libsndfile: http://www.mega-nerd.com/libsndfile/
 
+For now, ``radiotool`` consists of the ``composer`` module, but it
+will likely grow in the future to cover other use cases.
+
 Composition
 -----------
  
@@ -47,4 +50,4 @@ Simple example
     # or export your composition as an audio file, composition.wav
     comp.export(filename="composition")
 
-See the documentation (coming soon!) for more detailed examples.
+See the documentation for more detailed examples (coming soon!).
