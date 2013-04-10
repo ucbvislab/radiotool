@@ -1,11 +1,14 @@
 from track import Track
 
 class Speech(Track):
+    """A :py:class:`radiotool.composer.Track` 
+    subclass that represents a speech .wav file"""
+
     def __init__(self, fn, name="Speech name"):
         Track.__init__(self, fn, name)
     
     def refine_cut(self, cut_point, window_size=1):
-        self.set_frame(int((cut_point - window_size / 2.0) * self.sr()))
+        self.current_frame = int((cut_point - window_size / 2.0) * self.sr())
         frames = self.read_frames(window_size * self.sr())
         subwindow_n_frames = int((window_size / 16.0) * self.sr())
 
@@ -16,10 +19,9 @@ class Speech(Track):
         #volumes = N.mean(N.abs(segments), 1)
         volumes = N.apply_along_axis(RMS_energy, 1, segments)
  
-        if DEBUG: print volumes
         min_subwindow_vol = min(N.sum(N.abs(segments), 1) / subwindow_n_frames)
         min_subwindow_vol = min(volumes)
-        if DEBUG: print min_subwindow_vol
+
         # some threshold? what if there are no zeros?
         
         min_subwindow_vol_index = N.where(volumes <= 1.1 * 

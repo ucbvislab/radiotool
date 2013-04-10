@@ -4,9 +4,20 @@ from track import Track
 
 
 class RawTrack(Track):
+    """A :py:class:`radiotool.composer.Track` subclass that wraps raw PCM
+    data (as a numpy array).
+    """
 
     def __init__(self, frames, name="Raw frames name", samplerate=44100):
-        self._sr = samplerate
+        """Create a track with raw PCM data in array ``frames``
+
+        :param frames: Raw PCM data array
+        :type frames: numpy array
+        :param integer samplerate: Sample rate of frames
+        :param string name: Name of track
+
+        """
+        self._samplerate = samplerate
         self.frames = frames
         self.name = name
         self.filename = "RAW_" + name
@@ -17,15 +28,18 @@ class RawTrack(Track):
         self.current_frame = 0
         self._total_frames = N.shape(frames)[0]
     
+    @property
     def samplerate(self):
-        return self._sr
-    
-    def sr(self):
-        return self._sr
-    
-    def set_frame(self, n):
-        self.current_frame = n
-    
+        return self._samplerate
+
+    @property
+    def current_frame(self):
+        return self._current_frame
+
+    @current_frame.setter
+    def current_frame(self, n):
+        self._current_frame = n
+
     def total_frames(self):
         return self._total_frames
     
