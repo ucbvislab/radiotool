@@ -18,13 +18,13 @@ class TestTrack(TestCase):
         self.track = None
 
     def test_samplerate(self):
-        assert self.track.samplerate() == 44100
+        assert self.track.samplerate == 44100
 
     def test_num_frames(self):
         assert self.track.total_frames() == 88200
 
     def test_read_frames(self):
-        self.track.set_frame(1000)
+        self.track.current_frame = 1000
         frames_read = self.track.read_frames(2)
         frames_real = N.array([[-0.30187988, 0.24993896],
                                [-0.30731201, 0.26702881]])

@@ -32,9 +32,10 @@ class Segment:
         :rtype: numpy array
 
         """
+        tmp_frame = self.track.current_frame
         self.track.current_frame = self.start
         frames = self.track.read_frames(self.duration)
-        self.track.current_frame = 0
+        self.track.current_frame = tmp_frame
         
         if channels == self.track.channels:
             return frames.copy()

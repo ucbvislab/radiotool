@@ -28,6 +28,7 @@ class Track(object):
         :returns: Next ``n`` frames from the track, starting with ``current_frame``
         :rtype: numpy array
         """
+
         if self.channels == 1:
             out = N.zeros(n)
         elif self.channels == 2:
@@ -39,12 +40,14 @@ class Track(object):
             print "Trying to retrieve too many frames!"
             print "Asked for", n
             n = self.remaining_frames()
-        self.current_frame += n
-        
+
         if self.channels == 1:
             out = self.sound.read_frames(n)
         elif self.channels == 2:
             out[:n, :] = self.sound.read_frames(n)
+
+        self.current_frame += n
+
         return out
 
     @property
@@ -91,7 +94,7 @@ class Track(object):
             frames = tmp_frames
         else:
             raise IOError("Input audio must have either 1 or 2 channels")
-        self.set_frame(tmp_current)
+        self.current_frame = tmp_current
         return frames
 
     @property
@@ -122,7 +125,7 @@ class Track(object):
         """
         if duration == 0:
             duration = self.sound.nframes
-        self.set_frame(start)
+        self.current_frame = start
         arr = self.read_frames(duration)
         # get the frame of the maximum amplitude
         # different names for the same thing...

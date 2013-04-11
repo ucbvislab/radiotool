@@ -18,7 +18,7 @@ class Composition(object):
     tracks.
     """
 
-    def __init__(self, tracks=[], channels=2, segments=[], dynamics=[]):
+    def __init__(self, tracks=None, channels=2, segments=None, dynamics=None):
         """Initialize a composition with optional starting tracks/segments.
 
         :param tracks: Initial tracks in the composition
@@ -33,9 +33,21 @@ class Composition(object):
         :rtype: Composition
 
         """
-        self.tracks = set(tracks)
-        self.segments = segments
-        self.dynamics = dynamics
+        if tracks is None:
+            self.tracks = set()
+        else:
+            self.tracks = set(tracks)
+
+        if segments is None:
+            self.segments = []
+        else:
+            self.segments = list(segments)
+
+        if dynamics is None:
+            self.dynamics = []
+        else:
+            self.dynamics = list(dynamics)
+
         self.channels = channels
 
     def add_track(self, track):
@@ -109,9 +121,9 @@ class Composition(object):
         :returns: The fade that has been added to the composition
         :rtype: :py:class:`Fade`
         """
-        dur = int(round(duration * segment.track.samplerate()))
+        dur = int(round(duration * segment.track.samplerate))
         score_loc_in_seconds = (segment.comp_location) /\
-            float(segment.track.samplerate())
+            float(segment.track.samplerate)
         f = Fade(segment.track, score_loc_in_seconds, duration, 0.0, 1.0)
         self.add_dynamic(f)
         return f
@@ -126,9 +138,9 @@ class Composition(object):
         :returns: The fade that has been added to the composition
         :rtype: :py:class:`Fade`
         """
-        dur = int(round(duration * segment.track.samplerate()))
+        dur = int(round(duration * segment.track.samplerate))
         score_loc_in_seconds = (segment.comp_location + segment.duration - dur) /\
-            float(segment.track.samplerate())
+            float(segment.track.samplerate)
         f = Fade(segment.track, score_loc_in_seconds, duration, 1.0, 0.0)
         self.add_dynamic(f)
         return f
@@ -144,7 +156,7 @@ class Composition(object):
         :rtype: :py:class:`Fade`
         """
 
-        dur = int(round(duration * segment.track.samplerate()))
+        dur = int(round(duration * segment.track.samplerate))
         if segment.start - dur >= 0:
             segment.start -= dur
         else:
@@ -159,7 +171,7 @@ class Composition(object):
         segment.duration += dur
         
         score_loc_in_seconds = (segment.comp_location) /\
-            float(segment.track.samplerate())
+            float(segment.track.samplerate)
 
         f = Fade(segment.track, score_loc_in_seconds, duration, 0.0, 1.0)
         self.add_dynamic(f)
@@ -175,7 +187,7 @@ class Composition(object):
         :returns: The fade that has been added to the composition
         :rtype: :py:class:`Fade`
         """
-        dur = int(round(duration * segment.track.samplerate()))
+        dur = int(round(duration * segment.track.samplerate))
         if segment.start + segment.duration + dur <\
             segment.track.total_frames():
             segment.duration += dur
@@ -184,7 +196,7 @@ class Composition(object):
                 "Cannot create fade-out that extends past the track's end")
         score_loc_in_seconds = (segment.comp_location +
             segment.duration - dur) /\
-            float(segment.track.samplerate())
+            float(segment.track.samplerate)
         f = Fade(segment.track, score_loc_in_seconds, duration, 1.0, 0.0)
         self.add_dynamic(f)
         return f
@@ -201,7 +213,7 @@ class Composition(object):
         """
 
         if seg1.comp_location + seg1.duration - seg2.comp_location < 2:
-            dur = int(duration * seg1.track.samplerate())
+            dur = int(duration * seg1.track.samplerate)
 
             if dur % 2 == 1:
                 dur -= 1
@@ -233,13 +245,11 @@ class Composition(object):
             
             cf_frames = equal_power(out_frames, in_frames)
             
-            #print "Computed cf_frames", cf_frames
-            
             raw_track = RawTrack(cf_frames, name="crossfade",
-                samplerate=seg1.track.samplerate())
+                samplerate=seg1.track.samplerate)
             
             rs_comp_location = (seg1.comp_location + seg1.duration) /\
-                float(seg1.track.samplerate())
+                float(seg1.track.samplerate)
                 
             rs_duration = raw_track.duration()
             
@@ -306,7 +316,7 @@ class Composition(object):
 
         dyn_adj = 1
         
-        track.set_frame(0)
+        track.current_frame = 0
         
         d.append(Fade(track, score_cue - padding_before - pre_fade, pre_fade,
                       0, .1*dyn_adj, fade_type="linear"))
@@ -448,11 +458,11 @@ class Composition(object):
         out = N.zeros((longest_part, self.channels))
         for track, part in parts.iteritems():
             out[starts[track]:starts[track] + len(part)] += part
-        
+
         return out
     
     def output_score(self, **kwargs):
-        warn(DeprecationWarning("Use create_audio instead of output_score"))
+        warn(DeprecationWarning("Use export instead of output_score"))
         self.export(**kwargs)
 
     def export(self, **kwargs):

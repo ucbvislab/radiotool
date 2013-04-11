@@ -2,7 +2,7 @@ class Dynamic:
     """(Abstract) volume control for tracks"""
     def __init__(self, track, comp_location, duration):
         self.track = track
-        self.samplerate = track.samplerate()
+        self.samplerate = track.samplerate
         self.comp_location = int(round(comp_location * self.samplerate))
         self.duration = int(round(duration * self.samplerate))
         
