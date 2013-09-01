@@ -226,14 +226,22 @@ class Composition(object):
 
             # we're going to compute the crossfade and then create a RawTrack
             # for the resulting frames
+            
+            if seg2.start - (dur / 2) < 0:
+                diff = seg2.start
+                seg2.start = 0
+                seg2.duration -= diff
+                seg2.comp_location -= diff
+                dur = 2 * diff
+            else:
+                seg2.start -= (dur / 2)
+                seg2.duration += (dur / 2)
+                seg2.comp_location -= (dur / 2)
 
             seg1.duration += (dur / 2)
             out_frames = seg1.get_frames(channels=self.channels)[-dur:]
             seg1.duration -= dur
-            
-            seg2.start -= (dur / 2)
-            seg2.duration += (dur / 2)
-            seg2.comp_location -= (dur / 2)
+
             in_frames = seg2.get_frames(channels=self.channels)[:dur]
             seg2.start += dur
             seg2.duration -= dur
