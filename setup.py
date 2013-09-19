@@ -6,9 +6,19 @@ setup(name='radiotool',
       url='https://bitbucket.org/srubin/radiotool',
       author='Steve Rubin',
       author_email='srubin@cs.berkeley.edu',
-      packages=['radiotool', 'radiotool.composer'],
+      packages=[
+            'radiotool',
+            'radiotool.composer',
+            'radiotool.algorithms'
+      ],
       license='New BSD',
-      install_requires=['numpy', 'scipy', 'scikits.audiolab'],
+      install_requires=[
+            'numpy',
+            'scipy',
+            'scikits.audiolab',
+            'librosa'
+      ],
+      dependency_links=['https://github.com/bmcfee/librosa/tarball/master#egg=librosa-0.1'],
       zip_safe=False,
       test_suite='nose.collector',
       tests_require=['nose'])

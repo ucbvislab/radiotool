@@ -1,3 +1,5 @@
+import numpy as N
+
 from dynamic import Dynamic
 
 class RawVolume(Dynamic):

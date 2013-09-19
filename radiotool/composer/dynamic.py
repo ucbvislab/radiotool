@@ -1,3 +1,5 @@
+import numpy as N
+
 class Dynamic:
     """(Abstract) volume control for tracks"""
     def __init__(self, track, comp_location, duration):
