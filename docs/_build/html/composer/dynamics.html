@@ -1,0 +1,247 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+
+    <title>Dynamics &mdash; radiotool 0.2.0 documentation</title>
+
+<meta name="viewport" content="width=device-width; initial-scale=1.0; maximum-scale=1.0; user-scalable=0;"/>
+
+
+    
+    <link rel="stylesheet" href="../_static/rtd.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '0.2.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../_static/searchtools.js"></script>
+    <link rel="top" title="radiotool 0.2.0 documentation" href="../index.html" />
+    <link rel="next" title="Utility functions" href="utils.html" />
+    <link rel="prev" title="Segments" href="segments.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="utils.html" title="Utility functions"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="segments.html" title="Segments"
+             accesskey="P">previous</a> |</li>
+        <li><a href="../index.html">radiotool 0.2.0 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="dynamics">
+<h1>Dynamics<a class="headerlink" href="#dynamics" title="Permalink to this headline">¶</a></h1>
+<p>Add some dynamics to your compositions with subclasses of
+<a class="reference internal" href="#radiotool.composer.Dynamic" title="radiotool.composer.Dynamic"><tt class="xref py py-class docutils literal"><span class="pre">radiotool.composer.Dynamic</span></tt></a>.</p>
+<dl class="class">
+<dt id="radiotool.composer.Dynamic">
+<em class="property">class </em><tt class="descclassname">radiotool.composer.</tt><tt class="descname">Dynamic</tt><big>(</big><em>track</em>, <em>comp_location</em>, <em>duration</em><big>)</big><a class="headerlink" href="#radiotool.composer.Dynamic" title="Permalink to this definition">¶</a></dt>
+<dd><p>(Abstract) volume control for tracks</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="radiotool.composer.Volume">
+<em class="property">class </em><tt class="descclassname">radiotool.composer.</tt><tt class="descname">Volume</tt><big>(</big><em>track</em>, <em>comp_location</em>, <em>duration</em>, <em>volume</em><big>)</big><a class="headerlink" href="#radiotool.composer.Volume" title="Permalink to this definition">¶</a></dt>
+<dd><p>Adjust the volume of a track in a composition</p>
+<dl class="method">
+<dt id="radiotool.composer.Volume.__init__">
+<tt class="descname">__init__</tt><big>(</big><em>track</em>, <em>comp_location</em>, <em>duration</em>, <em>volume</em><big>)</big><a class="headerlink" href="#radiotool.composer.Volume.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a dynamic to adjust the volume of a track in a
+composition.</p>
+<p>Any segments in the composition that include the <tt class="docutils literal"><span class="pre">track</span></tt>
+between <tt class="docutils literal"><span class="pre">comp_location</span></tt> and <tt class="docutils literal"><span class="pre">comp_location</span> <span class="pre">+</span> <span class="pre">duration</span></tt>
+will be adjust to the given <tt class="docutils literal"><span class="pre">volume</span></tt>. Here, <tt class="docutils literal"><span class="pre">volume</span></tt> is a
+constant multiplier (0.0 for zero volume, 1.0 for normal
+volume). You can use a range of volumes, but obviously if
+volume is much greater than 1.0, there will likely be clipping
+in the final composition.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>track</strong> (<a class="reference internal" href="tracks.html#radiotool.composer.Track" title="radiotool.composer.Track"><tt class="xref py py-class docutils literal"><span class="pre">radiotool.composer.Track</span></tt></a>) &#8211; Track whose volume to adjust</li>
+<li><strong>comp_location</strong> (<em>float</em>) &#8211; Location to begin volume adjustment in composition (in seconds)</li>
+<li><strong>duration</strong> (<em>float</em>) &#8211; Duration of volume adjustment (in seconds)</li>
+<li><strong>volume</strong> (<em>float</em>) &#8211; Volume throughout the duration of the adjustment (1.0: normal, to 0.0: muted)</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="radiotool.composer.Volume.to_array">
+<tt class="descname">to_array</tt><big>(</big><em>channels=2</em><big>)</big><a class="headerlink" href="#radiotool.composer.Volume.to_array" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generate the array of multipliers for the dynamic</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="radiotool.composer.Fade">
+<em class="property">class </em><tt class="descclassname">radiotool.composer.</tt><tt class="descname">Fade</tt><big>(</big><em>track</em>, <em>comp_location</em>, <em>duration</em>, <em>in_volume</em>, <em>out_volume</em>, <em>fade_type='linear'</em><big>)</big><a class="headerlink" href="#radiotool.composer.Fade" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a fade dynamic in a composition</p>
+<dl class="method">
+<dt id="radiotool.composer.Fade.__init__">
+<tt class="descname">__init__</tt><big>(</big><em>track</em>, <em>comp_location</em>, <em>duration</em>, <em>in_volume</em>, <em>out_volume</em>, <em>fade_type='linear'</em><big>)</big><a class="headerlink" href="#radiotool.composer.Fade.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><p>A fade is a <a class="reference internal" href="#radiotool.composer.Dynamic" title="radiotool.composer.Dynamic"><tt class="xref py py-class docutils literal"><span class="pre">radiotool.composer.Dynamic</span></tt></a> that
+represents a fade in a track (either in or out).</p>
+<p>Currently supported fade types are <tt class="docutils literal"><span class="pre">linear</span></tt> and
+<tt class="docutils literal"><span class="pre">exponential</span></tt>.</p>
+<p>The exponential fades are probably a bit quirky, but they work
+for me for some use cases.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>track</strong> (<a class="reference internal" href="tracks.html#radiotool.composer.Track" title="radiotool.composer.Track"><tt class="xref py py-class docutils literal"><span class="pre">radiotool.composer.Track</span></tt></a>) &#8211; Track to fade</li>
+<li><strong>comp_location</strong> (<em>float</em>) &#8211; Location in composition to start fade (in seconds)</li>
+<li><strong>duration</strong> (<em>float</em>) &#8211; Duration of fade (in seconds)</li>
+<li><strong>in_volume</strong> (<em>float</em>) &#8211; Initial volume multiplier</li>
+<li><strong>out_volume</strong> (<em>float</em>) &#8211; Ending volume multiplier</li>
+<li><strong>fade_type</strong> (<em>string</em>) &#8211; Type of fade (<tt class="docutils literal"><span class="pre">linear</span></tt> or <tt class="docutils literal"><span class="pre">exponential</span></tt>)</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="radiotool.composer.Fade.to_array">
+<tt class="descname">to_array</tt><big>(</big><em>channels=2</em><big>)</big><a class="headerlink" href="#radiotool.composer.Fade.to_array" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generate the array of volume multipliers for the dynamic</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="radiotool.composer.RawVolume">
+<em class="property">class </em><tt class="descclassname">radiotool.composer.</tt><tt class="descname">RawVolume</tt><big>(</big><em>segment</em>, <em>volume_frames</em><big>)</big><a class="headerlink" href="#radiotool.composer.RawVolume" title="Permalink to this definition">¶</a></dt>
+<dd><p>Dynamic with manually-specified volume multiplier array</p>
+<dl class="method">
+<dt id="radiotool.composer.RawVolume.__init__">
+<tt class="descname">__init__</tt><big>(</big><em>segment</em>, <em>volume_frames</em><big>)</big><a class="headerlink" href="#radiotool.composer.RawVolume.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a dynamic that manually specifies the volume
+multiplier array.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>segment</strong> (<a class="reference internal" href="segments.html#radiotool.composer.Segment" title="radiotool.composer.Segment"><tt class="xref py py-class docutils literal"><span class="pre">radiotool.composer.Segment</span></tt></a>) &#8211; Segment for which to create dynamic</li>
+<li><strong>volume_frames</strong> (<em>numpy array</em>) &#8211; Raw volume multiplier frames</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="radiotool.composer.RawVolume.to_array">
+<tt class="descname">to_array</tt><big>(</big><em>channels=2</em><big>)</big><a class="headerlink" href="#radiotool.composer.RawVolume.to_array" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the array of multipliers for the dynamic</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="segments.html"
+                        title="previous chapter">Segments</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="utils.html"
+                        title="next chapter">Utility functions</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="../_sources/composer/dynamics.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="utils.html" title="Utility functions"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="segments.html" title="Segments"
+             >previous</a> |</li>
+        <li><a href="../index.html">radiotool 0.2.0 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+<div class="footer">
+    &copy; Copyright 2013, Steve Rubin.
+  Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.2b2.
+  <br />Theme based on <a href="http://readthedocs.org/">Read The Docs</a>
+
+</div>
+
+
+
+
+
+  </body>
+</html>

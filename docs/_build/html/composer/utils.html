@@ -1,0 +1,184 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+
+    <title>Utility functions &mdash; radiotool 0.2.0 documentation</title>
+
+<meta name="viewport" content="width=device-width; initial-scale=1.0; maximum-scale=1.0; user-scalable=0;"/>
+
+
+    
+    <link rel="stylesheet" href="../_static/rtd.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '0.2.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../_static/searchtools.js"></script>
+    <link rel="top" title="radiotool 0.2.0 documentation" href="../index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../index.html">radiotool 0.2.0 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="module-radiotool.composer.utils">
+<span id="utility-functions"></span><h1>Utility functions<a class="headerlink" href="#module-radiotool.composer.utils" title="Permalink to this headline">¶</a></h1>
+<p>A set of utility functions that are used elsewhere in radiotool</p>
+<dl class="function">
+<dt id="radiotool.composer.utils.RMS_energy">
+<tt class="descclassname">radiotool.composer.utils.</tt><tt class="descname">RMS_energy</tt><big>(</big><em>frames</em><big>)</big><a class="headerlink" href="#radiotool.composer.utils.RMS_energy" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes the RMS energy of frames</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="radiotool.composer.utils.equal_power">
+<tt class="descclassname">radiotool.composer.utils.</tt><tt class="descname">equal_power</tt><big>(</big><em>arr1</em>, <em>arr2</em><big>)</big><a class="headerlink" href="#radiotool.composer.utils.equal_power" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create an equal power blend of arr1 (fading out) and arr2 (fading in)</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="radiotool.composer.utils.limiter">
+<tt class="descclassname">radiotool.composer.utils.</tt><tt class="descname">limiter</tt><big>(</big><em>arr</em><big>)</big><a class="headerlink" href="#radiotool.composer.utils.limiter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Restrict the maximum and minimum values of arr</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="radiotool.composer.utils.linear">
+<tt class="descclassname">radiotool.composer.utils.</tt><tt class="descname">linear</tt><big>(</big><em>arr1</em>, <em>arr2</em><big>)</big><a class="headerlink" href="#radiotool.composer.utils.linear" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a linear blend of arr1 (fading out) and arr2 (fading in)</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="radiotool.composer.utils.log_magnitude_spectrum">
+<tt class="descclassname">radiotool.composer.utils.</tt><tt class="descname">log_magnitude_spectrum</tt><big>(</big><em>frames</em><big>)</big><a class="headerlink" href="#radiotool.composer.utils.log_magnitude_spectrum" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute the log of the magnitude spectrum of frames</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="radiotool.composer.utils.magnitude_spectrum">
+<tt class="descclassname">radiotool.composer.utils.</tt><tt class="descname">magnitude_spectrum</tt><big>(</big><em>frames</em><big>)</big><a class="headerlink" href="#radiotool.composer.utils.magnitude_spectrum" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute the magnitude spectrum of frames</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="radiotool.composer.utils.normalize_features">
+<tt class="descclassname">radiotool.composer.utils.</tt><tt class="descname">normalize_features</tt><big>(</big><em>features</em><big>)</big><a class="headerlink" href="#radiotool.composer.utils.normalize_features" title="Permalink to this definition">¶</a></dt>
+<dd><p>Standardizes features array to fall between 0 and 1</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="radiotool.composer.utils.segment_array">
+<tt class="descclassname">radiotool.composer.utils.</tt><tt class="descname">segment_array</tt><big>(</big><em>arr</em>, <em>length</em>, <em>overlap=0.5</em><big>)</big><a class="headerlink" href="#radiotool.composer.utils.segment_array" title="Permalink to this definition">¶</a></dt>
+<dd><p>Segment array into chunks of a specified length, with a specified
+proportion overlap.</p>
+<p>Operates on axis 0.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>length</strong> (<em>integer</em>) &#8211; Length of each segment</li>
+<li><strong>overlap</strong> (<em>float</em>) &#8211; Proportion overlap of each frame</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="radiotool.composer.utils.zero_crossing_first">
+<tt class="descclassname">radiotool.composer.utils.</tt><tt class="descname">zero_crossing_first</tt><big>(</big><em>frames</em><big>)</big><a class="headerlink" href="#radiotool.composer.utils.zero_crossing_first" title="Permalink to this definition">¶</a></dt>
+<dd><p>Finds the first zero crossing in frames</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="radiotool.composer.utils.zero_crossing_last">
+<tt class="descclassname">radiotool.composer.utils.</tt><tt class="descname">zero_crossing_last</tt><big>(</big><em>frames</em><big>)</big><a class="headerlink" href="#radiotool.composer.utils.zero_crossing_last" title="Permalink to this definition">¶</a></dt>
+<dd><p>Finds the last zero crossing in frames</p>
+</dd></dl>
+
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="../_sources/composer/utils.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../index.html">radiotool 0.2.0 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+<div class="footer">
+    &copy; Copyright 2013, Steve Rubin.
+  Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.2b2.
+  <br />Theme based on <a href="http://readthedocs.org/">Read The Docs</a>
+
+</div>
+
+
+
+
+
+  </body>
+</html>

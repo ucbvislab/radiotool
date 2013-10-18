@@ -1,0 +1,433 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+
+    <title>Composition &mdash; radiotool 0.2.0 documentation</title>
+
+<meta name="viewport" content="width=device-width; initial-scale=1.0; maximum-scale=1.0; user-scalable=0;"/>
+
+
+    
+    <link rel="stylesheet" href="../_static/rtd.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '0.2.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../_static/searchtools.js"></script>
+    <link rel="top" title="radiotool 0.2.0 documentation" href="../index.html" />
+    <link rel="next" title="Tracks" href="tracks.html" />
+    <link rel="prev" title="radiotool - tools for constructing audio" href="../index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="tracks.html" title="Tracks"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="../index.html" title="radiotool - tools for constructing audio"
+             accesskey="P">previous</a> |</li>
+        <li><a href="../index.html">radiotool 0.2.0 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="composition">
+<h1>Composition<a class="headerlink" href="#composition" title="Permalink to this headline">¶</a></h1>
+<p>A Composition is the heart of the radiotool.composer. Use it to build
+an audio file from other audio tracks.</p>
+<dl class="class">
+<dt id="radiotool.composer.Composition">
+<em class="property">class </em><tt class="descclassname">radiotool.composer.</tt><tt class="descname">Composition</tt><big>(</big><em>tracks=None</em>, <em>channels=2</em>, <em>segments=None</em>, <em>dynamics=None</em><big>)</big><a class="headerlink" href="#radiotool.composer.Composition" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a composition made up of bits of different audio
+tracks.</p>
+<dl class="method">
+<dt id="radiotool.composer.Composition.__init__">
+<tt class="descname">__init__</tt><big>(</big><em>tracks=None</em>, <em>channels=2</em>, <em>segments=None</em>, <em>dynamics=None</em><big>)</big><a class="headerlink" href="#radiotool.composer.Composition.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Initialize a composition with optional starting tracks/segments.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>tracks</strong> (list of <a class="reference internal" href="tracks.html#radiotool.composer.Track" title="radiotool.composer.Track"><tt class="xref py py-class docutils literal"><span class="pre">radiotool.composer.Track</span></tt></a>) &#8211; Initial tracks in the composition</li>
+<li><strong>channels</strong> (<em>integer</em>) &#8211; Number of channels in the composition</li>
+<li><strong>segments</strong> (list of <a class="reference internal" href="segments.html#radiotool.composer.Segment" title="radiotool.composer.Segment"><tt class="xref py py-class docutils literal"><span class="pre">radiotool.composer.Segment</span></tt></a>) &#8211; Initial segments in the composition</li>
+<li><strong>dynamics</strong> (list of <a class="reference internal" href="dynamics.html#radiotool.composer.Dynamic" title="radiotool.composer.Dynamic"><tt class="xref py py-class docutils literal"><span class="pre">radiotool.composer.Dynamic</span></tt></a>) &#8211; Initial dynamics in the composition</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">A new composition</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">Composition</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="radiotool.composer.Composition.add_dynamic">
+<tt class="descname">add_dynamic</tt><big>(</big><em>dyn</em><big>)</big><a class="headerlink" href="#radiotool.composer.Composition.add_dynamic" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add a dynamic to the composition</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>dyn</strong> (<a class="reference internal" href="dynamics.html#radiotool.composer.Dynamic" title="radiotool.composer.Dynamic"><tt class="xref py py-class docutils literal"><span class="pre">radiotool.composer.Dynamic</span></tt></a>) &#8211; Dynamic to add to composition</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="radiotool.composer.Composition.add_dynamics">
+<tt class="descname">add_dynamics</tt><big>(</big><em>dyns</em><big>)</big><a class="headerlink" href="#radiotool.composer.Composition.add_dynamics" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add a list of dynamics to the composition</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>dyns</strong> (list of <a class="reference internal" href="dynamics.html#radiotool.composer.Dynamic" title="radiotool.composer.Dynamic"><tt class="xref py py-class docutils literal"><span class="pre">radiotool.composer.Dynamic</span></tt></a>) &#8211; Dynamics to add to composition</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="radiotool.composer.Composition.add_music_cue">
+<tt class="descname">add_music_cue</tt><big>(</big><em>track</em>, <em>comp_cue</em>, <em>song_cue</em>, <em>duration=6.0</em>, <em>padding_before=12.0</em>, <em>padding_after=12.0</em><big>)</big><a class="headerlink" href="#radiotool.composer.Composition.add_music_cue" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add a music cue to the composition. This doesn&#8217;t do any audio
+analysis, it just aligns a specified point in the track
+(presumably music) with a location in the composition. See
+<a class="reference external" href="http://vis.berkeley.edu/papers/underscore/">UnderScore</a> for a visualization of what this is doing to the
+music track.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>track</strong> (<a class="reference internal" href="tracks.html#radiotool.composer.Track" title="radiotool.composer.Track"><tt class="xref py py-class docutils literal"><span class="pre">radiotool.composer.Track</span></tt></a>) &#8211; Track to align in the composition</li>
+<li><strong>comp_cue</strong> (<em>float</em>) &#8211; Location in composition to align music cue (in seconds)</li>
+<li><strong>song_cue</strong> (<em>float</em>) &#8211; Location in the music track to align with the composition cue (in seconds)</li>
+<li><strong>duration</strong> (<em>float</em>) &#8211; Duration of music after the song cue before the music starts to fade out (in seconds)</li>
+<li><strong>padding_before</strong> (<em>float</em>) &#8211; Duration of music playing softly before the music cue/composition cue (in seconds)</li>
+<li><strong>padding_after</strong> (<em>float</em>) &#8211; Duration of music playing softly after the music cue/composition cue (in seconds)</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="radiotool.composer.Composition.add_segment">
+<tt class="descname">add_segment</tt><big>(</big><em>segment</em><big>)</big><a class="headerlink" href="#radiotool.composer.Composition.add_segment" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add a segment to the composition</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>segment</strong> (<a class="reference internal" href="segments.html#radiotool.composer.Segment" title="radiotool.composer.Segment"><tt class="xref py py-class docutils literal"><span class="pre">radiotool.composer.Segment</span></tt></a>) &#8211; Segment to add to composition</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="radiotool.composer.Composition.add_segments">
+<tt class="descname">add_segments</tt><big>(</big><em>segments</em><big>)</big><a class="headerlink" href="#radiotool.composer.Composition.add_segments" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add a list of segments to the composition</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>segments</strong> (list of <a class="reference internal" href="segments.html#radiotool.composer.Segment" title="radiotool.composer.Segment"><tt class="xref py py-class docutils literal"><span class="pre">radiotool.composer.Segment</span></tt></a>) &#8211; Segments to add to composition</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="radiotool.composer.Composition.add_track">
+<tt class="descname">add_track</tt><big>(</big><em>track</em><big>)</big><a class="headerlink" href="#radiotool.composer.Composition.add_track" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add track to the composition</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>track</strong> (<a class="reference internal" href="tracks.html#radiotool.composer.Track" title="radiotool.composer.Track"><tt class="xref py py-class docutils literal"><span class="pre">radiotool.composer.Track</span></tt></a>) &#8211; Track to add to composition</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="radiotool.composer.Composition.add_tracks">
+<tt class="descname">add_tracks</tt><big>(</big><em>tracks</em><big>)</big><a class="headerlink" href="#radiotool.composer.Composition.add_tracks" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add a list of tracks to the composition</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>tracks</strong> (list of <a class="reference internal" href="tracks.html#radiotool.composer.Track" title="radiotool.composer.Track"><tt class="xref py py-class docutils literal"><span class="pre">radiotool.composer.Track</span></tt></a>) &#8211; Tracks to add to composition</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="radiotool.composer.Composition.build">
+<tt class="descname">build</tt><big>(</big><em>track_list=None</em>, <em>adjust_dynamics=False</em>, <em>min_length=None</em><big>)</big><a class="headerlink" href="#radiotool.composer.Composition.build" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a numpy array from the composition.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>track_list</strong> (list of <a class="reference internal" href="tracks.html#radiotool.composer.Track" title="radiotool.composer.Track"><tt class="xref py py-class docutils literal"><span class="pre">radiotool.composer.Track</span></tt></a>) &#8211; List of tracks to include in composition generation (<tt class="docutils literal"><span class="pre">None</span></tt> means all tracks will be used)</li>
+<li><strong>min_length</strong> (<em>int</em>) &#8211; Minimum length of output array (in frames). Will zero pad extra length.</li>
+<li><strong>adjust_dynamics</strong> (<em>bool.</em>) &#8211; Automatically adjust dynamics. Will document later.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="radiotool.composer.Composition.cross_fade">
+<tt class="descname">cross_fade</tt><big>(</big><em>seg1</em>, <em>seg2</em>, <em>duration</em><big>)</big><a class="headerlink" href="#radiotool.composer.Composition.cross_fade" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add an equal-power crossfade to the composition between two
+segments.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>seg1</strong> (<a class="reference internal" href="segments.html#radiotool.composer.Segment" title="radiotool.composer.Segment"><tt class="xref py py-class docutils literal"><span class="pre">radiotool.composer.Segment</span></tt></a>) &#8211; First segment (fading out)</li>
+<li><strong>seg2</strong> (<a class="reference internal" href="segments.html#radiotool.composer.Segment" title="radiotool.composer.Segment"><tt class="xref py py-class docutils literal"><span class="pre">radiotool.composer.Segment</span></tt></a>) &#8211; Second segment (fading in)</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="radiotool.composer.Composition.export">
+<tt class="descname">export</tt><big>(</big><em>**kwargs</em><big>)</big><a class="headerlink" href="#radiotool.composer.Composition.export" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generate audio file from composition.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>filename</strong> (<em>str.</em>) &#8211; Output filename (no extension)</li>
+<li><strong>filetype</strong> (<em>str.</em>) &#8211; Output file type (only .wav supported for now)</li>
+<li><strong>samplerate</strong> (<em>integer</em>) &#8211; Sample rate of output audio</li>
+<li><strong>channels</strong> (<em>integer</em>) &#8211; Channels in output audio, if different than originally specified</li>
+<li><strong>separate_tracks</strong> (<em>bool.</em>) &#8211; Also generate audio file for each track in composition</li>
+<li><strong>min_length</strong> (<em>int</em>) &#8211; Minimum length of output array (in frames). Will zero pad extra length.</li>
+<li><strong>adjust_dynamics</strong> (<em>bool.</em>) &#8211; Automatically adjust dynamics (will document later)</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="radiotool.composer.Composition.extended_fade_in">
+<tt class="descname">extended_fade_in</tt><big>(</big><em>segment</em>, <em>duration</em><big>)</big><a class="headerlink" href="#radiotool.composer.Composition.extended_fade_in" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add a fade-in to a segment that extends the beginning of the
+segment.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>segment</strong> (<a class="reference internal" href="segments.html#radiotool.composer.Segment" title="radiotool.composer.Segment"><tt class="xref py py-class docutils literal"><span class="pre">radiotool.composer.Segment</span></tt></a>) &#8211; Segment to fade in</li>
+<li><strong>duration</strong> &#8211; Duration of fade-in (in seconds)</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">The fade that has been added to the composition</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last"><tt class="xref py py-class docutils literal"><span class="pre">Fade</span></tt></p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="radiotool.composer.Composition.extended_fade_out">
+<tt class="descname">extended_fade_out</tt><big>(</big><em>segment</em>, <em>duration</em><big>)</big><a class="headerlink" href="#radiotool.composer.Composition.extended_fade_out" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add a fade-out to a segment that extends the beginning of the
+segment.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>segment</strong> (<a class="reference internal" href="segments.html#radiotool.composer.Segment" title="radiotool.composer.Segment"><tt class="xref py py-class docutils literal"><span class="pre">radiotool.composer.Segment</span></tt></a>) &#8211; Segment to fade out</li>
+<li><strong>duration</strong> &#8211; Duration of fade-out (in seconds)</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">The fade that has been added to the composition</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last"><tt class="xref py py-class docutils literal"><span class="pre">Fade</span></tt></p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="radiotool.composer.Composition.fade_in">
+<tt class="descname">fade_in</tt><big>(</big><em>segment</em>, <em>duration</em><big>)</big><a class="headerlink" href="#radiotool.composer.Composition.fade_in" title="Permalink to this definition">¶</a></dt>
+<dd><p>Adds a fade in to a segment in the composition</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>segment</strong> (<a class="reference internal" href="segments.html#radiotool.composer.Segment" title="radiotool.composer.Segment"><tt class="xref py py-class docutils literal"><span class="pre">radiotool.composer.Segment</span></tt></a>) &#8211; Segment to fade in to</li>
+<li><strong>duration</strong> (<em>float</em>) &#8211; Duration of fade-in (in seconds)</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">The fade that has been added to the composition</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last"><tt class="xref py py-class docutils literal"><span class="pre">Fade</span></tt></p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="radiotool.composer.Composition.fade_out">
+<tt class="descname">fade_out</tt><big>(</big><em>segment</em>, <em>duration</em><big>)</big><a class="headerlink" href="#radiotool.composer.Composition.fade_out" title="Permalink to this definition">¶</a></dt>
+<dd><p>Adds a fade out to a segment in the composition</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>segment</strong> (<a class="reference internal" href="segments.html#radiotool.composer.Segment" title="radiotool.composer.Segment"><tt class="xref py py-class docutils literal"><span class="pre">radiotool.composer.Segment</span></tt></a>) &#8211; Segment to fade out</li>
+<li><strong>duration</strong> (<em>float</em>) &#8211; Duration of fade-out (in seconds)</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">The fade that has been added to the composition</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last"><tt class="xref py py-class docutils literal"><span class="pre">Fade</span></tt></p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="../index.html"
+                        title="previous chapter">radiotool - tools for constructing audio</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="tracks.html"
+                        title="next chapter">Tracks</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="../_sources/composer/composition.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="tracks.html" title="Tracks"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="../index.html" title="radiotool - tools for constructing audio"
+             >previous</a> |</li>
+        <li><a href="../index.html">radiotool 0.2.0 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+<div class="footer">
+    &copy; Copyright 2013, Steve Rubin.
+  Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.2b2.
+  <br />Theme based on <a href="http://readthedocs.org/">Read The Docs</a>
+
+</div>
+
+
+
+
+
+  </body>
+</html>

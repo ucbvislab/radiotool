@@ -1,7 +1,7 @@
 from scikits.audiolab import Sndfile, Format
 import numpy as N
 
-from utils import zero_crossing_first, zero_crossing_last
+from ..utils import zero_crossing_first, zero_crossing_last
 
 class Track(object):
     """Represents a wrapped .wav file."""

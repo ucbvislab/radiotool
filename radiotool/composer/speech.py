@@ -1,9 +1,9 @@
 from track import Track
-from utils import segment_array
+from ..utils import segment_array
 
 class Speech(Track):
     """A :py:class:`radiotool.composer.Track` 
-    subclass that represents a speech .wav file"""
+    subclass that wraps a speech .wav file"""
 
     def __init__(self, fn, name="Speech name"):
         Track.__init__(self, fn, name)

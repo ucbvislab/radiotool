@@ -10,7 +10,7 @@ from rawtrack import RawTrack
 from fade import Fade
 from segment import Segment
 from volume import Volume
-from utils import equal_power, RMS_energy, segment_array
+from ..utils import equal_power, RMS_energy, segment_array
 
 class Composition(object):
     """
