@@ -50,6 +50,13 @@ class Composition(object):
 
         self.channels = channels
 
+    @property
+    def duration(self):
+        """Get duration of composition
+        """
+        return max([x.comp_location + x.duration
+                    for x in self.segments])
+
     def add_track(self, track):
         """Add track to the composition
         
@@ -189,7 +196,7 @@ class Composition(object):
         """
         dur = int(round(duration * segment.track.samplerate))
         if segment.start + segment.duration + dur <\
-            segment.track.total_frames():
+            segment.track.duration:
             segment.duration += dur
         else:
             raise Exception(
@@ -209,7 +216,7 @@ class Composition(object):
         :type seg1: :py:class:`radiotool.composer.Segment`
         :param seg2: Second segment (fading in)
         :type seg2: :py:class:`radiotool.composer.Segment`
-
+        :param duration: Duration of crossfade (in seconds)
         """
 
         if seg1.comp_location + seg1.duration - seg2.comp_location < 2:
@@ -259,7 +266,7 @@ class Composition(object):
             rs_comp_location = (seg1.comp_location + seg1.duration) /\
                 float(seg1.track.samplerate)
                 
-            rs_duration = raw_track.duration()
+            rs_duration = raw_track.duration / raw_track.samplerate
             
             raw_seg = Segment(raw_track, rs_comp_location, 0.0, rs_duration)
             
@@ -420,6 +427,7 @@ class Composition(object):
                 parts[track] = N.zeros((end_loc - start_loc, self.channels))
                 
                 for s in segments:
+
                     frames = s.get_frames(channels=self.channels).\
                         reshape(-1, self.channels)
                     

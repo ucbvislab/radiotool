@@ -106,7 +106,7 @@ def analyze_frames(y, sr, debug=True):
 
     if debug: print "> dists"
     dists = structure2(N.vstack([N.array(A['timbres']).T, N.array(A['chroma']).T]))
-    A['dense_dist'] = dists.tolist()
+    A['dense_dist'] = dists
 
     edge_lens = [A["beats"][i] - A["beats"][i - 1]
                  for i in xrange(1, len(A["beats"]))]

@@ -14,7 +14,7 @@ def novelty(song, k=64, wlen_ms=100, duration=None, start=0, nchangepoints=5, fe
 
     frames = song.all_as_mono()
 
-    wlen_samples = wlen_ms * song.samplerate / 1000
+    wlen_samples = int(wlen_ms * song.samplerate / 1000)
 
     if duration is None:
         frames = frames[start * song.samplerate:]
@@ -24,7 +24,7 @@ def novelty(song, k=64, wlen_ms=100, duration=None, start=0, nchangepoints=5, fe
              
     # Compute energies
     hamming = N.hamming(wlen_samples)
-    nwindows = int(2 * song.total_frames() / wlen_samples - 1)
+    nwindows = int(2 * song.duration / wlen_samples - 1)
     energies = N.empty(nwindows)
     for i in range(nwindows):
         energies[i] = RMS_energy(
@@ -62,10 +62,10 @@ def novelty(song, k=64, wlen_ms=100, duration=None, start=0, nchangepoints=5, fe
     for p in peaks:
         frame = p[0]
         if frame > k:
-            left_frames = frames[(frame - k) * wlen_samples / 2:
-                                 frame * wlen_samples / 2]
-            right_frames = frames[frame * wlen_samples / 2:
-                                  (frame + k) * wlen_samples / 2]
+            left_frames = frames[int((frame - k) * wlen_samples / 2):
+                                 int(frame * wlen_samples / 2)]
+            right_frames = frames[int(frame * wlen_samples / 2):
+                                  int((frame + k) * wlen_samples / 2)]
             if RMS_energy(left_frames) <\
                RMS_energy(right_frames):
                out_peaks.append(p)

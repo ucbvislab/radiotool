@@ -40,9 +40,10 @@ class RawTrack(Track):
     def current_frame(self, n):
         self._current_frame = n
 
-    def total_frames(self):
+    @property
+    def duration(self):
         return self._total_frames
-    
+
     def remaining_frames(self):
         return self._total_frames - self.current_frame
     

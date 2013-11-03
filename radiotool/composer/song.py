@@ -9,6 +9,7 @@ class Song(Track):
     """
 
     def __init__(self, fn, name="Song name"):
+        self._analysis = None
         Track.__init__(self, fn, name)
 
     @property
@@ -18,5 +19,6 @@ class Song(Track):
         if self._analysis is not None:
             return self._analysis
 
-        self._analysis = librosa_analysis.analyze_frames(self.all_as_mono())
+        self._analysis = librosa_analysis.analyze_frames(self.all_as_mono(), self.samplerate)
         return self._analysis
+

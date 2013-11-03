@@ -75,7 +75,7 @@ class Track(object):
         :returns: Track frames as 1 combined track
         :rtype: 1d numpy array
         """
-        return self.range_as_mono(0, self.total_frames())
+        return self.range_as_mono(0, self.duration)
 
     def range_as_mono(self, start_sample, end_sample):
         """Get a range of frames as 1 combined channel
@@ -106,13 +106,15 @@ class Track(object):
         """Get the number of frames remaining in the track"""
         return self.sound.nframes - self.current_frame
         
-    def total_frames(self):
-        """Get the number of total frames in the track"""
+    @property
+    def duration(self):
+        """Get the duration of total frames in the track"""
         return self.sound.nframes
     
-    def duration(self):
+    @property
+    def duration_in_seconds(self):
         """Get the duration of the track in seconds"""
-        return self.total_frames() / float(self.samplerate)
+        return self.duration / float(self.samplerate)
         
     def loudest_time(self, start=0, duration=0):
         """Find the loudest time in the window given by start and duration
@@ -153,8 +155,8 @@ class Track(object):
         """Find nearest zero crossing in waveform after frame ``n``"""
         n_in_samples = int(n * self.samplerate)
         search_end = n_in_samples + self.samplerate
-        if search_end > self.total_frames():
-            search_end = self.total_frames()
+        if search_end > self.duration:
+            search_end = self.duration
 
         frame = zero_crossing_first(
             self.range_as_mono(n_in_samples, search_end)) + n_in_samples

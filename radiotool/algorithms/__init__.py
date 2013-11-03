@@ -8,4 +8,3 @@
 
 # from .composition import Composition
 from .novelty import novelty
-from .retarget import retarget
