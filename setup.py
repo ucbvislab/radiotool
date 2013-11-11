@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(name='radiotool',
       version='0.2',
-      description='Audio tools',
+      description='Tools for constructing and retargeting audio',
       url='https://bitbucket.org/srubin/radiotool',
       author='Steve Rubin',
       author_email='srubin@cs.berkeley.edu',

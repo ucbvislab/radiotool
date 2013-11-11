@@ -3,8 +3,8 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-radiotool - tools for constructing audio
-========================================
+radiotool - tools for constructing and retargeting audio
+========================================================
 
 Radiotool is a python library that aims to make it easy to create
 audio by piecing together bits of other audio files. This library was
@@ -34,6 +34,9 @@ Contents:
 
 Simple examples
 ---------------
+
+Basic usage
+~~~~~~~~~~~
 
 ::
 
@@ -71,8 +74,8 @@ Simple extension or shortening of music
     # new song should be 1000 seconds long
     composition = retarget_to_length(song, 1000)
 
-    # new song that's only 20 seconds long
-    short_composition = retarget_to_length(song, 20)
+    # new song that's only 30 seconds long
+    short_composition = retarget_to_length(song, 30)
 
     # export to audio file
     composition.export(filename="retarget_length_test")
@@ -117,6 +120,7 @@ Algorithms
 
 .. autosummary::
   radiotool.algorithms.retarget.retarget_to_length
+  radiotool.algorithms.retarget.retarget_with_change_points
   radiotool.algorithms.retarget.retarget
   radiotool.algorithms.novelty
   radiotool.algorithms.librosa_analysis

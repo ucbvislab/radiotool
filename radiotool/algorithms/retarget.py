@@ -78,6 +78,20 @@ def retarget_to_length(song, duration, start=True, end=True, slack=5):
 
 
 def retarget_with_change_points(song, cp_times, duration):
+    """Create a composition of a song of a given duration that reaches
+    music change points at specified times. This is still under
+    construction- it won't work well with more than 2 ``cp_times`` at
+    the moment.
+
+    :param song: Song to retarget
+    :type song: :py:class:`radiotool.composer.Song`
+    :param cp_times: Times to reach change points (in seconds)
+    :type cp_times: list of floats
+    :param duration: Target length of retargeted music (in seconds)
+    :type duration: float
+    :returns: Composition of retargeted song
+    :rtype: :py:class:`radiotool.composer.Composition`
+    """
     analysis = song.analysis
     beat_length = analysis["avg_beat_duration"]
 
@@ -96,7 +110,7 @@ def retarget_with_change_points(song, cp_times, duration):
                 return "cp"
         return "noncp"
 
-    comp, cost = retarget(song, duration, music_labels, out_labels)
+    comp, info = retarget(song, duration, music_labels, out_labels)
 
     comp.export(
         adjust_dynamics=False,
@@ -209,6 +223,20 @@ def _build_table(analysis, duration, start, target, out_penalty):
         else:
             init[i] = 1.0
     cost[:, 0] = init
+
+    # no self-jumps
+    N.fill_diagonal(trans_cost, N.inf)
+
+    min_jump = 4
+
+    # no jumps within min-jump
+    if min_jump and min_jump > 0:
+        total_len = N.shape(trans_cost)[0]
+        for idx in range(total_len):
+            for diag_idx in range(-(min_jump - 1), min_jump):
+                if 0 < idx + diag_idx < total_len and diag_idx != 1:
+                    trans_cost[idx, idx + diag_idx] = N.inf
+
 
     # create label penalty table
     penalty = N.ones((len(beats), len(target))) * N.array(out_penalty)

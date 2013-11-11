@@ -60,7 +60,20 @@
             
   <div class="section" id="music-retargeting">
 <h1>Music retargeting<a class="headerlink" href="#music-retargeting" title="Permalink to this headline">¶</a></h1>
-<p>Stuff about music retargeting</p>
+<p>Music retargeting is the idea of taking a song and remixing it <em>from
+its own existing beats/structure</em> to fit the music to certain
+constraints.</p>
+<p>Example applications:</p>
+<ul class="simple">
+<li>Use <a class="reference internal" href="#radiotool.algorithms.retarget.retarget_to_length" title="radiotool.algorithms.retarget.retarget_to_length"><tt class="xref py py-func docutils literal"><span class="pre">retarget_to_length()</span></tt></a>
+to create a new shorter or longer version of a song that is a
+specific duration.</li>
+<li>Use
+<a class="reference internal" href="#radiotool.algorithms.retarget.retarget_with_change_points" title="radiotool.algorithms.retarget.retarget_with_change_points"><tt class="xref py py-func docutils literal"><span class="pre">retarget_with_change_points()</span></tt></a> to
+reach music change points (see <a class="reference internal" href="novelty.html#novelty"><em>Music novelty</em></a>) at specified points
+in the retargeted music</li>
+<li>The EchoNest&#8217;s <a class="reference external" href="http://labs.echonest.com/Uploader/index.html">Infinite Jukebox</a>.</li>
+</ul>
 <dl class="function">
 <dt id="radiotool.algorithms.retarget.retarget_to_length">
 <tt class="descclassname">radiotool.algorithms.retarget.</tt><tt class="descname">retarget_to_length</tt><big>(</big><em>song</em>, <em>duration</em>, <em>start=True</em>, <em>end=True</em>, <em>slack=5</em><big>)</big><a class="headerlink" href="#radiotool.algorithms.retarget.retarget_to_length" title="Permalink to this definition">¶</a></dt>
@@ -76,6 +89,34 @@ to a given duration.</p>
 <li><strong>start</strong> (<em>boolean</em>) &#8211; Start the retargeted song at the beginning of the original song</li>
 <li><strong>end</strong> (<em>boolean</em>) &#8211; End the retargeted song at the end of the original song</li>
 <li><strong>slack</strong> (<em>float</em>) &#8211; Track will be within slack seconds of the target duration (more slack allows for better-sounding music)</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Composition of retargeted song</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last"><a class="reference internal" href="../composer/composition.html#radiotool.composer.Composition" title="radiotool.composer.Composition"><tt class="xref py py-class docutils literal"><span class="pre">radiotool.composer.Composition</span></tt></a></p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="radiotool.algorithms.retarget.retarget_with_change_points">
+<tt class="descclassname">radiotool.algorithms.retarget.</tt><tt class="descname">retarget_with_change_points</tt><big>(</big><em>song</em>, <em>cp_times</em>, <em>duration</em><big>)</big><a class="headerlink" href="#radiotool.algorithms.retarget.retarget_with_change_points" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a composition of a song of a given duration that reaches
+music change points at specified times. This is still under
+construction- it won&#8217;t work well with more than 2 <tt class="docutils literal"><span class="pre">cp_times</span></tt> at
+the moment.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>song</strong> (<a class="reference internal" href="../composer/tracks.html#radiotool.composer.Song" title="radiotool.composer.Song"><tt class="xref py py-class docutils literal"><span class="pre">radiotool.composer.Song</span></tt></a>) &#8211; Song to retarget</li>
+<li><strong>cp_times</strong> (<em>list of floats</em>) &#8211; Times to reach change points (in seconds)</li>
+<li><strong>duration</strong> (<em>float</em>) &#8211; Target length of retargeted music (in seconds)</li>
 </ul>
 </td>
 </tr>

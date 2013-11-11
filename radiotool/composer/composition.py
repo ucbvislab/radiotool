@@ -1,6 +1,5 @@
 import sys
 from math import sqrt
-from warnings import warn
 
 import numpy as N
 
@@ -74,16 +73,6 @@ class Composition(object):
         """
         self.tracks.update(tracks)
         
-    def add_score_segment(self, segment):
-        warn(DeprecationWarning("Use add_segment"))
-        self.tracks.add(segment.track)
-        self.segments.append(segment)
-        
-    def add_score_segments(self, segments):
-        warn(DeprecationWarning("Use add_segments"))
-        self.tracks.update([seg.track for seg in segments])
-        self.segments.extend(segments)
-
     def add_segment(self, segment):
         """Add a segment to the composition
 
@@ -386,10 +375,6 @@ class Composition(object):
             return frames[:new_cut_point]
         return frames
     
-    def build_score(self, **kwargs):
-        warn(DeprecationWarning("Use build instead of build_score"))
-        self.build(**kwargs)
-
     def build(self, track_list=None, adjust_dynamics=False,
         min_length=None):
         """
@@ -477,10 +462,6 @@ class Composition(object):
 
         return out
     
-    def output_score(self, **kwargs):
-        warn(DeprecationWarning("Use export instead of output_score"))
-        self.export(**kwargs)
-
     def export(self, **kwargs):
         """
         Generate audio file from composition.
@@ -498,11 +479,14 @@ class Composition(object):
         filename = kwargs.pop('filename', 'out')
         filetype = kwargs.pop('filetype', 'wav')
         adjust_dynamics = kwargs.pop('adjust_dynamics', False)
-        samplerate = kwargs.pop('samplerate', 44100)
+        samplerate = kwargs.pop('samplerate', None)
         channels = kwargs.pop('channels', self.channels)
         separate_tracks = kwargs.pop('separate_tracks', False)
         min_length = kwargs.pop('min_length', None)
         
+        if samplerate is None:
+            samplerate = N.min([track.samplerate for track in self.tracks])
+
         encoding = 'pcm16'
         if filetype == 'ogg':
             encoding = 'vorbis'

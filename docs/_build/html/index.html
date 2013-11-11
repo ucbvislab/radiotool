@@ -7,7 +7,7 @@
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
 
-    <title>radiotool - tools for constructing audio &mdash; radiotool 0.2.0 documentation</title>
+    <title>radiotool - tools for constructing and retargeting audio &mdash; radiotool 0.2.0 documentation</title>
 
 <meta name="viewport" content="width=device-width; initial-scale=1.0; maximum-scale=1.0; user-scalable=0;"/>
 
@@ -54,8 +54,8 @@
         <div class="bodywrapper">
           <div class="body">
             
-  <div class="section" id="radiotool-tools-for-constructing-audio">
-<h1>radiotool - tools for constructing audio<a class="headerlink" href="#radiotool-tools-for-constructing-audio" title="Permalink to this headline">¶</a></h1>
+  <div class="section" id="radiotool-tools-for-constructing-and-retargeting-audio">
+<h1>radiotool - tools for constructing and retargeting audio<a class="headerlink" href="#radiotool-tools-for-constructing-and-retargeting-audio" title="Permalink to this headline">¶</a></h1>
 <p>Radiotool is a python library that aims to make it easy to create
 audio by piecing together bits of other audio files. This library was
 originally written to enable my research in audio editing user
@@ -76,6 +76,8 @@ interfaces, but perhaps someone else might find it useful.</p>
 </div>
 <div class="section" id="simple-examples">
 <h2>Simple examples<a class="headerlink" href="#simple-examples" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="basic-usage">
+<h3>Basic usage<a class="headerlink" href="#basic-usage" title="Permalink to this headline">¶</a></h3>
 <div class="highlight-python"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">radiotool.composer</span> <span class="kn">import</span> <span class="o">*</span>
 <span class="n">comp</span> <span class="o">=</span> <span class="n">Composition</span><span class="p">()</span>
 
@@ -98,6 +100,7 @@ interfaces, but perhaps someone else might find it useful.</p>
 <span class="n">comp</span><span class="o">.</span><span class="n">export</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="s">&quot;composition&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
+</div>
 <div class="section" id="simple-extension-or-shortening-of-music">
 <h3>Simple extension or shortening of music<a class="headerlink" href="#simple-extension-or-shortening-of-music" title="Permalink to this headline">¶</a></h3>
 <div class="highlight-python"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">radiotool.composer</span> <span class="kn">import</span> <span class="n">Song</span>
@@ -108,8 +111,8 @@ interfaces, but perhaps someone else might find it useful.</p>
 <span class="c"># new song should be 1000 seconds long</span>
 <span class="n">composition</span> <span class="o">=</span> <span class="n">retarget_to_length</span><span class="p">(</span><span class="n">song</span><span class="p">,</span> <span class="mi">1000</span><span class="p">)</span>
 
-<span class="c"># new song that&#39;s only 20 seconds long</span>
-<span class="n">short_composition</span> <span class="o">=</span> <span class="n">retarget_to_length</span><span class="p">(</span><span class="n">song</span><span class="p">,</span> <span class="mi">20</span><span class="p">)</span>
+<span class="c"># new song that&#39;s only 30 seconds long</span>
+<span class="n">short_composition</span> <span class="o">=</span> <span class="n">retarget_to_length</span><span class="p">(</span><span class="n">song</span><span class="p">,</span> <span class="mi">30</span><span class="p">)</span>
 
 <span class="c"># export to audio file</span>
 <span class="n">composition</span><span class="o">.</span><span class="n">export</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="s">&quot;retarget_length_test&quot;</span><span class="p">)</span>
@@ -207,13 +210,16 @@ interfaces, but perhaps someone else might find it useful.</p>
 <tr class="row-odd"><td><a class="reference internal" href="algorithms/retarget.html#radiotool.algorithms.retarget.retarget_to_length" title="radiotool.algorithms.retarget.retarget_to_length"><tt class="xref py py-obj docutils literal"><span class="pre">radiotool.algorithms.retarget.retarget_to_length</span></tt></a>(...)</td>
 <td>Create a composition of a song that changes its length to a given duration.</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="algorithms/retarget.html#radiotool.algorithms.retarget.retarget" title="radiotool.algorithms.retarget.retarget"><tt class="xref py py-obj docutils literal"><span class="pre">radiotool.algorithms.retarget.retarget</span></tt></a>(song,&nbsp;...)</td>
-<td></td>
+<tr class="row-even"><td><a class="reference internal" href="algorithms/retarget.html#radiotool.algorithms.retarget.retarget_with_change_points" title="radiotool.algorithms.retarget.retarget_with_change_points"><tt class="xref py py-obj docutils literal"><span class="pre">radiotool.algorithms.retarget.retarget_with_change_points</span></tt></a>(...)</td>
+<td>Create a composition of a song of a given duration that reaches music change points at specified times.</td>
 </tr>
-<tr class="row-odd"><td><a class="reference internal" href="algorithms/novelty.html#radiotool.algorithms.novelty" title="radiotool.algorithms.novelty"><tt class="xref py py-obj docutils literal"><span class="pre">radiotool.algorithms.novelty</span></tt></a>(song[,&nbsp;k,&nbsp;...])</td>
-<td></td>
+<tr class="row-odd"><td><a class="reference internal" href="algorithms/retarget.html#radiotool.algorithms.retarget.retarget" title="radiotool.algorithms.retarget.retarget"><tt class="xref py py-obj docutils literal"><span class="pre">radiotool.algorithms.retarget.retarget</span></tt></a>(song,&nbsp;...)</td>
+<td>Retarget a song to a duration given input and output labels on the music.</td>
 </tr>
-<tr class="row-even"><td><tt class="xref py py-obj docutils literal"><span class="pre">radiotool.algorithms.librosa_analysis</span></tt></td>
+<tr class="row-even"><td><a class="reference internal" href="algorithms/novelty.html#radiotool.algorithms.novelty" title="radiotool.algorithms.novelty"><tt class="xref py py-obj docutils literal"><span class="pre">radiotool.algorithms.novelty</span></tt></a>(song[,&nbsp;k,&nbsp;...])</td>
+<td>Return points of high &#8220;novelty&#8221; in a song</td>
+</tr>
+<tr class="row-odd"><td><tt class="xref py py-obj docutils literal"><span class="pre">radiotool.algorithms.librosa_analysis</span></tt></td>
 <td></td>
 </tr>
 </tbody>
@@ -251,8 +257,9 @@ interfaces, but perhaps someone else might find it useful.</p>
         <div class="sphinxsidebarwrapper">
   <h3><a href="#">Table Of Contents</a></h3>
   <ul>
-<li><a class="reference internal" href="#">radiotool - tools for constructing audio</a><ul>
+<li><a class="reference internal" href="#">radiotool - tools for constructing and retargeting audio</a><ul>
 <li><a class="reference internal" href="#simple-examples">Simple examples</a><ul>
+<li><a class="reference internal" href="#basic-usage">Basic usage</a></li>
 <li><a class="reference internal" href="#simple-extension-or-shortening-of-music">Simple extension or shortening of music</a></li>
 </ul>
 </li>
