@@ -17,9 +17,6 @@ scikits.audiolab_, a python wrapper for libsndfile_.
 .. _scikits.audiolab: https://pypi.python.org/pypi/scikits.audiolab/
 .. _libsndfile: http://www.mega-nerd.com/libsndfile/
 
-For now, ``radiotool`` consists of the ``composer`` module, but it
-will likely grow in the future to cover other use cases.
-
 Contents:
 
 .. toctree::
@@ -35,8 +32,8 @@ Contents:
 
 .. currentmodule:: radiotool
 
-Simple example
---------------
+Simple examples
+---------------
 
 ::
 
@@ -60,6 +57,27 @@ Simple example
 
     # or export your composition as an audio file, composition.wav
     comp.export(filename="composition")
+
+Simple extension or shortening of music
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+::
+
+    from radiotool.composer import Song
+    from radiotool.algorithms.retarget import retarget_to_length
+
+    song = Song("music_file.wav")
+
+    # new song should be 1000 seconds long
+    composition = retarget_to_length(song, 1000)
+
+    # new song that's only 20 seconds long
+    short_composition = retarget_to_length(song, 20)
+
+    # export to audio file
+    composition.export(filename="retarget_length_test")
+    short_composition.export(filename="short_retarget_length_test")
+
 
 See the documentation for more detailed examples (coming soon!).
 
@@ -98,7 +116,8 @@ Algorithms
 ----------
 
 .. autosummary::
-  radiotool.algorithms.retarget
+  radiotool.algorithms.retarget.retarget_to_length
+  radiotool.algorithms.retarget.retarget
   radiotool.algorithms.novelty
   radiotool.algorithms.librosa_analysis
 

@@ -1,41 +1,61 @@
-
 import numpy as N
 
 from ..composer import Composition, Segment, Volume
 from novelty import novelty
 
 
-def retarget_to_length(song, duration, start=True, end=True):
+def retarget_to_length(song, duration, start=True, end=True, slack=5):
+    """Create a composition of a song that changes its length
+    to a given duration.
+
+    :param song: Song to retarget
+    :type song: :py:class:`radiotool.composer.Song`
+    :param duration: Duration of retargeted song (in seconds)
+    :type duration: float
+    :param start: Start the retargeted song at the beginning of the original song
+    :type start: boolean
+    :param end: End the retargeted song at the end of the original song
+    :type end: boolean
+    :param slack: Track will be within slack seconds of the target duration (more slack allows for better-sounding music)
+    :type slack: float
+    :returns: Composition of retargeted song
+    :rtype: :py:class:`radiotool.composer.Composition`
+    """
 
     if not start and not end:
-        comp = retarget(song, duration)
+        comp, info = retarget(song, duration)
     else:
         analysis = song.analysis
         beats = analysis["beats"]
         beat_length = analysis["avg_beat_duration"]
+
+        ending_length = song.duration_in_seconds - beats[-1]
+        new_duration = duration - ending_length - slack
+        slack_beats = int((2 * slack) / beat_length)
+
         def music_labels(t):
             if t <= beats[0] and start:
                 return "start"
-            elif t >= beats[-1] and end:
+            elif t >= beats[-1 - slack_beats] and end:
                 return "end"
             else:
                 return ""
         def out_labels(t):
             if t == 0 and start:
                 return "start"
-            elif t == N.arange(0, duration, beat_length)[-1] and end:
+            elif t == N.arange(0, new_duration, beat_length)[-1] and end:
                 return "end"
             else:
                 return ""
         def out_penalty(t):
             if t == 0 and start:
                 return N.inf
-            elif t == N.arange(0, duration, beat_length)[-1] and end:
+            elif t == N.arange(0, new_duration, beat_length)[-1] and end:
                 return N.inf
             else:
-                return 1
+                return 0
 
-        comp = retarget(song, duration, music_labels, out_labels, out_penalty)
+        comp, info = retarget(song, new_duration, music_labels, out_labels, out_penalty)
 
         # and the beatless ending to the composition
         last_seg = sorted(comp.segments, key=lambda k: k.comp_location + k.duration)[-1]
@@ -62,7 +82,7 @@ def retarget_with_change_points(song, cp_times, duration):
     beat_length = analysis["avg_beat_duration"]
 
     # find change points
-    cps = N.array(novelty(song, nchangepoints=1))
+    cps = N.array(novelty(song, nchangepoints=4))
 
     def music_labels(t):
         if N.min(N.abs(cps - t)) < .5 * beat_length:
@@ -76,7 +96,7 @@ def retarget_with_change_points(song, cp_times, duration):
                 return "cp"
         return "noncp"
 
-    comp = retarget(song, duration, music_labels, out_labels)
+    comp, cost = retarget(song, duration, music_labels, out_labels)
 
     comp.export(
         adjust_dynamics=False,
@@ -91,6 +111,16 @@ def retarget_with_change_points(song, cp_times, duration):
 
 
 def retarget(song, duration, music_labels=None, out_labels=None, out_penalty=None):
+    """Retarget a song to a duration given input and output labels on the music.
+
+    :param song: Song to retarget
+    :type song: :py:class:`radiotool.composer.Song`
+    :param duration: Duration of retargeted song (in seconds)
+    :type duration: float
+    :returns: Composition of retargeted song, and dictionary of information about the retargeting
+    :rtype: (:py:class:`radiotool.composer.Composition`, dict)
+    """
+
     # labels can be array, array of arrays, or function
     # for now, assume music_labels and out_labels are time functions
 
@@ -122,6 +152,7 @@ def retarget(song, duration, music_labels=None, out_labels=None, out_penalty=Non
     # find the cheapest path    
     res = cost[:, -1]
     best_idx = N.argmin(res)
+
     if N.isfinite(res[best_idx]):
         path = _reconstruct_path(
             prev_node, analysis["beats"], best_idx, N.shape(cost)[1] - 1)
@@ -132,16 +163,18 @@ def retarget(song, duration, music_labels=None, out_labels=None, out_penalty=Non
     # how did we do?
     result_labels = [start[N.where(N.array(beats) == i)[0][0]] for i in path]
 
-    matched = len(N.where(N.array(result_labels) == N.array(target))[0])
+    # return a radiotool Composition
+    comp, cf_locations = _generate_audio(song, beats, path)
 
-    print "Matched %d of %d labels" % (matched, len(target))
+    info = {
+        "cost": N.min(res) / len(path),
+        "path": path,
+        "target_labels": target,
+        "result_labels": result_labels,
+        "transitions": cf_locations
+    }
 
-    # return a composition?
-    comp = _generate_audio(song, beats, path)
-
-    print "path", path
-
-    return comp
+    return comp, info
 
 
 def _reconstruct_path(prev_node, beats, end, length):
@@ -157,7 +190,7 @@ def _reconstruct_path(prev_node, beats, end, length):
 
 def _build_table(analysis, duration, start, target, out_penalty):
     beats = analysis["beats"]
-    trans_cost = analysis["dense_dist"]
+    trans_cost = N.copy(analysis["dense_dist"])
 
     # shift it over
     trans_cost[:-1, :] = trans_cost[1:, :]
@@ -207,7 +240,6 @@ def _build_table(analysis, duration, start, target, out_penalty):
             if node_label == target_label or target_label is None:
                 penalty[n_i, l] = 0.0
 
-
     # building the remainder of the table
     for l in xrange(1, len(target)):
         for n_i in xrange(len(beats)):
@@ -237,10 +269,10 @@ def _generate_audio(song, beats, new_beats):
         if i < len(bis) - 1:
             if bis[i] + 1 != bis[i + 1]:
                 dists[i] = 1
-            if bis[i] + 1 >= len(beats):
-                durs[i] = beats[bis[i]] - beats[bis[i] - 1]
-            else:
-                durs[i] = beats[bis[i] + 1] - beats[bis[i]]
+        if bis[i] + 1 >= len(beats):
+            durs[i] = beats[bis[i]] - beats[bis[i] - 1]
+        else:
+            durs[i] = beats[bis[i] + 1] - beats[bis[i]]
 
     score_start = 0
     comp.add_track(song)
@@ -250,6 +282,8 @@ def _generate_audio(song, beats, new_beats):
     cf_durations = []
     seg_start = starts[0]
     seg_start_loc = current_loc
+
+    cf_locations = []
 
     for i, start in enumerate(starts):
         if i == 0 or dists[i - 1] == 0:
@@ -264,7 +298,7 @@ def _generate_audio(song, beats, new_beats):
             # comp.add_track(track)
             dur = durs[i]
             cf_durations.append(dur)
-            print "Crossfade at", current_loc
+            cf_locations.append(current_loc)
 
             seg_start_loc = current_loc
             seg_start = start
@@ -297,4 +331,4 @@ def _generate_audio(song, beats, new_beats):
     # cf durs?
     # durs
 
-    return comp
+    return comp, cf_locations

@@ -266,7 +266,7 @@ class Composition(object):
             rs_comp_location = (seg1.comp_location + seg1.duration) /\
                 float(seg1.track.samplerate)
                 
-            rs_duration = raw_track.duration / raw_track.samplerate
+            rs_duration = raw_track.duration / float(raw_track.samplerate)
             
             raw_seg = Segment(raw_track, rs_comp_location, 0.0, rs_duration)
             

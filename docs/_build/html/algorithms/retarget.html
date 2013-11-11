@@ -30,7 +30,7 @@
     <script type="text/javascript" src="../_static/doctools.js"></script>
     <script type="text/javascript" src="../../_static/searchtools.js"></script>
     <link rel="top" title="radiotool 0.2.0 documentation" href="../index.html" />
-    <link rel="next" title="Utility functions" href="../utils.html" />
+    <link rel="next" title="Music novelty" href="novelty.html" />
     <link rel="prev" title="Dynamics" href="../composer/dynamics.html" /> 
   </head>
   <body>
@@ -44,7 +44,7 @@
           <a href="../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
         <li class="right" >
-          <a href="../utils.html" title="Utility functions"
+          <a href="novelty.html" title="Music novelty"
              accesskey="N">next</a> |</li>
         <li class="right" >
           <a href="../composer/dynamics.html" title="Dynamics"
@@ -62,9 +62,56 @@
 <h1>Music retargeting<a class="headerlink" href="#music-retargeting" title="Permalink to this headline">¶</a></h1>
 <p>Stuff about music retargeting</p>
 <dl class="function">
-<dt id="radiotool.algorithms.retarget">
-<tt class="descclassname">radiotool.algorithms.</tt><tt class="descname">retarget</tt><big>(</big><em>song</em>, <em>duration</em>, <em>music_labels</em>, <em>out_labels</em><big>)</big><a class="headerlink" href="#radiotool.algorithms.retarget" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dt id="radiotool.algorithms.retarget.retarget_to_length">
+<tt class="descclassname">radiotool.algorithms.retarget.</tt><tt class="descname">retarget_to_length</tt><big>(</big><em>song</em>, <em>duration</em>, <em>start=True</em>, <em>end=True</em>, <em>slack=5</em><big>)</big><a class="headerlink" href="#radiotool.algorithms.retarget.retarget_to_length" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a composition of a song that changes its length
+to a given duration.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>song</strong> (<a class="reference internal" href="../composer/tracks.html#radiotool.composer.Song" title="radiotool.composer.Song"><tt class="xref py py-class docutils literal"><span class="pre">radiotool.composer.Song</span></tt></a>) &#8211; Song to retarget</li>
+<li><strong>duration</strong> (<em>float</em>) &#8211; Duration of retargeted song (in seconds)</li>
+<li><strong>start</strong> (<em>boolean</em>) &#8211; Start the retargeted song at the beginning of the original song</li>
+<li><strong>end</strong> (<em>boolean</em>) &#8211; End the retargeted song at the end of the original song</li>
+<li><strong>slack</strong> (<em>float</em>) &#8211; Track will be within slack seconds of the target duration (more slack allows for better-sounding music)</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Composition of retargeted song</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last"><a class="reference internal" href="../composer/composition.html#radiotool.composer.Composition" title="radiotool.composer.Composition"><tt class="xref py py-class docutils literal"><span class="pre">radiotool.composer.Composition</span></tt></a></p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="radiotool.algorithms.retarget.retarget">
+<tt class="descclassname">radiotool.algorithms.retarget.</tt><tt class="descname">retarget</tt><big>(</big><em>song</em>, <em>duration</em>, <em>music_labels=None</em>, <em>out_labels=None</em>, <em>out_penalty=None</em><big>)</big><a class="headerlink" href="#radiotool.algorithms.retarget.retarget" title="Permalink to this definition">¶</a></dt>
+<dd><p>Retarget a song to a duration given input and output labels on the music.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>song</strong> (<a class="reference internal" href="../composer/tracks.html#radiotool.composer.Song" title="radiotool.composer.Song"><tt class="xref py py-class docutils literal"><span class="pre">radiotool.composer.Song</span></tt></a>) &#8211; Song to retarget</li>
+<li><strong>duration</strong> (<em>float</em>) &#8211; Duration of retargeted song (in seconds)</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Composition of retargeted song, and dictionary of information about the retargeting</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">(<a class="reference internal" href="../composer/composition.html#radiotool.composer.Composition" title="radiotool.composer.Composition"><tt class="xref py py-class docutils literal"><span class="pre">radiotool.composer.Composition</span></tt></a>, dict)</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 </div>
 
@@ -78,8 +125,8 @@
   <p class="topless"><a href="../composer/dynamics.html"
                         title="previous chapter">Dynamics</a></p>
   <h4>Next topic</h4>
-  <p class="topless"><a href="../utils.html"
-                        title="next chapter">Utility functions</a></p>
+  <p class="topless"><a href="novelty.html"
+                        title="next chapter">Music novelty</a></p>
   <h3>This Page</h3>
   <ul class="this-page-menu">
     <li><a href="../_sources/algorithms/retarget.txt"
@@ -112,7 +159,7 @@
           <a href="../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
         <li class="right" >
-          <a href="../utils.html" title="Utility functions"
+          <a href="novelty.html" title="Music novelty"
              >next</a> |</li>
         <li class="right" >
           <a href="../composer/dynamics.html" title="Dynamics"

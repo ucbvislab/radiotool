@@ -62,8 +62,6 @@ originally written to enable my research in audio editing user
 interfaces, but perhaps someone else might find it useful.</p>
 <p>To perform the actual audio rendering, radiotool relies on
 <a class="reference external" href="https://pypi.python.org/pypi/scikits.audiolab/">scikits.audiolab</a>, a python wrapper for <a class="reference external" href="http://www.mega-nerd.com/libsndfile/">libsndfile</a>.</p>
-<p>For now, <tt class="docutils literal"><span class="pre">radiotool</span></tt> consists of the <tt class="docutils literal"><span class="pre">composer</span></tt> module, but it
-will likely grow in the future to cover other use cases.</p>
 <p>Contents:</p>
 <div class="toctree-wrapper compound">
 <ul>
@@ -76,8 +74,8 @@ will likely grow in the future to cover other use cases.</p>
 <li class="toctree-l1"><a class="reference internal" href="utils.html">Utility functions</a></li>
 </ul>
 </div>
-<div class="section" id="simple-example">
-<h2>Simple example<a class="headerlink" href="#simple-example" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="simple-examples">
+<h2>Simple examples<a class="headerlink" href="#simple-examples" title="Permalink to this headline">¶</a></h2>
 <div class="highlight-python"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">radiotool.composer</span> <span class="kn">import</span> <span class="o">*</span>
 <span class="n">comp</span> <span class="o">=</span> <span class="n">Composition</span><span class="p">()</span>
 
@@ -100,7 +98,26 @@ will likely grow in the future to cover other use cases.</p>
 <span class="n">comp</span><span class="o">.</span><span class="n">export</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="s">&quot;composition&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
+<div class="section" id="simple-extension-or-shortening-of-music">
+<h3>Simple extension or shortening of music<a class="headerlink" href="#simple-extension-or-shortening-of-music" title="Permalink to this headline">¶</a></h3>
+<div class="highlight-python"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">radiotool.composer</span> <span class="kn">import</span> <span class="n">Song</span>
+<span class="kn">from</span> <span class="nn">radiotool.algorithms.retarget</span> <span class="kn">import</span> <span class="n">retarget_to_length</span>
+
+<span class="n">song</span> <span class="o">=</span> <span class="n">Song</span><span class="p">(</span><span class="s">&quot;music_file.wav&quot;</span><span class="p">)</span>
+
+<span class="c"># new song should be 1000 seconds long</span>
+<span class="n">composition</span> <span class="o">=</span> <span class="n">retarget_to_length</span><span class="p">(</span><span class="n">song</span><span class="p">,</span> <span class="mi">1000</span><span class="p">)</span>
+
+<span class="c"># new song that&#39;s only 20 seconds long</span>
+<span class="n">short_composition</span> <span class="o">=</span> <span class="n">retarget_to_length</span><span class="p">(</span><span class="n">song</span><span class="p">,</span> <span class="mi">20</span><span class="p">)</span>
+
+<span class="c"># export to audio file</span>
+<span class="n">composition</span><span class="o">.</span><span class="n">export</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="s">&quot;retarget_length_test&quot;</span><span class="p">)</span>
+<span class="n">short_composition</span><span class="o">.</span><span class="n">export</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="s">&quot;short_retarget_length_test&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
 <p>See the documentation for more detailed examples (coming soon!).</p>
+</div>
 </div>
 <div class="section" id="composition">
 <h2>Composition<a class="headerlink" href="#composition" title="Permalink to this headline">¶</a></h2>
@@ -187,13 +204,16 @@ will likely grow in the future to cover other use cases.</p>
 <col width="90%" />
 </colgroup>
 <tbody valign="top">
-<tr class="row-odd"><td><a class="reference internal" href="algorithms/retarget.html#radiotool.algorithms.retarget" title="radiotool.algorithms.retarget"><tt class="xref py py-obj docutils literal"><span class="pre">radiotool.algorithms.retarget</span></tt></a>(song,&nbsp;...)</td>
+<tr class="row-odd"><td><a class="reference internal" href="algorithms/retarget.html#radiotool.algorithms.retarget.retarget_to_length" title="radiotool.algorithms.retarget.retarget_to_length"><tt class="xref py py-obj docutils literal"><span class="pre">radiotool.algorithms.retarget.retarget_to_length</span></tt></a>(...)</td>
+<td>Create a composition of a song that changes its length to a given duration.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="algorithms/retarget.html#radiotool.algorithms.retarget.retarget" title="radiotool.algorithms.retarget.retarget"><tt class="xref py py-obj docutils literal"><span class="pre">radiotool.algorithms.retarget.retarget</span></tt></a>(song,&nbsp;...)</td>
 <td></td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="algorithms/novelty.html#radiotool.algorithms.novelty" title="radiotool.algorithms.novelty"><tt class="xref py py-obj docutils literal"><span class="pre">radiotool.algorithms.novelty</span></tt></a>(song[,&nbsp;k,&nbsp;...])</td>
+<tr class="row-odd"><td><a class="reference internal" href="algorithms/novelty.html#radiotool.algorithms.novelty" title="radiotool.algorithms.novelty"><tt class="xref py py-obj docutils literal"><span class="pre">radiotool.algorithms.novelty</span></tt></a>(song[,&nbsp;k,&nbsp;...])</td>
 <td></td>
 </tr>
-<tr class="row-odd"><td><tt class="xref py py-obj docutils literal"><span class="pre">radiotool.algorithms.librosa_analysis</span></tt></td>
+<tr class="row-even"><td><tt class="xref py py-obj docutils literal"><span class="pre">radiotool.algorithms.librosa_analysis</span></tt></td>
 <td></td>
 </tr>
 </tbody>
@@ -232,7 +252,10 @@ will likely grow in the future to cover other use cases.</p>
   <h3><a href="#">Table Of Contents</a></h3>
   <ul>
 <li><a class="reference internal" href="#">radiotool - tools for constructing audio</a><ul>
-<li><a class="reference internal" href="#simple-example">Simple example</a></li>
+<li><a class="reference internal" href="#simple-examples">Simple examples</a><ul>
+<li><a class="reference internal" href="#simple-extension-or-shortening-of-music">Simple extension or shortening of music</a></li>
+</ul>
+</li>
 <li><a class="reference internal" href="#composition">Composition</a></li>
 <li><a class="reference internal" href="#tracks">Tracks</a></li>
 <li><a class="reference internal" href="#segments">Segments</a></li>

@@ -8,7 +8,28 @@ import scipy.signal
 
 from ..composer.utils import RMS_energy
 
-def novelty(song, k=64, wlen_ms=100, duration=None, start=0, nchangepoints=5, feature="rms"):
+def novelty(song, k=64, wlen_ms=100, start=0, duration=None, nchangepoints=5, feature="rms"):
+    """Return points of high "novelty" in a song
+    (e.g., significant musical transitions)
+
+    :param song: Song to analyze
+    :type song: :py:class:`radiotool.composer.Song`
+    :param k: Width of comparison kernel (larger kernel finds coarser differences in music)
+    :type k: int
+    :param wlen_ms: Analysis window length in milliseconds
+    :type wlen_ms: int
+    :param start: Where to start analysis within the song (in seconds)
+    :type start: float
+    :param duration: How long of a chunk of the song to analyze (None analyzes the entire song after start)
+    :type duration: float
+    :param nchangepoints: How many novel change points to return
+    :type nchangepoints: int
+    :param feature: Music feature to use for novelty analysis
+    :type feature: "rms" (will support "mfcc" and "chroma" eventually)
+    :returns: List of change points (in seconds)
+    :rtype: list of floats
+    """
+
     if feature != "rms":
         raise ValueError, "novelty currently only supports 'rms' feature"
 
