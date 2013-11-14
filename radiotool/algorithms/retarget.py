@@ -65,14 +65,7 @@ def retarget_to_length(song, duration, start=True, end=True, slack=5):
             (song.duration - last_seg.start - last_seg.duration) / float(song.samplerate))
         comp.add_segment(seg)
 
-    comp.export(
-        adjust_dynamics=False,
-        filename="retarget_length_test",
-        channels=1,
-        filetype='wav',
-        samplerate=44100,
-        separate_tracks=False
-    )
+    comp.export(filename="retarget_length_test")
 
     return comp
 
@@ -97,29 +90,36 @@ def retarget_with_change_points(song, cp_times, duration):
 
     # find change points
     cps = N.array(novelty(song, nchangepoints=4))
+    cp_times = N.array(cp_times)
 
+    # mark change points in original music
     def music_labels(t):
         if N.min(N.abs(cps - t)) < .5 * beat_length:
             return "cp"
         else:
             return "noncp"
 
+    # mark where we want change points in the output music
+    # (a few beats of slack to improve the quality of the end result)
     def out_labels(t):
-        for cp_time in cp_times:
-            if abs(cp_time - t) < .5 * beat_length:
-                return "cp"
+        if N.min(N.abs(cp_times - t)) < 1.5 * beat_length:
+            return "cp"
         return "noncp"
 
-    comp, info = retarget(song, duration, music_labels, out_labels)
+    # lower penalty around the target locations for change points
+    # because we don't actually want each of them to be change points-
+    # we just want one of the 4 beats covered to be a change point.
+    def out_penalty(t):
+        if N.min(N.abs(cp_times - t)) < 1.5 * beat_length:
+            return .25
+        return 1.0
 
-    comp.export(
-        adjust_dynamics=False,
-        filename="retarget_test",
-        channels=1,
-        filetype='wav',
-        samplerate=44100,
-        separate_tracks=False
-    )
+    comp, info = retarget(song, duration, music_labels, out_labels, out_penalty)
+
+    for k, v in info.iteritems():
+        print k, v
+
+    comp.export(filename="retarget_test")
 
     return comp
 
@@ -281,7 +281,7 @@ def _build_table(analysis, duration, start, target, out_penalty):
 
 
 def _generate_audio(song, beats, new_beats):
-    comp = Composition(channels=1)
+    comp = Composition(channels=song.channels)
 
     # music_volume = .10
     music_volume = 1.0
