@@ -352,7 +352,7 @@ def _generate_audio(song, beats, new_beats):
 
     # add dynamic for music
     volume = Volume(song, 0.0,
-        (last_seg.comp_location + last_seg.duration) / 44100.,
+        (last_seg.comp_location + last_seg.duration) / float(song.samplerate),
         music_volume)
     comp.add_dynamic(volume)
 

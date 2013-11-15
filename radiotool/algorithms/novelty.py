@@ -25,36 +25,40 @@ def novelty(song, k=64, wlen_ms=100, start=0, duration=None, nchangepoints=5, fe
     :param nchangepoints: How many novel change points to return
     :type nchangepoints: int
     :param feature: Music feature to use for novelty analysis
-    :type feature: "rms" (will support "mfcc" and "chroma" eventually)
+    :type feature: "rms" or "mfcc" (will support "chroma" eventually)
     :returns: List of change points (in seconds)
     :rtype: list of floats
     """
 
-    if feature != "rms":
-        raise ValueError, "novelty currently only supports 'rms' feature"
+    if feature != "rms" and feature != "mfcc":
+        raise ValueError, "novelty currently only supports 'rms' and 'mfcc' features"
 
-    frames = song.all_as_mono()
+    if feature == "rms":
+        frames = song.all_as_mono()
 
-    wlen_samples = int(wlen_ms * song.samplerate / 1000)
+        wlen_samples = int(wlen_ms * song.samplerate / 1000)
 
-    if duration is None:
-        frames = frames[start * song.samplerate:]
-    else:
-        frames = frames[start * song.samplerate:(start + duration) *
-             song.samplerate]
-             
-    # Compute energies
-    hamming = N.hamming(wlen_samples)
-    nwindows = int(2 * song.duration / wlen_samples - 1)
-    energies = N.empty(nwindows)
-    for i in range(nwindows):
-        energies[i] = RMS_energy(
-            hamming *
-            frames[i * wlen_samples / 2:
-                   i * wlen_samples / 2 + wlen_samples]
-        )
+        if duration is None:
+            frames = frames[start * song.samplerate:]
+        else:
+            frames = frames[start * song.samplerate:(start + duration) *
+                 song.samplerate]
+                 
+        # Compute energies
+        hamming = N.hamming(wlen_samples)
+        nwindows = int(2 * song.duration / wlen_samples - 1)
+        energies = N.empty(nwindows)
+        for i in range(nwindows):
+            energies[i] = RMS_energy(
+                hamming *
+                frames[i * wlen_samples / 2:
+                       i * wlen_samples / 2 + wlen_samples]
+            )
 
-    energies_list = [[x] for x in energies]
+        energies_list = [[x] for x in energies]
+    elif feature == "mfcc":
+        analysis = song.analysis
+        energies_list = N.array(analysis["timbres"])
     
     # Compute similarities
     S_matrix = 1 - scidist.squareform(
@@ -75,28 +79,33 @@ def novelty(song, k=64, wlen_ms=100, start=0, duration=None, nchangepoints=5, fe
         
     # Computed checkerboard response
 
-    peaks = naive_peaks(N_vec)
+    peaks = naive_peaks(N_vec, k=k / 2 + 1)
     out_peaks = []
     
-    # ensure that the points we return are more exciting
-    # after the change point than before the change point
-    for p in peaks:
-        frame = p[0]
-        if frame > k:
-            left_frames = frames[int((frame - k) * wlen_samples / 2):
-                                 int(frame * wlen_samples / 2)]
-            right_frames = frames[int(frame * wlen_samples / 2):
-                                  int((frame + k) * wlen_samples / 2)]
-            if RMS_energy(left_frames) <\
-               RMS_energy(right_frames):
-               out_peaks.append(p)
+    if feature == "rms":
+        # ensure that the points we return are more exciting
+        # after the change point than before the change point
+        for p in peaks:
+            frame = p[0]
+            if frame > k:
+                left_frames = frames[int((frame - k) * wlen_samples / 2):
+                                     int(frame * wlen_samples / 2)]
+                right_frames = frames[int(frame * wlen_samples / 2):
+                                      int((frame + k) * wlen_samples / 2)]
+                if RMS_energy(left_frames) <\
+                   RMS_energy(right_frames):
+                   out_peaks.append(p)
 
-    out_peaks = [(x[0] * wlen_ms / 2000.0, x[1]) for x in out_peaks]
-    for i, p in enumerate(out_peaks):
-        if i == nchangepoints:
-            break
-    
-    return [x[0] for x in out_peaks[:nchangepoints]]
+        out_peaks = [(x[0] * wlen_ms / 2000.0, x[1]) for x in out_peaks]
+        for i, p in enumerate(out_peaks):
+            if i == nchangepoints:
+                break
+        
+        return [x[0] for x in out_peaks[:nchangepoints]]
+
+    elif feature == "mfcc":
+        beats = analysis["beats"]
+        return [beats[int(b[0])] for b in peaks[:nchangepoints]]
 
 
 def smooth_hanning(x, size=11):
@@ -115,22 +124,26 @@ def smooth_hanning(x, size=11):
     return y
 
 
-def naive_peaks(vec):
+def naive_peaks(vec, k=33):
     """A naive method for finding peaks of a signal.
     1. Smooth vector
     2. Find peaks (local maxima)
     3. Find local max from original signal, pre-smoothing
     4. Return (sorted, descending) peaks
     """
-    a = smooth_hanning(vec, 33)
+
+    a = smooth_hanning(vec, k)
+    
+    k2 = (k - 1) / 2
+
     peaks = N.r_[True, a[1:] > a[:-1]] & N.r_[a[:-1] > a[1:], True]
 
     p = N.array(N.where(peaks)[0])
     maxidx = N.zeros(N.shape(p))
     maxvals = N.zeros(N.shape(p))
     for i, pk in enumerate(p):
-        maxidx[i] = N.argmax(vec[pk - 16:pk + 16]) + pk - 16
-        maxvals[i] = N.max(vec[pk - 16:pk + 16])
+        maxidx[i] = N.argmax(vec[pk - k2:pk + k2]) + pk - k2
+        maxvals[i] = N.max(vec[pk - k2:pk + k2])
     out = N.array([maxidx, maxvals]).T
     return out[(-out[:, 1]).argsort()]
 

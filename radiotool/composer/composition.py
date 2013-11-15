@@ -338,7 +338,7 @@ class Composition(object):
         self.add_dynamics(d)
     
     def _remove_end_silence(self, frames):
-        subwindow_n_frames = int(1/16.0 * 44100)
+        subwindow_n_frames = int(1/16.0 * min(s.samplerate for s in self.tracks))
 
         segments = segment_array(frames, subwindow_n_frames, overlap=.5)
 
@@ -376,7 +376,7 @@ class Composition(object):
         return frames
     
     def build(self, track_list=None, adjust_dynamics=False,
-        min_length=None):
+        min_length=None, channels=None):
         """
         Create a numpy array from the composition.
 
@@ -387,6 +387,9 @@ class Composition(object):
         """
         if track_list is None:
             track_list = self.tracks
+
+        if channels is None:
+            channels = self.channels
 
         parts = {}
         starts = {}
@@ -409,12 +412,12 @@ class Composition(object):
                 
                 starts[track] = start_loc
 
-                parts[track] = N.zeros((end_loc - start_loc, self.channels))
+                parts[track] = N.zeros((end_loc - start_loc, channels))
                 
                 for s in segments:
 
-                    frames = s.get_frames(channels=self.channels).\
-                        reshape(-1, self.channels)
+                    frames = s.get_frames(channels=channels).\
+                        reshape(-1, channels)
                     
                     # for universal volume adjustment
                     if adjust_dynamics:
@@ -434,7 +437,7 @@ class Composition(object):
             dyns = sorted([d for d in self.dynamics if d.track == track],
                            key=lambda k: k.comp_location)
             for d in dyns:
-                vol_frames = d.to_array(self.channels)
+                vol_frames = d.to_array(channels)
                 parts[track][d.comp_location - start_loc :
                              d.comp_location - start_loc + d.duration,
                              :] *= vol_frames
@@ -456,7 +459,7 @@ class Composition(object):
 
         if longest_part < min_length:
             longest_part = min_length
-        out = N.zeros((longest_part, self.channels))
+        out = N.zeros((longest_part, channels))
         for track, part in parts.iteritems():
             out[starts[track]:starts[track] + len(part)] += part
 
@@ -495,8 +498,9 @@ class Composition(object):
             # build the separate parts of the composition if desired
             for track in self.tracks:
                 out = self.build(track=[track],
-                                       adjust_dynamics=adjust_dynamics,
-                                       min_length=min_length)
+                                 adjust_dynamics=adjust_dynamics,
+                                 min_length=min_length,
+                                 channels=channels)
                 out_file = Sndfile("%s-%s.%s" %
                                    (filename, track.name, filetype),
                                    'w',
@@ -507,7 +511,8 @@ class Composition(object):
 
         # always build the complete composition
         out = self.build(adjust_dynamics=adjust_dynamics,
-                               min_length=min_length)
+                         min_length=min_length,
+                         channels=channels)
 
         out_file = Sndfile("%s.%s" % (filename, filetype), 'w',
                            Format(filetype, encoding=encoding), 

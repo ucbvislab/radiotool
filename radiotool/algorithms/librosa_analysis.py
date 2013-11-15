@@ -4,9 +4,6 @@ import numpy as N
 import scipy, scipy.signal
 import librosa
 
-HOP = 128
-SR  = 44100
-
 
 def structure(X):
     d, n = X.shape
@@ -16,29 +13,31 @@ def structure(X):
 
 
 def analyze_file(infile, debug=False):
-    y, sr = librosa.load(infile, sr=SR)
+    y, sr = librosa.load(infile, sr=44100)
     return analyze_frames(y, sr, debug)
 
 
 def analyze_frames(y, sr, debug=False):
     A = {}
     
+    hop_length = 128
+
     # First, get the track duration
     A['duration'] = float(len(y)) / sr
 
     # Then, get the beats
     if debug: print "> beat tracking"
-    tempo, beats = librosa.beat.beat_track(y, sr, hop_length=HOP)
+    tempo, beats = librosa.beat.beat_track(y, sr, hop_length=hop_length)
 
     # Push the last frame as a phantom beat
     A['tempo'] = tempo
-    A['beats'] = librosa.frames_to_time(beats, sr, hop_length=HOP).tolist()
+    A['beats'] = librosa.frames_to_time(beats, sr, hop_length=hop_length).tolist()
 
     if debug: print "beats count: ", len(A['beats'])
 
     if debug: print "> spectrogram"
     S = librosa.feature.melspectrogram(y, sr,   n_fft=2048, 
-                                                hop_length=HOP, 
+                                                hop_length=hop_length, 
                                                 n_mels=80, 
                                                 fmax=8000)
     S = S / S.max()
@@ -54,7 +53,7 @@ def analyze_frames(y, sr, debug=False):
 
     # And some chroma
     if debug: print "> chroma"
-    S = N.abs(librosa.stft(y, hop_length=HOP))
+    S = N.abs(librosa.stft(y, hop_length=hop_length))
 
     # Grab the harmonic component
     H = librosa.hpss.hpss_median(S, win_P=31, win_H=31, p=1.0)[0]
