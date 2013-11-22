@@ -65,16 +65,21 @@ def retarget_to_length(song, duration, start=True, end=True, slack=5):
             (song.duration - last_seg.start - last_seg.duration) / float(song.samplerate))
         comp.add_segment(seg)
 
-    comp.export(filename="retarget_length_test")
-
     return comp
 
 
 def retarget_with_change_points(song, cp_times, duration):
     """Create a composition of a song of a given duration that reaches
     music change points at specified times. This is still under
-    construction- it won't work well with more than 2 ``cp_times`` at
-    the moment.
+    construction- it<div></div> might not work as well with more than
+    2 ``cp_times`` at the moment.
+
+    Here's an example of retargeting music to be 40 seconds long and
+    hit a change point at the 10 and 30 second marks::
+
+        song = Song("instrumental_music.wav")
+        composition = retarget.retarget_with_change_points(song, [10, 30], 40)
+        composition.export(filename="retargeted_instrumental_music.")
 
     :param song: Song to retarget
     :type song: :py:class:`radiotool.composer.Song`
@@ -118,8 +123,6 @@ def retarget_with_change_points(song, cp_times, duration):
 
     for k, v in info.iteritems():
         print k, v
-
-    comp.export(filename="retarget_test")
 
     return comp
 
