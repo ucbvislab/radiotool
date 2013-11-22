@@ -42,7 +42,7 @@ Simple examples
 Basic usage
 ~~~~~~~~~~~
 
-::
+.. code:: python
 
     from radiotool.composer import *
     comp = Composition()
@@ -68,7 +68,7 @@ Basic usage
 Simple extension or shortening of music
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-::
+.. code:: python
 
     from radiotool.composer import Song
     from radiotool.algorithms.retarget import retarget_to_length
