@@ -8,7 +8,7 @@ interfaces, but perhaps someone else might find it useful.
 
 Read the full documentation_.
 
-.. _documentation: https://ucbvislab.github.io/radiotool
+.. _documentation: http://ucbvislab.github.io/radiotool
 
 To perform the actual audio rendering, radiotool relies on
 scikits.audiolab_, a python wrapper for libsndfile_.
@@ -16,8 +16,11 @@ scikits.audiolab_, a python wrapper for libsndfile_.
 .. _scikits.audiolab: https://pypi.python.org/pypi/scikits.audiolab/
 .. _libsndfile: http://www.mega-nerd.com/libsndfile/
 
-For now, ``radiotool`` consists of the ``composer`` module, but it
-will likely grow in the future to cover other use cases.
+Installation
+------------
+
+Either ``pip install radiotool`` or clone the repository and run
+``python setup.py install``.
 
 Composition
 -----------
