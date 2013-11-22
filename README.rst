@@ -41,7 +41,7 @@ ways.
 Simple example
 ~~~~~~~~~~~~~~
 
-::
+.. code:: python
 
     from radiotool.composer import *
     comp = Composition()
