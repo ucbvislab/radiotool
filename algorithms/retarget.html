@@ -96,8 +96,15 @@ to a given duration.</p>
 <tt class="descclassname">radiotool.algorithms.retarget.</tt><tt class="descname">retarget_with_change_points</tt><big>(</big><em>song</em>, <em>cp_times</em>, <em>duration</em><big>)</big><a class="headerlink" href="#radiotool.algorithms.retarget.retarget_with_change_points" title="Permalink to this definition">¶</a></dt>
 <dd><p>Create a composition of a song of a given duration that reaches
 music change points at specified times. This is still under
-construction- it won&#8217;t work well with more than 2 <tt class="docutils literal"><span class="pre">cp_times</span></tt> at
-the moment.</p>
+construction- it&lt;div&gt;&lt;/div&gt; might not work as well with more than
+2 <tt class="docutils literal"><span class="pre">cp_times</span></tt> at the moment.</p>
+<p>Here&#8217;s an example of retargeting music to be 40 seconds long and
+hit a change point at the 10 and 30 second marks:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">song</span> <span class="o">=</span> <span class="n">Song</span><span class="p">(</span><span class="s">&quot;instrumental_music.wav&quot;</span><span class="p">)</span>
+<span class="n">composition</span> <span class="o">=</span> <span class="n">retarget</span><span class="o">.</span><span class="n">retarget_with_change_points</span><span class="p">(</span><span class="n">song</span><span class="p">,</span> <span class="p">[</span><span class="mi">10</span><span class="p">,</span> <span class="mi">30</span><span class="p">],</span> <span class="mi">40</span><span class="p">)</span>
+<span class="n">composition</span><span class="o">.</span><span class="n">export</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="s">&quot;retargeted_instrumental_music.&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
