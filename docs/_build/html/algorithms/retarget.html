@@ -133,7 +133,35 @@ the moment.</p>
 <dl class="function">
 <dt id="radiotool.algorithms.retarget.retarget">
 <tt class="descclassname">radiotool.algorithms.retarget.</tt><tt class="descname">retarget</tt><big>(</big><em>song</em>, <em>duration</em>, <em>music_labels=None</em>, <em>out_labels=None</em>, <em>out_penalty=None</em><big>)</big><a class="headerlink" href="#radiotool.algorithms.retarget.retarget" title="Permalink to this definition">¶</a></dt>
-<dd><p>Retarget a song to a duration given input and output labels on the music.</p>
+<dd><p>Retarget a song to a duration given input and output labels on
+the music.</p>
+<p>Suppose you like one section of a song, say, the guitar solo, and
+you want to create a three minute long version of the solo.
+Suppose the guitar solo occurs from the 150 second mark to the 200
+second mark in the original song.</p>
+<p>You can set the label the guitar solo with &#8216;solo&#8217; and the rest of
+the song with &#8216;other&#8217; by crafting the <tt class="docutils literal"><span class="pre">music_labels</span></tt> input
+function. And you can set the <tt class="docutils literal"><span class="pre">out_labels</span></tt> function to give you
+nothing but solo:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="k">def</span> <span class="nf">labels</span><span class="p">(</span><span class="n">t</span><span class="p">):</span>
+    <span class="k">if</span> <span class="mi">150</span> <span class="o">&lt;</span> <span class="n">t</span> <span class="o">&lt;</span> <span class="mi">200</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s">&#39;solo&#39;</span>
+    <span class="k">return</span> <span class="s">&#39;other&#39;</span>
+
+<span class="k">def</span> <span class="nf">target</span><span class="p">(</span><span class="n">t</span><span class="p">):</span> <span class="k">return</span> <span class="s">&#39;solo&#39;</span>
+
+<span class="n">song</span> <span class="o">=</span> <span class="n">Song</span><span class="p">(</span><span class="s">&quot;sweet-rock-song.wav&quot;</span><span class="p">)</span>
+
+<span class="n">composition</span><span class="p">,</span> <span class="n">info</span> <span class="o">=</span> <span class="n">retarget</span><span class="p">(</span><span class="n">song</span><span class="p">,</span> <span class="mi">180</span><span class="p">,</span>
+    <span class="n">music_labels</span><span class="o">=</span><span class="n">labels</span><span class="p">,</span> <span class="n">out_labels</span><span class="o">=</span><span class="n">target</span><span class="p">)</span>
+
+<span class="n">composition</span><span class="o">.</span><span class="n">export</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="s">&quot;super-long-solo&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>You can achieve much more complicated retargetings by adjusting
+the <tt class="docutils literal"><span class="pre">music_labels</span></tt>, <cite>out_labels</cite> and <tt class="docutils literal"><span class="pre">out_penalty</span></tt> functions,
+but this should give you a basic sense of how to use the
+<tt class="docutils literal"><span class="pre">retarget</span></tt> function.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -141,10 +169,19 @@ the moment.</p>
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
 <li><strong>song</strong> (<a class="reference internal" href="../composer/tracks.html#radiotool.composer.Song" title="radiotool.composer.Song"><tt class="xref py py-class docutils literal"><span class="pre">radiotool.composer.Song</span></tt></a>) &#8211; Song to retarget</li>
 <li><strong>duration</strong> (<em>float</em>) &#8211; Duration of retargeted song (in seconds)</li>
+<li><strong>music_labels</strong> (<em>function</em>) &#8211; A function that takes a time (in seconds) and
+returns the label (str) of the input music at that time</li>
+<li><strong>out_labels</strong> (<em>function</em>) &#8211; A function that takes a time (in seconds) and
+returns the desired label (str) of the output music at that
+time</li>
+<li><strong>out_penalty</strong> (<em>function</em>) &#8211; A function that takes a time (in seconds) and
+returns the penalty for not matching the correct output label
+at that time (default is 1.0)</li>
 </ul>
 </td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Composition of retargeted song, and dictionary of information about the retargeting</p>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Composition of retargeted song, and dictionary of
+information about the retargeting</p>
 </td>
 </tr>
 <tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">(<a class="reference internal" href="../composer/composition.html#radiotool.composer.Composition" title="radiotool.composer.Composition"><tt class="xref py py-class docutils literal"><span class="pre">radiotool.composer.Composition</span></tt></a>, dict)</p>

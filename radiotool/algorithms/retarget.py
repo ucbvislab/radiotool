@@ -125,18 +125,57 @@ def retarget_with_change_points(song, cp_times, duration):
 
 
 def retarget(song, duration, music_labels=None, out_labels=None, out_penalty=None):
-    """Retarget a song to a duration given input and output labels on the music.
+    """Retarget a song to a duration given input and output labels on
+    the music.
+
+    Suppose you like one section of a song, say, the guitar solo, and
+    you want to create a three minute long version of the solo.
+    Suppose the guitar solo occurs from the 150 second mark to the 200
+    second mark in the original song.
+
+    You can set the label the guitar solo with 'solo' and the rest of
+    the song with 'other' by crafting the ``music_labels`` input
+    function. And you can set the ``out_labels`` function to give you
+    nothing but solo::
+
+        def labels(t):
+            if 150 < t < 200:
+                return 'solo'
+            return 'other'
+
+        def target(t): return 'solo'
+
+        song = Song("sweet-rock-song.wav")
+
+        composition, info = retarget(song, 180,
+            music_labels=labels, out_labels=target)
+
+        composition.export(filename="super-long-solo")
+
+    You can achieve much more complicated retargetings by adjusting
+    the ``music_labels``, `out_labels` and ``out_penalty`` functions,
+    but this should give you a basic sense of how to use the
+    ``retarget`` function.
 
     :param song: Song to retarget
     :type song: :py:class:`radiotool.composer.Song`
     :param duration: Duration of retargeted song (in seconds)
     :type duration: float
-    :returns: Composition of retargeted song, and dictionary of information about the retargeting
+    :param music_labels: A function that takes a time (in seconds) and
+        returns the label (str) of the input music at that time
+    :type music_labels: function
+    :param out_labels: A function that takes a time (in seconds) and
+        returns the desired label (str) of the output music at that
+        time
+    :type out_labels: function
+    :param out_penalty: A function that takes a time (in seconds) and
+        returns the penalty for not matching the correct output label
+        at that time (default is 1.0)
+    :type out_penalty: function
+    :returns: Composition of retargeted song, and dictionary of
+        information about the retargeting
     :rtype: (:py:class:`radiotool.composer.Composition`, dict)
     """
-
-    # labels can be array, array of arrays, or function
-    # for now, assume music_labels and out_labels are time functions
 
     # get song analysis
     analysis = song.analysis
