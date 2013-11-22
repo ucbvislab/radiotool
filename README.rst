@@ -22,6 +22,13 @@ Installation
 Either ``pip install radiotool`` or clone the repository and run
 ``python setup.py install``.
 
+Requirements
+------------
+
+libsndfile_, numpy, scikits.audiolab_, and librosa_.
+
+.. _librosa: https://github.com/bmcfee/librosa/
+
 Composition
 -----------
  
