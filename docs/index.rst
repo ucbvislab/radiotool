@@ -17,7 +17,7 @@ scikits.audiolab_, a python wrapper for libsndfile_.
 .. _scikits.audiolab: https://pypi.python.org/pypi/scikits.audiolab/
 .. _libsndfile: http://www.mega-nerd.com/libsndfile/
 
-The library source is hosted on on GitHub here_.
+The library source is hosted on GitHub here_.
 
 .. _here: https://github.com/ucbvislab/radiotool
 
