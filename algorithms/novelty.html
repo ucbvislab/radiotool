@@ -1,0 +1,167 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+
+    <title>Music novelty &mdash; radiotool 0.2.0 documentation</title>
+
+<meta name="viewport" content="width=device-width; initial-scale=1.0; maximum-scale=1.0; user-scalable=0;"/>
+
+
+    
+    <link rel="stylesheet" href="../_static/rtd.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '0.2.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../_static/searchtools.js"></script>
+    <link rel="top" title="radiotool 0.2.0 documentation" href="../index.html" />
+    <link rel="next" title="Utility functions" href="../utils.html" />
+    <link rel="prev" title="Music retargeting" href="retarget.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="../utils.html" title="Utility functions"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="retarget.html" title="Music retargeting"
+             accesskey="P">previous</a> |</li>
+        <li><a href="../index.html">radiotool 0.2.0 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="music-novelty">
+<span id="novelty"></span><h1>Music novelty<a class="headerlink" href="#music-novelty" title="Permalink to this headline">¶</a></h1>
+<p>A musical change point is a point in a song where the music changes in
+an exciting or dramatic way. Knowing these change points can allow us
+to, say, line up important moments in a story with exciting moments in
+music. For applications of music change points, see these papers:</p>
+<ul class="simple">
+<li><a class="reference external" href="http://vis.berkeley.edu/papers/underscore/">UnderScore: Musical Underlays for Audio Stories</a></li>
+<li><a class="reference external" href="http://vis.berkeley.edu/papers/audiostories/">Content-Based Tools for Editing Audio Stories</a></li>
+</ul>
+<dl class="function">
+<dt id="radiotool.algorithms.novelty">
+<tt class="descclassname">radiotool.algorithms.</tt><tt class="descname">novelty</tt><big>(</big><em>song</em>, <em>k=64</em>, <em>wlen_ms=100</em>, <em>start=0</em>, <em>duration=None</em>, <em>nchangepoints=5</em>, <em>feature='rms'</em><big>)</big><a class="headerlink" href="#radiotool.algorithms.novelty" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return points of high &#8220;novelty&#8221; in a song
+(e.g., significant musical transitions)</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>song</strong> (<a class="reference internal" href="../composer/tracks.html#radiotool.composer.Song" title="radiotool.composer.Song"><tt class="xref py py-class docutils literal"><span class="pre">radiotool.composer.Song</span></tt></a>) &#8211; Song to analyze</li>
+<li><strong>k</strong> (<em>int</em>) &#8211; Width of comparison kernel (larger kernel finds coarser differences in music)</li>
+<li><strong>wlen_ms</strong> (<em>int</em>) &#8211; Analysis window length in milliseconds</li>
+<li><strong>start</strong> (<em>float</em>) &#8211; Where to start analysis within the song (in seconds)</li>
+<li><strong>duration</strong> (<em>float</em>) &#8211; How long of a chunk of the song to analyze (None analyzes the entire song after start)</li>
+<li><strong>nchangepoints</strong> (<em>int</em>) &#8211; How many novel change points to return</li>
+<li><strong>feature</strong> (<em>&#8220;rms&#8221; or &#8220;mfcc&#8221; (will support &#8220;chroma&#8221; eventually)</em>) &#8211; Music feature to use for novelty analysis</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">List of change points (in seconds)</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">list of floats</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="retarget.html"
+                        title="previous chapter">Music retargeting</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="../utils.html"
+                        title="next chapter">Utility functions</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="../_sources/algorithms/novelty.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="../utils.html" title="Utility functions"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="retarget.html" title="Music retargeting"
+             >previous</a> |</li>
+        <li><a href="../index.html">radiotool 0.2.0 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+<div class="footer">
+    &copy; Copyright 2013, Steve Rubin.
+  Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.2b2.
+  <br />Theme based on <a href="http://readthedocs.org/">Read The Docs</a>
+
+</div>
+
+
+
+
+
+  </body>
+</html>

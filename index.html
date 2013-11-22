@@ -1,0 +1,329 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+
+    <title>radiotool - tools for constructing and retargeting audio &mdash; radiotool 0.2.0 documentation</title>
+
+<meta name="viewport" content="width=device-width; initial-scale=1.0; maximum-scale=1.0; user-scalable=0;"/>
+
+
+    
+    <link rel="stylesheet" href="_static/rtd.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '0.2.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="_static/searchtools.js"></script>
+    <link rel="top" title="radiotool 0.2.0 documentation" href="#" />
+    <link rel="next" title="Composition" href="composer/composition.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="composer/composition.html" title="Composition"
+             accesskey="N">next</a> |</li>
+        <li><a href="#">radiotool 0.2.0 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="radiotool-tools-for-constructing-and-retargeting-audio">
+<h1>radiotool - tools for constructing and retargeting audio<a class="headerlink" href="#radiotool-tools-for-constructing-and-retargeting-audio" title="Permalink to this headline">¶</a></h1>
+<p>Radiotool is a python library that aims to make it easy to create
+audio by piecing together bits of other audio files. This library was
+originally written to enable my research in audio editing user
+interfaces, but perhaps someone else might find it useful.</p>
+<p>To perform the actual audio rendering, radiotool relies on
+<a class="reference external" href="https://pypi.python.org/pypi/scikits.audiolab/">scikits.audiolab</a>, a python wrapper for <a class="reference external" href="http://www.mega-nerd.com/libsndfile/">libsndfile</a>.</p>
+<p>Contents:</p>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="composer/composition.html">Composition</a></li>
+<li class="toctree-l1"><a class="reference internal" href="composer/tracks.html">Tracks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="composer/segments.html">Segments</a></li>
+<li class="toctree-l1"><a class="reference internal" href="composer/dynamics.html">Dynamics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="algorithms/retarget.html">Music retargeting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="algorithms/novelty.html">Music novelty</a></li>
+<li class="toctree-l1"><a class="reference internal" href="utils.html">Utility functions</a></li>
+</ul>
+</div>
+<div class="section" id="simple-examples">
+<h2>Simple examples<a class="headerlink" href="#simple-examples" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="basic-usage">
+<h3>Basic usage<a class="headerlink" href="#basic-usage" title="Permalink to this headline">¶</a></h3>
+<div class="highlight-python"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">radiotool.composer</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="n">comp</span> <span class="o">=</span> <span class="n">Composition</span><span class="p">()</span>
+
+<span class="c"># create a track with a pre-existing wav file</span>
+<span class="n">track</span> <span class="o">=</span> <span class="n">Track</span><span class="p">(</span><span class="s">&quot;test.wav&quot;</span><span class="p">)</span>
+
+<span class="c"># create a segment of a track that:</span>
+<span class="c"># 1. starts at the 0.0 mark of the composition</span>
+<span class="c"># 2. begins playing at the 0.5 second mark of the track</span>
+<span class="c"># 3. plays for 1.0 seconds</span>
+<span class="n">segment</span> <span class="o">=</span> <span class="n">Segment</span><span class="p">(</span><span class="n">track</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
+
+<span class="c"># add segment to the composition</span>
+<span class="n">comp</span><span class="o">.</span><span class="n">add_segment</span><span class="p">(</span><span class="n">segment</span><span class="p">)</span>
+
+<span class="c"># output your composition as a numpy array</span>
+<span class="n">arr_out</span> <span class="o">=</span> <span class="n">comp</span><span class="o">.</span><span class="n">build</span><span class="p">()</span>
+
+<span class="c"># or export your composition as an audio file, composition.wav</span>
+<span class="n">comp</span><span class="o">.</span><span class="n">export</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="s">&quot;composition&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="simple-extension-or-shortening-of-music">
+<h3>Simple extension or shortening of music<a class="headerlink" href="#simple-extension-or-shortening-of-music" title="Permalink to this headline">¶</a></h3>
+<div class="highlight-python"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">radiotool.composer</span> <span class="kn">import</span> <span class="n">Song</span>
+<span class="kn">from</span> <span class="nn">radiotool.algorithms.retarget</span> <span class="kn">import</span> <span class="n">retarget_to_length</span>
+
+<span class="n">song</span> <span class="o">=</span> <span class="n">Song</span><span class="p">(</span><span class="s">&quot;music_file.wav&quot;</span><span class="p">)</span>
+
+<span class="c"># new song should be 1000 seconds long</span>
+<span class="n">composition</span> <span class="o">=</span> <span class="n">retarget_to_length</span><span class="p">(</span><span class="n">song</span><span class="p">,</span> <span class="mi">1000</span><span class="p">)</span>
+
+<span class="c"># new song that&#39;s only 30 seconds long</span>
+<span class="n">short_composition</span> <span class="o">=</span> <span class="n">retarget_to_length</span><span class="p">(</span><span class="n">song</span><span class="p">,</span> <span class="mi">30</span><span class="p">)</span>
+
+<span class="c"># export to audio file</span>
+<span class="n">composition</span><span class="o">.</span><span class="n">export</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="s">&quot;retarget_length_test&quot;</span><span class="p">)</span>
+<span class="n">short_composition</span><span class="o">.</span><span class="n">export</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="s">&quot;short_retarget_length_test&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>See the documentation for more detailed examples (coming soon!).</p>
+</div>
+</div>
+<div class="section" id="composition">
+<h2>Composition<a class="headerlink" href="#composition" title="Permalink to this headline">¶</a></h2>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><a class="reference internal" href="composer/composition.html#radiotool.composer.Composition" title="radiotool.composer.Composition"><tt class="xref py py-obj docutils literal"><span class="pre">radiotool.composer.Composition</span></tt></a>([tracks,&nbsp;...])</td>
+<td>Create a composition made up of bits of different audio</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="tracks">
+<h2>Tracks<a class="headerlink" href="#tracks" title="Permalink to this headline">¶</a></h2>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><a class="reference internal" href="composer/tracks.html#radiotool.composer.Track" title="radiotool.composer.Track"><tt class="xref py py-obj docutils literal"><span class="pre">radiotool.composer.Track</span></tt></a>(fn[,&nbsp;name])</td>
+<td>Represents a wrapped .wav file.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="composer/tracks.html#radiotool.composer.Speech" title="radiotool.composer.Speech"><tt class="xref py py-obj docutils literal"><span class="pre">radiotool.composer.Speech</span></tt></a>(fn[,&nbsp;name])</td>
+<td>A <a class="reference internal" href="composer/tracks.html#radiotool.composer.Track" title="radiotool.composer.Track"><tt class="xref py py-class docutils literal"><span class="pre">radiotool.composer.Track</span></tt></a></td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="composer/tracks.html#radiotool.composer.Song" title="radiotool.composer.Song"><tt class="xref py py-obj docutils literal"><span class="pre">radiotool.composer.Song</span></tt></a>(fn[,&nbsp;name])</td>
+<td>A <a class="reference internal" href="composer/tracks.html#radiotool.composer.Track" title="radiotool.composer.Track"><tt class="xref py py-class docutils literal"><span class="pre">radiotool.composer.Track</span></tt></a></td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="composer/tracks.html#radiotool.composer.RawTrack" title="radiotool.composer.RawTrack"><tt class="xref py py-obj docutils literal"><span class="pre">radiotool.composer.RawTrack</span></tt></a>(frames[,&nbsp;name,&nbsp;...])</td>
+<td>A <a class="reference internal" href="composer/tracks.html#radiotool.composer.Track" title="radiotool.composer.Track"><tt class="xref py py-class docutils literal"><span class="pre">radiotool.composer.Track</span></tt></a> subclass that wraps raw PCM</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="segments">
+<h2>Segments<a class="headerlink" href="#segments" title="Permalink to this headline">¶</a></h2>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><a class="reference internal" href="composer/segments.html#radiotool.composer.Segment" title="radiotool.composer.Segment"><tt class="xref py py-obj docutils literal"><span class="pre">radiotool.composer.Segment</span></tt></a>(track,&nbsp;...)</td>
+<td>A slice of a <a class="reference internal" href="composer/tracks.html#radiotool.composer.Track" title="radiotool.composer.Track"><tt class="xref py py-class docutils literal"><span class="pre">radiotool.composer.Track</span></tt></a></td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="composer/segments.html#radiotool.composer.TimeStretchSegment" title="radiotool.composer.TimeStretchSegment"><tt class="xref py py-obj docutils literal"><span class="pre">radiotool.composer.TimeStretchSegment</span></tt></a>(track,&nbsp;...)</td>
+<td>Like a <a class="reference internal" href="composer/segments.html#radiotool.composer.Segment" title="radiotool.composer.Segment"><tt class="xref py py-class docutils literal"><span class="pre">radiotool.composer.Segment</span></tt></a>, but stretches</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="dynamics">
+<h2>Dynamics<a class="headerlink" href="#dynamics" title="Permalink to this headline">¶</a></h2>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><a class="reference internal" href="composer/dynamics.html#radiotool.composer.Dynamic" title="radiotool.composer.Dynamic"><tt class="xref py py-obj docutils literal"><span class="pre">radiotool.composer.Dynamic</span></tt></a>(track,&nbsp;...)</td>
+<td>(Abstract) volume control for tracks</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="composer/dynamics.html#radiotool.composer.Volume" title="radiotool.composer.Volume"><tt class="xref py py-obj docutils literal"><span class="pre">radiotool.composer.Volume</span></tt></a>(track,&nbsp;...)</td>
+<td>Adjust the volume of a track in a composition</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="composer/dynamics.html#radiotool.composer.Fade" title="radiotool.composer.Fade"><tt class="xref py py-obj docutils literal"><span class="pre">radiotool.composer.Fade</span></tt></a>(track,&nbsp;...[,&nbsp;fade_type])</td>
+<td>Create a fade dynamic in a composition</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="composer/dynamics.html#radiotool.composer.RawVolume" title="radiotool.composer.RawVolume"><tt class="xref py py-obj docutils literal"><span class="pre">radiotool.composer.RawVolume</span></tt></a>(segment,&nbsp;...)</td>
+<td>Dynamic with manually-specified volume multiplier array</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="algorithms">
+<h2>Algorithms<a class="headerlink" href="#algorithms" title="Permalink to this headline">¶</a></h2>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><a class="reference internal" href="algorithms/retarget.html#radiotool.algorithms.retarget.retarget_to_length" title="radiotool.algorithms.retarget.retarget_to_length"><tt class="xref py py-obj docutils literal"><span class="pre">radiotool.algorithms.retarget.retarget_to_length</span></tt></a>(...)</td>
+<td>Create a composition of a song that changes its length to a given duration.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="algorithms/retarget.html#radiotool.algorithms.retarget.retarget_with_change_points" title="radiotool.algorithms.retarget.retarget_with_change_points"><tt class="xref py py-obj docutils literal"><span class="pre">radiotool.algorithms.retarget.retarget_with_change_points</span></tt></a>(...)</td>
+<td>Create a composition of a song of a given duration that reaches music change points at specified times.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="algorithms/retarget.html#radiotool.algorithms.retarget.retarget" title="radiotool.algorithms.retarget.retarget"><tt class="xref py py-obj docutils literal"><span class="pre">radiotool.algorithms.retarget.retarget</span></tt></a>(song,&nbsp;...)</td>
+<td>Retarget a song to a duration given input and output labels on the music.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="algorithms/novelty.html#radiotool.algorithms.novelty" title="radiotool.algorithms.novelty"><tt class="xref py py-obj docutils literal"><span class="pre">radiotool.algorithms.novelty</span></tt></a>(song[,&nbsp;k,&nbsp;...])</td>
+<td>Return points of high &#8220;novelty&#8221; in a song</td>
+</tr>
+<tr class="row-odd"><td><tt class="xref py py-obj docutils literal"><span class="pre">radiotool.algorithms.librosa_analysis</span></tt></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="utilities">
+<h2>Utilities<a class="headerlink" href="#utilities" title="Permalink to this headline">¶</a></h2>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><tt class="xref py py-obj docutils literal"><span class="pre">radiotool.utils</span></tt></td>
+<td>A set of utility functions that are used elsewhere in radiotool</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="section" id="indices-and-tables">
+<h1>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Permalink to this headline">¶</a></h1>
+<ul class="simple">
+<li><a class="reference internal" href="genindex.html"><em>Index</em></a></li>
+<li><a class="reference internal" href="py-modindex.html"><em>Module Index</em></a></li>
+<li><a class="reference internal" href="search.html"><em>Search Page</em></a></li>
+</ul>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="#">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">radiotool - tools for constructing and retargeting audio</a><ul>
+<li><a class="reference internal" href="#simple-examples">Simple examples</a><ul>
+<li><a class="reference internal" href="#basic-usage">Basic usage</a></li>
+<li><a class="reference internal" href="#simple-extension-or-shortening-of-music">Simple extension or shortening of music</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#composition">Composition</a></li>
+<li><a class="reference internal" href="#tracks">Tracks</a></li>
+<li><a class="reference internal" href="#segments">Segments</a></li>
+<li><a class="reference internal" href="#dynamics">Dynamics</a></li>
+<li><a class="reference internal" href="#algorithms">Algorithms</a></li>
+<li><a class="reference internal" href="#utilities">Utilities</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#indices-and-tables">Indices and tables</a></li>
+</ul>
+
+  <h4>Next topic</h4>
+  <p class="topless"><a href="composer/composition.html"
+                        title="next chapter">Composition</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="_sources/index.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="composer/composition.html" title="Composition"
+             >next</a> |</li>
+        <li><a href="#">radiotool 0.2.0 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+<div class="footer">
+    &copy; Copyright 2013, Steve Rubin.
+  Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.2b2.
+  <br />Theme based on <a href="http://readthedocs.org/">Read The Docs</a>
+
+</div>
+
+
+
+
+
+  </body>
+</html>

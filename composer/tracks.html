@@ -1,0 +1,333 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+
+    <title>Tracks &mdash; radiotool 0.2.0 documentation</title>
+
+<meta name="viewport" content="width=device-width; initial-scale=1.0; maximum-scale=1.0; user-scalable=0;"/>
+
+
+    
+    <link rel="stylesheet" href="../_static/rtd.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '0.2.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../_static/searchtools.js"></script>
+    <link rel="top" title="radiotool 0.2.0 documentation" href="../index.html" />
+    <link rel="next" title="Segments" href="segments.html" />
+    <link rel="prev" title="Composition" href="composition.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="segments.html" title="Segments"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="composition.html" title="Composition"
+             accesskey="P">previous</a> |</li>
+        <li><a href="../index.html">radiotool 0.2.0 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="tracks">
+<h1>Tracks<a class="headerlink" href="#tracks" title="Permalink to this headline">¶</a></h1>
+<p>A <tt class="docutils literal"><span class="pre">Track</span></tt> wraps an audio file or an array of raw PCM data.</p>
+<dl class="class">
+<dt id="radiotool.composer.Track">
+<em class="property">class </em><tt class="descclassname">radiotool.composer.</tt><tt class="descname">Track</tt><big>(</big><em>fn</em>, <em>name='No name'</em><big>)</big><a class="headerlink" href="#radiotool.composer.Track" title="Permalink to this definition">¶</a></dt>
+<dd><p>Represents a wrapped .wav file.</p>
+<dl class="method">
+<dt id="radiotool.composer.Track.__init__">
+<tt class="descname">__init__</tt><big>(</big><em>fn</em>, <em>name='No name'</em><big>)</big><a class="headerlink" href="#radiotool.composer.Track.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a Track object</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>fn</strong> (<em>str.</em>) &#8211; Path to wav file</li>
+<li><strong>name</strong> (<em>str.</em>) &#8211; Name of track</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="radiotool.composer.Track.all_as_mono">
+<tt class="descname">all_as_mono</tt><big>(</big><big>)</big><a class="headerlink" href="#radiotool.composer.Track.all_as_mono" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the entire track as 1 combined channel</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">Track frames as 1 combined track</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">1d numpy array</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="radiotool.composer.Track.current_frame">
+<tt class="descname">current_frame</tt><em class="property"> None</em><a class="headerlink" href="#radiotool.composer.Track.current_frame" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get and set the current frame of the track</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="radiotool.composer.Track.duration">
+<tt class="descname">duration</tt><em class="property"> None</em><a class="headerlink" href="#radiotool.composer.Track.duration" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the duration of total frames in the track</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="radiotool.composer.Track.duration_in_seconds">
+<tt class="descname">duration_in_seconds</tt><em class="property"> None</em><a class="headerlink" href="#radiotool.composer.Track.duration_in_seconds" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the duration of the track in seconds</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="radiotool.composer.Track.loudest_time">
+<tt class="descname">loudest_time</tt><big>(</big><em>start=0</em>, <em>duration=0</em><big>)</big><a class="headerlink" href="#radiotool.composer.Track.loudest_time" title="Permalink to this definition">¶</a></dt>
+<dd><p>Find the loudest time in the window given by start and duration
+Returns frame number in context of entire track, not just the window.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>start</strong> (<em>integer</em>) &#8211; Start frame</li>
+<li><strong>duration</strong> (<em>integer</em>) &#8211; Number of frames to consider from start</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Frame number of loudest frame</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">integer</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="radiotool.composer.Track.range_as_mono">
+<tt class="descname">range_as_mono</tt><big>(</big><em>start_sample</em>, <em>end_sample</em><big>)</big><a class="headerlink" href="#radiotool.composer.Track.range_as_mono" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get a range of frames as 1 combined channel</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>start_sample</strong> (<em>integer</em>) &#8211; First frame in range</li>
+<li><strong>end_sample</strong> (<em>integer</em>) &#8211; Last frame in range (exclusive)</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Track frames in range as 1 combined channel</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">1d numpy array of length <tt class="docutils literal"><span class="pre">end_sample</span> <span class="pre">-</span> <span class="pre">start_sample</span></tt></p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="radiotool.composer.Track.read_frames">
+<tt class="descname">read_frames</tt><big>(</big><em>n</em><big>)</big><a class="headerlink" href="#radiotool.composer.Track.read_frames" title="Permalink to this definition">¶</a></dt>
+<dd><p>Read <tt class="docutils literal"><span class="pre">n</span></tt> frames from the track, starting
+with the current frame</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>n</strong> (<em>integer</em>) &#8211; Number of frames to read</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">Next <tt class="docutils literal"><span class="pre">n</span></tt> frames from the track, starting with <tt class="docutils literal"><span class="pre">current_frame</span></tt></td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">numpy array</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="radiotool.composer.Track.remaining_frames">
+<tt class="descname">remaining_frames</tt><big>(</big><big>)</big><a class="headerlink" href="#radiotool.composer.Track.remaining_frames" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the number of frames remaining in the track</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="radiotool.composer.Track.reset">
+<tt class="descname">reset</tt><big>(</big><big>)</big><a class="headerlink" href="#radiotool.composer.Track.reset" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sets current frame to 0</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="radiotool.composer.Track.samplerate">
+<tt class="descname">samplerate</tt><em class="property"> None</em><a class="headerlink" href="#radiotool.composer.Track.samplerate" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the sample rate of the track</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="radiotool.composer.Track.zero_crossing_after">
+<tt class="descname">zero_crossing_after</tt><big>(</big><em>n</em><big>)</big><a class="headerlink" href="#radiotool.composer.Track.zero_crossing_after" title="Permalink to this definition">¶</a></dt>
+<dd><p>Find nearest zero crossing in waveform after frame <tt class="docutils literal"><span class="pre">n</span></tt></p>
+</dd></dl>
+
+<dl class="method">
+<dt id="radiotool.composer.Track.zero_crossing_before">
+<tt class="descname">zero_crossing_before</tt><big>(</big><em>n</em><big>)</big><a class="headerlink" href="#radiotool.composer.Track.zero_crossing_before" title="Permalink to this definition">¶</a></dt>
+<dd><p>Find nearest zero crossing in waveform before frame <tt class="docutils literal"><span class="pre">n</span></tt></p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="radiotool.composer.Speech">
+<em class="property">class </em><tt class="descclassname">radiotool.composer.</tt><tt class="descname">Speech</tt><big>(</big><em>fn</em>, <em>name='Speech name'</em><big>)</big><a class="headerlink" href="#radiotool.composer.Speech" title="Permalink to this definition">¶</a></dt>
+<dd><p>A <a class="reference internal" href="#radiotool.composer.Track" title="radiotool.composer.Track"><tt class="xref py py-class docutils literal"><span class="pre">radiotool.composer.Track</span></tt></a> 
+subclass that wraps a speech .wav file</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="radiotool.composer.Song">
+<em class="property">class </em><tt class="descclassname">radiotool.composer.</tt><tt class="descname">Song</tt><big>(</big><em>fn</em>, <em>name='Song name'</em><big>)</big><a class="headerlink" href="#radiotool.composer.Song" title="Permalink to this definition">¶</a></dt>
+<dd><p>A <a class="reference internal" href="#radiotool.composer.Track" title="radiotool.composer.Track"><tt class="xref py py-class docutils literal"><span class="pre">radiotool.composer.Track</span></tt></a>
+subclass that wraps a music .wav file.
+Allows access to a musical analysis of the song.</p>
+<dl class="attribute">
+<dt id="radiotool.composer.Song.analysis">
+<tt class="descname">analysis</tt><em class="property"> None</em><a class="headerlink" href="#radiotool.composer.Song.analysis" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get musical anaylsis of the song using the librosa library</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="radiotool.composer.RawTrack">
+<em class="property">class </em><tt class="descclassname">radiotool.composer.</tt><tt class="descname">RawTrack</tt><big>(</big><em>frames</em>, <em>name='Raw frames name'</em>, <em>samplerate=44100</em><big>)</big><a class="headerlink" href="#radiotool.composer.RawTrack" title="Permalink to this definition">¶</a></dt>
+<dd><p>A <a class="reference internal" href="#radiotool.composer.Track" title="radiotool.composer.Track"><tt class="xref py py-class docutils literal"><span class="pre">radiotool.composer.Track</span></tt></a> subclass that wraps raw PCM
+data (as a numpy array).</p>
+<dl class="method">
+<dt id="radiotool.composer.RawTrack.__init__">
+<tt class="descname">__init__</tt><big>(</big><em>frames</em>, <em>name='Raw frames name'</em>, <em>samplerate=44100</em><big>)</big><a class="headerlink" href="#radiotool.composer.RawTrack.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a track with raw PCM data in array <tt class="docutils literal"><span class="pre">frames</span></tt></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>frames</strong> (<em>numpy array</em>) &#8211; Raw PCM data array</li>
+<li><strong>samplerate</strong> (<em>integer</em>) &#8211; Sample rate of frames</li>
+<li><strong>name</strong> (<em>string</em>) &#8211; Name of track</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="composition.html"
+                        title="previous chapter">Composition</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="segments.html"
+                        title="next chapter">Segments</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="../_sources/composer/tracks.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="segments.html" title="Segments"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="composition.html" title="Composition"
+             >previous</a> |</li>
+        <li><a href="../index.html">radiotool 0.2.0 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+<div class="footer">
+    &copy; Copyright 2013, Steve Rubin.
+  Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.2b2.
+  <br />Theme based on <a href="http://readthedocs.org/">Read The Docs</a>
+
+</div>
+
+
+
+
+
+  </body>
+</html>
