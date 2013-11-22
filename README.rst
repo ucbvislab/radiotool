@@ -6,6 +6,10 @@ audio by piecing together bits of other audio files. This library was
 originally written to enable my research in audio editing user
 interfaces, but perhaps someone else might find it useful.
 
+Read the full documentation_.
+
+.. _documentation: https://ucbvislab.github.io/radiotool
+
 To perform the actual audio rendering, radiotool relies on
 scikits.audiolab_, a python wrapper for libsndfile_.
 
@@ -18,11 +22,11 @@ will likely grow in the future to cover other use cases.
 Composition
 -----------
  
-The heart of radiotool is the ``Composition``. ``Composition``s are
-built out of ``Segment``s, which represent segments of audio
-``Track``s (or raw PCM data, in the case of ``RawTrack``s). You can
-also add ``Dynamic``s to adjust the volume of segments in certain
-ways.
+The heart of radiotool is the ``Composition``. A ``Composition`` is
+built out of Segments, which represent segments of audio
+Tracks (or raw PCM data, in the case of RawTracks). You can
+also add Dynamics to adjust the volume of segments in certain
+ways. 
 
 Simple example
 ~~~~~~~~~~~~~~
@@ -50,4 +54,14 @@ Simple example
     # or export your composition as an audio file, composition.wav
     comp.export(filename="composition")
 
-See the documentation for more detailed examples (coming soon!).
+Retargeting
+-----------
+
+Music retargeting is the idea of taking a song and remixing it *from
+its own existing beats/structure* to fit the music to certain
+constraints.
+
+See RETARGETING_LINK for applications of music retargeting, and
+details about how to retarget music using raditool.
+
+See the documentation_ for more detail.
