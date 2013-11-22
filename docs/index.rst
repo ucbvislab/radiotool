@@ -11,6 +11,7 @@ audio by piecing together bits of other audio files. This library was
 originally written to enable my research in audio editing user
 interfaces, but perhaps someone else might find it useful.
 
+
 To perform the actual audio rendering, radiotool relies on
 scikits.audiolab_, a python wrapper for libsndfile_.
 
