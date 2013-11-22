@@ -64,7 +64,8 @@ Music retargeting is the idea of taking a song and remixing it *from
 its own existing beats/structure* to fit the music to certain
 constraints.
 
-See RETARGETING_LINK for applications of music retargeting, and
-details about how to retarget music using raditool.
+See http://ucbvislab.github.io/radiotool/algorithms/retarget.html for
+applications of music retargeting, and details about how to retarget
+music using raditool.
 
 See the documentation_ for more detail.

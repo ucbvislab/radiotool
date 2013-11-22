@@ -21,7 +21,7 @@ class TestTrack(TestCase):
         assert self.track.samplerate == 44100
 
     def test_num_frames(self):
-        assert self.track.total_frames() == 88200
+        assert self.track.duration == 88200
 
     def test_read_frames(self):
         self.track.current_frame = 1000
