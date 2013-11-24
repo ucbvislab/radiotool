@@ -1,7 +1,7 @@
 from setuptools import setup
 
 setup(name='radiotool',
-      version='0.3.2',
+      version='0.3.3',
       description='Tools for constructing and retargeting audio',
       long_description=open('README.rst').read(),
       url='https://github.com/ucbvislab/radiotool',
