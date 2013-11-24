@@ -157,18 +157,25 @@ Returns frame number in context of entire track, not just the window.</p>
 
 <dl class="method">
 <dt id="radiotool.composer.Track.read_frames">
-<tt class="descname">read_frames</tt><big>(</big><em>n</em><big>)</big><a class="headerlink" href="#radiotool.composer.Track.read_frames" title="Permalink to this definition">¶</a></dt>
+<tt class="descname">read_frames</tt><big>(</big><em>n</em>, <em>channels=None</em><big>)</big><a class="headerlink" href="#radiotool.composer.Track.read_frames" title="Permalink to this definition">¶</a></dt>
 <dd><p>Read <tt class="docutils literal"><span class="pre">n</span></tt> frames from the track, starting
 with the current frame</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>n</strong> (<em>integer</em>) &#8211; Number of frames to read</td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>n</strong> (<em>integer</em>) &#8211; Number of frames to read</li>
+<li><strong>channels</strong> (<em>integer</em>) &#8211; Number of channels to return (default
+is number of channels in track)</li>
+</ul>
+</td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">Next <tt class="docutils literal"><span class="pre">n</span></tt> frames from the track, starting with <tt class="docutils literal"><span class="pre">current_frame</span></tt></td>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Next <tt class="docutils literal"><span class="pre">n</span></tt> frames from the track, starting with <tt class="docutils literal"><span class="pre">current_frame</span></tt></p>
+</td>
 </tr>
-<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">numpy array</td>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">numpy array</p>
+</td>
 </tr>
 </tbody>
 </table>
