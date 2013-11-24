@@ -78,7 +78,7 @@ def retarget_with_change_points(song, cp_times, duration):
     hit a change point at the 10 and 30 second marks::
 
         song = Song("instrumental_music.wav")
-        composition = retarget.retarget_with_change_points(song, [10, 30], 40)
+        composition, change_locations = retarget.retarget_with_change_points(song, [10, 30], 40)
         composition.export(filename="retargeted_instrumental_music.")
 
     :param song: Song to retarget
@@ -87,11 +87,13 @@ def retarget_with_change_points(song, cp_times, duration):
     :type cp_times: list of floats
     :param duration: Target length of retargeted music (in seconds)
     :type duration: float
-    :returns: Composition of retargeted song
-    :rtype: :py:class:`radiotool.composer.Composition`
+    :returns: Composition of retargeted song and list of locations of
+        change points in the retargeted composition
+    :rtype: (:py:class:`radiotool.composer.Composition`, list)
     """
     analysis = song.analysis
     beat_length = analysis["avg_beat_duration"]
+    beats = N.array(analysis["beats"])
 
     # find change points
     cps = N.array(novelty(song, nchangepoints=4))
@@ -99,7 +101,12 @@ def retarget_with_change_points(song, cp_times, duration):
 
     # mark change points in original music
     def music_labels(t):
-        if N.min(N.abs(cps - t)) < .5 * beat_length:
+        # find beat closest to t
+        closest_beat_idx = N.argmin(N.abs(beats - t))
+        closest_beat = beats[closest_beat_idx]
+        closest_cp = cps[N.argmin(N.abs(cps - closest_beat))]
+        
+        if N.argmin(N.abs(beats - closest_cp)) == closest_beat_idx:
             return "cp"
         else:
             return "noncp"
@@ -121,10 +128,11 @@ def retarget_with_change_points(song, cp_times, duration):
 
     comp, info = retarget(song, duration, music_labels, out_labels, out_penalty)
 
-    for k, v in info.iteritems():
-        print k, v
+    final_cp_locations = [beat_length * i
+                          for i, label in enumerate(info['result_labels'])
+                          if label == 'cp']
 
-    return comp
+    return comp, final_cp_locations
 
 
 def retarget(song, duration, music_labels=None, out_labels=None, out_penalty=None):

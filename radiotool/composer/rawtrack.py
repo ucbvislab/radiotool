@@ -50,10 +50,13 @@ class RawTrack(Track):
     def reset(self):
         self.current_frame = 0
     
-    def read_frames(self, n):
-        if self.channels == 1:
+    def read_frames(self, n, channels=None):
+        if channels is None:
+            channels = self.channels
+
+        if channels == 1:
             out = N.zeros(n)
-        elif self.channels == 2:
+        elif channels == 2:
             out = N.zeros((n, 2))
         else:
             print "Input needs to have 1 or 2 channels"
@@ -63,9 +66,16 @@ class RawTrack(Track):
             print "Asked for", n
             n = self.remaining_frames()
 
-        if self.channels == 1:
+        if self.channels == 1 and channels == 1:
             out = self.frames[self.current_frame:self.current_frame + n]
-        elif self.channels == 2:
+        elif self.channels == 1 and channels == 2:
+            frames = self.frames[self.current_frame:self.current_frame + n]
+            out[:n, :] = [frames.copy(), frames.copy()]
+        elif self.channels == 2 and channels == 1:
+            frames = self.frames[
+                self.current_frame:self.current_frame + n, :]
+            out = N.mean(frames, axis=1)
+        elif self.channels == 2 and channels == 2:
             out[:n, :] = self.frames[
                 self.current_frame:self.current_frame + n, :]
 

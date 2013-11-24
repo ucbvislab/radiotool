@@ -6,7 +6,7 @@ import numpy as N
 import scipy.spatial.distance as scidist
 import scipy.signal
 
-from ..composer.utils import RMS_energy
+from ..utils import RMS_energy
 
 def novelty(song, k=64, wlen_ms=100, start=0, duration=None, nchangepoints=5, feature="rms"):
     """Return points of high "novelty" in a song

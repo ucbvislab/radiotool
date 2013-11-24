@@ -34,12 +34,7 @@ class Segment:
         """
         tmp_frame = self.track.current_frame
         self.track.current_frame = self.start
-        frames = self.track.read_frames(self.duration)
+        frames = self.track.read_frames(self.duration, channels=channels)
         self.track.current_frame = tmp_frame
-        
-        if channels == self.track.channels:
-            return frames.copy()
-        elif channels == 2 and self.track.channels == 1:
-            return N.hstack((frames.copy(), frames.copy()))
-        elif channels == 1 and self.track.channels == 2:
-            return N.mean(frames, axis=1)
+
+        return frames.copy()

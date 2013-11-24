@@ -9,9 +9,9 @@ class Speech(Track):
         Track.__init__(self, fn, name)
     
     def refine_cut(self, cut_point, window_size=1):
-        self.current_frame = int((cut_point - window_size / 2.0) * self.sr())
-        frames = self.read_frames(window_size * self.sr())
-        subwindow_n_frames = int((window_size / 16.0) * self.sr())
+        self.current_frame = int((cut_point - window_size / 2.0) * self.samplerate)
+        frames = self.read_frames(window_size * self.samplerate)
+        subwindow_n_frames = int((window_size / 16.0) * self.samplerate)
 
         segments = segment_array(frames, subwindow_n_frames, overlap=.5)
 
@@ -41,10 +41,10 @@ class Speech(Track):
                 long_list = cur_list
             last_key = idx
         
-        new_cut_point = (self.sr() * (cut_point - window_size / 2.0) + 
+        new_cut_point = (self.samplerate * (cut_point - window_size / 2.0) + 
                          (long_list[0] + 1) * 
                          int(subwindow_n_frames / 2.0))
         print "first min subwindow", long_list[0], "total", len(volumes)
-        return round(new_cut_point / self.sr(), 2)
+        return round(new_cut_point / self.samplerate, 2)
         # have to add the .5 elsewhere to get that effect!
         

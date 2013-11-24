@@ -25,7 +25,7 @@ class TimeStretchSegment(Segment):
 
     def get_frames(self, channels=2):
         self.track.current_frame = self.start
-        frames = self.track.read_frames(self.orig_duration)
+        frames = self.track.read_frames(self.orig_duration, channels=channels)
         frames = resample(frames, self.duration)
         self.track.current_frame = 0
         return frames

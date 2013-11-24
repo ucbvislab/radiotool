@@ -20,30 +20,41 @@ class Track(object):
         self.channels = self.sound.channels
 
 
-    def read_frames(self, n):
+    def read_frames(self, n, channels=None):
         """Read ``n`` frames from the track, starting
         with the current frame
 
         :param integer n: Number of frames to read
+        :param integer channels: Number of channels to return (default
+            is number of channels in track)
         :returns: Next ``n`` frames from the track, starting with ``current_frame``
         :rtype: numpy array
         """
+        if channels is None:
+            channels = self.channels
 
-        if self.channels == 1:
+        if channels == 1:
             out = N.zeros(n)
-        elif self.channels == 2:
+        elif channels == 2:
             out = N.zeros((n, 2))
         else:
-            print "Input needs to have 1 or 2 channels"
+            print "Input needs to be 1 or 2 channels"
             return
         if n > self.remaining_frames():
             print "Trying to retrieve too many frames!"
             print "Asked for", n
             n = self.remaining_frames()
 
-        if self.channels == 1:
+        if self.channels == 1 and channels == 1:
             out = self.sound.read_frames(n)
-        elif self.channels == 2:
+        elif self.channels == 1 and channels == 2:
+            print "here!"
+            frames = self.sound.read_frames(n)
+            out = N.vstack((frames.copy(), frames.copy())).T
+        elif self.channels == 2 and channels == 1:
+            frames = self.sound.read_frames(n)
+            out = N.mean(frames, axis=1)
+        elif self.channels == 2 and channels == 2:
             out[:n, :] = self.sound.read_frames(n)
 
         self.current_frame += n
