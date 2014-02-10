@@ -46,7 +46,7 @@ def analyze_frames(y, sr, debug=False):
 
     # Let's make some beat-synchronous mfccs
     if debug: print "> mfcc"
-    S = librosa.feature.mfcc(librosa.logamplitude(S), d=40)
+    S = librosa.feature.mfcc(librosa.logamplitude(S), n_mfcc=40)
     A['timbres'] = librosa.feature.sync(S, beats).T.tolist()
 
     if debug: print "timbres count: ", len(A['timbres'])
@@ -56,8 +56,9 @@ def analyze_frames(y, sr, debug=False):
     S = N.abs(librosa.stft(y, hop_length=hop_length))
 
     # Grab the harmonic component
-    H = librosa.hpss.hpss_median(S, win_P=31, win_H=31, p=1.0)[0]
-    A['chroma'] = librosa.feature.sync(librosa.feature.chromagram(H, sr),
+    H = librosa.decompose.hpss(S)[0]
+    # H = librosa.hpss.hpss_median(S, win_P=31, win_H=31, p=1.0)[0]
+    A['chroma'] = librosa.feature.sync(librosa.feature.chromagram(S=H, sr=sr),
                                         beats,
                                         aggregate=N.median).T.tolist()
 

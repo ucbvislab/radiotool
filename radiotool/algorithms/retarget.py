@@ -321,14 +321,27 @@ def _build_table(analysis, duration, start, target, out_penalty):
 
     # building the remainder of the table
     for l in xrange(1, len(target)):
-        for n_i in xrange(len(beats)):
-            total_cost = penalty[n_i, l] + trans_cost[:, n_i] + cost[:, l - 1]
-            min_node = N.argmin(total_cost)
-            cost[n_i, l] = total_cost[min_node]
-            prev_node[n_i, l] = min_node
+        tc = penalty[:, l] + trans_cost + cost[:, l - 1][:, N.newaxis]
+        min_nodes = __fast_argmin_axis_0(tc)
+        min_vals = N.amin(tc, axis=0)
+        cost[:, l] = min_vals
+        prev_node[:, l] = min_nodes
+
+        # for n_i in xrange(len(beats)):
+        #     total_cost = penalty[n_i, l] + trans_cost[:, n_i] + cost[:, l - 1]
+        #     min_node = N.argmin(total_cost)
+        #     cost[n_i, l] = total_cost[min_node]
+        #     prev_node[n_i, l] = min_node
 
     # result:
     return cost, prev_node
+
+def __fast_argmin_axis_0(a):
+    matches = N.nonzero((a == N.min(a, axis=0)).ravel())[0]
+    rows, cols = N.unravel_index(matches, a.shape)
+    argmin_array = N.empty(a.shape[1], dtype=N.intp)
+    argmin_array[cols] = rows
+    return argmin_array
 
 
 def _generate_audio(song, beats, new_beats):
