@@ -337,6 +337,7 @@ def _build_table(analysis, duration, start, target, out_penalty):
     return cost, prev_node
 
 def __fast_argmin_axis_0(a):
+    # http://stackoverflow.com/questions/17840661/is-there-a-way-to-make-numpy-argmin-as-fast-as-min
     matches = N.nonzero((a == N.min(a, axis=0)).ravel())[0]
     rows, cols = N.unravel_index(matches, a.shape)
     argmin_array = N.empty(a.shape[1], dtype=N.intp)

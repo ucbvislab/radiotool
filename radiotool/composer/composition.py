@@ -4,6 +4,11 @@ from math import sqrt
 import numpy as N
 
 from scikits.audiolab import Sndfile, Format
+try:
+    import libxmp
+    LIBXMP = True
+except:
+    LIBXMP = False
 
 from rawtrack import RawTrack
 from fade import Fade
@@ -17,7 +22,8 @@ class Composition(object):
     tracks.
     """
 
-    def __init__(self, tracks=None, channels=2, segments=None, dynamics=None):
+    def __init__(self, tracks=None, channels=2, segments=None, dynamics=None,
+                 labels=None):
         """Initialize a composition with optional starting tracks/segments.
 
         :param tracks: Initial tracks in the composition
@@ -46,6 +52,11 @@ class Composition(object):
             self.dynamics = []
         else:
             self.dynamics = list(dynamics)
+
+        if labels is None:
+            self.labels = []
+        else:
+            self.labels = list(labels)
 
         self.channels = channels
 
@@ -106,6 +117,12 @@ class Composition(object):
         :type dyns: list of :py:class:`radiotool.composer.Dynamic`
         """
         self.dynamics.extend(dyns)
+
+    def add_label(self, label):
+        self.labels.append(label)
+
+    def add_labels(self, labels):
+        self.labels.extend(labels)
 
     def fade_in(self, segment, duration):
         """Adds a fade in to a segment in the composition
@@ -514,9 +531,41 @@ class Composition(object):
                          min_length=min_length,
                          channels=channels)
 
-        out_file = Sndfile("%s.%s" % (filename, filetype), 'w',
+        out_filename = "%s.%s" % (filename, filetype)
+        out_file = Sndfile(out_filename, 'w',
                            Format(filetype, encoding=encoding), 
                            channels, samplerate)
         out_file.write_frames(out)
         out_file.close()
+
+        if LIBXMP and filetype == "wav":
+            xmp = libxmp.XMPMeta()
+            ns = libxmp.consts.XMP_NS_DM
+            p = xmp.get_prefix_for_namespace(ns)
+            xpath = p + 'Tracks'
+            xmp.append_array_item(ns, xpath, None, 
+                array_options={"prop_value_is_array": True},
+                prop_value_is_struct=True)
+
+            xpath += '[1]/' + p
+            xmp.set_property(ns, xpath + "trackName", "CuePoint Markers")
+            xmp.set_property(ns, xpath + "trackType", "Cue")
+            xmp.set_property(ns, xpath + "frameRate", "f%d" % samplerate)
+
+            for i, lab in enumerate(self.labels):
+                xmp.append_array_item(ns, xpath + "markers", None,
+                    array_options={"prop_value_is_array": True},
+                    prop_value_is_struct=True)
+                xmp.set_property(ns,
+                    xpath + "markers[%d]/%sname" % (i + 1, p), lab.name)
+                xmp.set_property(ns,
+                    xpath + "markers[%d]/%sstartTime" % (i + 1, p),
+                    str(lab.sample(samplerate))) 
+
+            xmpfile = libxmp.XMPFiles(file_path=out_filename, open_forupdate=True)
+            if xmpfile.can_put_xmp(xmp):
+                xmpfile.put_xmp(xmp)
+            xmpfile.close_file()
+
+
         return out
