@@ -17,7 +17,7 @@ class ConstraintPipeline(object):
     def apply(self, song, target_n_length):
         n_beats = len(song.analysis["beats"])
         transition_cost = np.ones((n_beats, n_beats))
-        penalty = np.ones((n_beats, target_n_length))
+        penalty = np.zeros((n_beats, target_n_length))
         for constraint in self.constraints:
             transition_cost, penalty = constraint.apply(transition_cost, penalty, song)
         return transition_cost, penalty
@@ -27,7 +27,7 @@ class Constraint(object):
     def __init__(self):
         pass
 
-    def apply(self, transition_cost, song):
+    def apply(self, transition_cost, penalty, song):
         return transition_cost
 
 
@@ -47,7 +47,7 @@ class RhythmConstraint(Constraint):
     def apply(self, transition_cost, penalty, song):
         for i in range(self.time):
             for j in set(range(self.time)) - set([(i + 1) % self.time]):
-                transition_cost[i::self.time][j::self.time] = np.inf
+                transition_cost[i::self.time][j::self.time] *= 2.0
         return transition_cost, penalty
 
 
@@ -65,12 +65,16 @@ class MinimumJumpConstraint(Constraint):
 
 
 class LabelConstraint(Constraint):
-    def __init__(self, in_labels, target_labels, penalty_window=0):
+    def __init__(self, in_labels, target_labels, penalty, penalty_window=0):
         self.in_labels = in_labels
         self.out_labels = target_labels
+        self.penalty = penalty
         self.window = penalty_window
 
     def apply(self, transition_cost, penalty, song):
+
+        new_pen = np.ones(penalty.shape) * np.array(self.penalty)
+
         n_beats = transition_cost.shape[0]
         n_target = penalty.shape[1]
         for n_i in xrange(n_beats):
@@ -81,25 +85,33 @@ class LabelConstraint(Constraint):
                 target_label = self.out_labels[l]
 
                 if node_label == target_label or target_label is None:
-                    penalty[n_i, l] *= 0.01
+                    new_pen[n_i, l] = 0
 
-                if penalty_window > 0:
+                if self.window > 0:
                     if target_label != prev_target:
                         # reduce penalty for beats prior
-                        span = min(penalty_window, l)
-                        penalty[n_i, l - span:l] *= N.linspace(1.0, 0.01, num=span)
+                        span = min(self.window, l)
+                        new_pen[n_i, l - span:l] = N.linspace(1.0, 0.01, num=span)
 
                     if target_label != next_target:
                         # reduce penalty for beats later
-                        span = min(penalty_window, len(target) - l - 1)
-                        penalty[n_i, l + 1:l + span + 1] *= N.linspace(0.01, 1.0, num=span)
+                        span = min(self.window, len(self.out_labels) - l - 1)
+                        new_pen[n_i, l + 1:l + span + 1] = N.linspace(0.01, 1.0, num=span)
 
             for l in [0, n_target - 1]:
                 target_label = self.out_labels[l]
                 if node_label == target_label or target_label is None:
-                    penalty[n_i, l] *= 0.01
+                    new_pen[n_i, l] = 0
 
-        return transition_cost, penalty
+        return transition_cost, penalty + new_pen
+
+
+class GenericTimeSensitivePenalty(Constraint):
+    def __init__(self, penalty):
+        self.penalty = penalty
+
+    def apply(self, transition_cost, penalty, song):
+        return transition_cost, penalty + self.penalty
 
 
 if __name__ == '__main__':

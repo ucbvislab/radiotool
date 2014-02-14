@@ -1,7 +1,8 @@
 import numpy as N
 
-from ..composer import Composition, Segment, Volume
+from ..composer import Composition, Segment, Volume, Label
 from novelty import novelty
+import constraints
 
 
 def retarget_to_length(song, duration, start=True, end=True, slack=5):
@@ -56,6 +57,11 @@ def retarget_to_length(song, duration, start=True, end=True, slack=5):
                 return 0
 
         comp, info = retarget(song, new_duration, music_labels, out_labels, out_penalty)
+
+        labels = []
+        for transition in info["transitions"]:
+            labels.append(Label("crossfade", transition))
+        comp.add_labels(labels)
 
         # and the beatless ending to the composition
         last_seg = sorted(comp.segments, key=lambda k: k.comp_location + k.duration)[-1]
@@ -207,12 +213,25 @@ def retarget(song, duration, music_labels=None, out_labels=None, out_penalty=Non
         start = ["" for i in beats]
 
     if out_penalty is not None:
-        pen = [out_penalty(i) for i in N.arange(0, duration, beat_length)]
+        pen = N.array([out_penalty(i) for i in N.arange(0, duration, beat_length)])
     else:
-        pen = [1 for i in N.arange(0, duration, beat_length)]
+        pen = N.array([1 for i in N.arange(0, duration, beat_length)])
     
+    pipeline = constraints.ConstraintPipeline(constraints=[
+        constraints.TimbrePitchConstraint(),
+        constraints.RhythmConstraint(4),  # get time signature?
+        constraints.MinimumJumpConstraint(8),
+        constraints.LabelConstraint(start, target, pen)
+    ])
+
+    trans_cost, penalty = pipeline.apply(song, len(target))
+
+    # import pdb; pdb.set_trace()
+
+    cost, prev_node = _build_table_from_costs(trans_cost, penalty)
+
     # compute the dynamic programming table
-    cost, prev_node = _build_table(analysis, duration, start, target, pen)
+    # cost, prev_node = _build_table(analysis, duration, start, target, pen)
 
     # find the cheapest path    
     res = cost[:, -1]
@@ -223,6 +242,7 @@ def retarget(song, duration, music_labels=None, out_labels=None, out_penalty=Non
             prev_node, analysis["beats"], best_idx, N.shape(cost)[1] - 1)
     else:
         # throw an exception here?
+        import pdb; pdb.set_trace()
         return None
 
     # how did we do?
@@ -251,6 +271,23 @@ def _reconstruct_path(prev_node, beats, end, length):
         path.append(node)
         length -= 1
     return [beats[int(n)] for n in reversed(path)]
+
+
+def _build_table_from_costs(trans_cost, penalty):
+    # create cost matrix
+    cost = N.zeros(penalty.shape)
+    prev_node = N.zeros(penalty.shape)
+
+    cost[:, 0] = penalty[:, 0]
+
+    for l in xrange(1, penalty.shape[1]):
+        tc = penalty[:, l] + trans_cost + cost[:, l - 1][:, N.newaxis]
+        min_nodes = __fast_argmin_axis_0(tc)
+        min_vals = N.amin(tc, axis=0)
+        cost[:, l] = min_vals
+        prev_node[:, l] = min_nodes
+
+    return cost, prev_node
 
 
 def _build_table(analysis, duration, start, target, out_penalty):
