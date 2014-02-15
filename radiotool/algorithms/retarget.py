@@ -71,6 +71,9 @@ def retarget_to_length(song, duration, start=True, end=True, slack=5):
             (song.duration - last_seg.start - last_seg.duration) / float(song.samplerate))
         comp.add_segment(seg)
 
+
+    for transition in info["transitions"]:
+        comp.add_label(Label("crossfade", transition))
     return comp
 
 
