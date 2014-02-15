@@ -51,5 +51,5 @@ class Song(Track):
             while len(buf) > 0:
                 hasher.update(buf)
                 buf = f.read(block_size)
-        self._checksum = hasher.digest()
+        self._checksum = hasher.hexdigest()
         return self._checksum
