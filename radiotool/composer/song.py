@@ -28,7 +28,7 @@ class Song(Track):
         if self.cache_dir is not None:
             path = os.path.join(self.cache_dir, self.checksum)
             try:
-                if refresh_cache: raise IOError
+                if self.refresh_cache: raise IOError
                 with open(path + '.pickle', 'rb') as pickle_file:
                     self._analysis = pickle.load(pickle_file)
             except IOError:
