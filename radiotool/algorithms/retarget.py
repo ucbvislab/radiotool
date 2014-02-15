@@ -1,6 +1,6 @@
 import numpy as N
 
-from ..composer import Composition, Segment, Volume
+from ..composer import Composition, Segment, Volume, Label
 from novelty import novelty
 
 
@@ -65,6 +65,9 @@ def retarget_to_length(song, duration, start=True, end=True, slack=5):
             (song.duration - last_seg.start - last_seg.duration) / float(song.samplerate))
         comp.add_segment(seg)
 
+
+    for transition in info["transitions"]:
+        comp.add_label(Label("crossfade", transition))
     return comp
 
 

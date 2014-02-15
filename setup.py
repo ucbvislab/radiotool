@@ -19,9 +19,9 @@ setup(name='radiotool',
             'scikits.audiolab',
             'librosa'
       ],
-      extras_require=[
-            'python-xmp-toolkit'
-      ],
+#      extras_require=[
+#            'python-xmp-toolkit'
+#      ],
       dependency_links=['https://github.com/bmcfee/librosa/tarball/master#egg=librosa-0.1'],
       zip_safe=False,
       test_suite='nose.collector',
