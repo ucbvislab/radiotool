@@ -1,5 +1,7 @@
 
 # constraints should be multiplicative so we can do them in any order
+# ok, maybe not multiplicative. not sure yet.
+# want to avoid plateaus in the space.
 
 import numpy as np
 
@@ -37,7 +39,8 @@ class TimbrePitchConstraint(Constraint):
         # shift it over
         dists[:-1, :] = dists[1:, :]
         dists[-1, :] = np.inf
-        return transition_cost * dists, penalty
+        transition_cost[:dists.shape[0], :dists.shape[1]] *= dists
+        return transition_cost, penalty
 
 
 class RhythmConstraint(Constraint):
@@ -45,9 +48,10 @@ class RhythmConstraint(Constraint):
         self.time = beats_per_measure
 
     def apply(self, transition_cost, penalty, song):
+        n_beats = len(song.analysis["beats"])
         for i in range(self.time):
             for j in set(range(self.time)) - set([(i + 1) % self.time]):
-                transition_cost[i::self.time][j::self.time] *= 2.0
+                transition_cost[i:n_beats:self.time][j:n_beats:self.time] *= 2.0
         return transition_cost, penalty
 
 
@@ -56,7 +60,7 @@ class MinimumJumpConstraint(Constraint):
         self.min_jump = min_jump
 
     def apply(self, transition_cost, penalty, song):
-        n_beats = transition_cost.shape[0]
+        n_beats = len(song.analysis["beats"])
         for i in range(n_beats):
             for j in range(-(self.min_jump - 1), self.min_jump):
                 if 0 < i + j < n_beats and j != 1:
@@ -74,8 +78,7 @@ class LabelConstraint(Constraint):
     def apply(self, transition_cost, penalty, song):
 
         new_pen = np.ones(penalty.shape) * np.array(self.penalty)
-
-        n_beats = transition_cost.shape[0]
+        n_beats = len(song.analysis["beats"])
         n_target = penalty.shape[1]
         for n_i in xrange(n_beats):
             node_label = self.in_labels[n_i]
@@ -102,8 +105,10 @@ class LabelConstraint(Constraint):
                 target_label = self.out_labels[l]
                 if node_label == target_label or target_label is None:
                     new_pen[n_i, l] = 0
+        
+        penalty[:n_beats, :] += new_pen
 
-        return transition_cost, penalty + new_pen
+        return transition_cost, penalty
 
 
 class GenericTimeSensitivePenalty(Constraint):
@@ -111,7 +116,45 @@ class GenericTimeSensitivePenalty(Constraint):
         self.penalty = penalty
 
     def apply(self, transition_cost, penalty, song):
-        return transition_cost, penalty + self.penalty
+        penalty[:n_beats, :] += self.penalty
+        return transition_cost, penalty
+
+
+class PauseConstraint(Constraint):
+    def __init__(self, min_length, max_length):
+        self.min_len = min_length
+        self.max_len = max_length
+        self.to_cost = .25
+        self.bw_cost = .05
+
+    def apply(self, transition_cost, penalty, song):
+        # we have to manage the pauses...
+        n_beats = len(song.analysis["beats"])
+        beat_len = song.analysis["avg_beat_duration"]
+        min_beats = np.ceil(self.min_len / float(beat_len))
+        max_beats = np.floor(self.max_len / float(beat_len))
+
+        new_trans = np.zeros((n_beats + max_beats, n_beats + max_beats))
+        new_trans[:n_beats, :n_beats] = transition_cost
+        
+        # beat to first pause
+        p0 = n_beats
+        new_trans[:n_beats, p0] = self.to_cost
+        
+        # beat to other pauses
+        new_trans[:n_beats, p0 + 1:] = np.inf
+        
+        # must stay in pauses until min pause
+        for i in range(p0, p0 + min_beats):
+            new_trans[i, :n_beats] = np.inf
+            new_trans[i, i + 1] = 0.
+        
+        # after that, pause-to-pause costs something
+        for i in range(p0 + min_beats, p0 + max_beats - 1):
+            new_trans[i, :n_beats] = 0.
+            new_trans[i, i + 1] = self.bw_cost
+
+        return new_trans, penalty
 
 
 if __name__ == '__main__':

@@ -224,7 +224,8 @@ def retarget(song, duration, music_labels=None, out_labels=None, out_penalty=Non
         constraints.TimbrePitchConstraint(),
         constraints.RhythmConstraint(4),  # get time signature?
         constraints.MinimumJumpConstraint(8),
-        constraints.LabelConstraint(start, target, pen)
+        constraints.LabelConstraint(start, target, pen),
+        constraints.PauseConstraint(6, 25)
     ])
 
     trans_cost, penalty = pipeline.apply(song, len(target))
