@@ -44,14 +44,15 @@ class TimbrePitchConstraint(Constraint):
 
 
 class RhythmConstraint(Constraint):
-    def __init__(self, beats_per_measure):
+    def __init__(self, beats_per_measure, multiplier):
+        self.m = multiplier
         self.time = beats_per_measure
 
     def apply(self, transition_cost, penalty, song):
         n_beats = len(song.analysis["beats"])
         for i in range(self.time):
             for j in set(range(self.time)) - set([(i + 1) % self.time]):
-                transition_cost[i:n_beats:self.time][j:n_beats:self.time] *= 2.0
+                transition_cost[i:n_beats:self.time][j:n_beats:self.time] *= self.m
         return transition_cost, penalty
 
 
@@ -76,11 +77,16 @@ class LabelConstraint(Constraint):
         self.window = penalty_window
 
     def apply(self, transition_cost, penalty, song):
+        n_beats = len(song.analysis["beats"])
+
+        # extend in_labels to work with pauses that we may have added
+        if n_beats < transition_cost.shape[0]:
+            self.in_labels.extend([None] * (transition_cost.shape[0] - n_beats))
 
         new_pen = np.ones(penalty.shape) * np.array(self.penalty)
-        n_beats = len(song.analysis["beats"])
+        # new_pen = np.ones((n_beats, len(self.penalty))) * np.array(self.penalty)
         n_target = penalty.shape[1]
-        for n_i in xrange(n_beats):
+        for n_i in xrange(transition_cost.shape[0]):
             node_label = self.in_labels[n_i]
             for l in xrange(1, n_target - 1):
                 prev_target = self.out_labels[l - 1]
@@ -106,7 +112,7 @@ class LabelConstraint(Constraint):
                 if node_label == target_label or target_label is None:
                     new_pen[n_i, l] = 0
         
-        penalty[:n_beats, :] += new_pen
+        penalty += new_pen
 
         return transition_cost, penalty
 
@@ -131,18 +137,24 @@ class PauseConstraint(Constraint):
         # we have to manage the pauses...
         n_beats = len(song.analysis["beats"])
         beat_len = song.analysis["avg_beat_duration"]
-        min_beats = np.ceil(self.min_len / float(beat_len))
-        max_beats = np.floor(self.max_len / float(beat_len))
+        min_beats = int(np.ceil(self.min_len / float(beat_len)))
+        max_beats = int(np.floor(self.max_len / float(beat_len)))
 
         new_trans = np.zeros((n_beats + max_beats, n_beats + max_beats))
         new_trans[:n_beats, :n_beats] = transition_cost
         
+        new_pen = np.zeros((n_beats + max_beats, penalty.shape[1]))
+        new_pen[:n_beats, :] = penalty
+
         # beat to first pause
         p0 = n_beats
         new_trans[:n_beats, p0] = self.to_cost
         
         # beat to other pauses
         new_trans[:n_beats, p0 + 1:] = np.inf
+
+        # pause to pause default
+        new_trans[p0:, p0:] = np.inf
         
         # must stay in pauses until min pause
         for i in range(p0, p0 + min_beats):
@@ -154,7 +166,12 @@ class PauseConstraint(Constraint):
             new_trans[i, :n_beats] = 0.
             new_trans[i, i + 1] = self.bw_cost
 
-        return new_trans, penalty
+        # last pause must go back to beats
+        new_trans[p0 + max_beats - 1, :n_beats] = 0.
+
+        new_pen[p0 + 1:, 0] = np.inf
+
+        return new_trans, new_pen
 
 
 if __name__ == '__main__':

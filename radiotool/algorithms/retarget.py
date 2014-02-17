@@ -1,3 +1,5 @@
+import copy
+
 import numpy as N
 
 from ..composer import Composition, Segment, Volume, Label
@@ -221,11 +223,11 @@ def retarget(song, duration, music_labels=None, out_labels=None, out_penalty=Non
         pen = N.array([1 for i in N.arange(0, duration, beat_length)])
     
     pipeline = constraints.ConstraintPipeline(constraints=[
+        # constraints.PauseConstraint(1, 3),
         constraints.TimbrePitchConstraint(),
-        constraints.RhythmConstraint(4),  # get time signature?
+        constraints.RhythmConstraint(4, 5.0),  # get time signature?
         constraints.MinimumJumpConstraint(8),
-        constraints.LabelConstraint(start, target, pen),
-        constraints.PauseConstraint(6, 25)
+        constraints.LabelConstraint(start, target, pen)
     ])
 
     trans_cost, penalty = pipeline.apply(song, len(target))
@@ -246,11 +248,16 @@ def retarget(song, duration, music_labels=None, out_labels=None, out_penalty=Non
             prev_node, analysis["beats"], best_idx, N.shape(cost)[1] - 1)
     else:
         # throw an exception here?
-        import pdb; pdb.set_trace()
         return None
 
     # how did we do?
-    result_labels = [start[N.where(N.array(beats) == i)[0][0]] for i in path]
+    result_labels = []
+    for i in path:
+        if str(i).startswith('p'):
+            result_labels.append(None)
+        else:
+            result_labels.append(start[N.where(N.array(beats) == i)[0][0]])
+    # result_labels = [start[N.where(N.array(beats) == i)[0][0]] for i in path]
 
     # return a radiotool Composition
     comp, cf_locations = _generate_audio(song, beats, path)
@@ -267,6 +274,10 @@ def retarget(song, duration, music_labels=None, out_labels=None, out_penalty=Non
 
 
 def _reconstruct_path(prev_node, beats, end, length):
+    beats_with_pauses = copy.copy(beats)
+    for i in range(prev_node.shape[0] - len(beats)):
+        beats_with_pauses.append('p' + str(i))
+
     path = []
     path.append(end)
     node = end
@@ -274,7 +285,7 @@ def _reconstruct_path(prev_node, beats, end, length):
         node = prev_node[int(node), length]
         path.append(node)
         length -= 1
-    return [beats[int(n)] for n in reversed(path)]
+    return [beats_with_pauses[int(n)] for n in reversed(path)]
 
 
 def _build_table_from_costs(trans_cost, penalty):
@@ -389,78 +400,113 @@ def __fast_argmin_axis_0(a):
 def _generate_audio(song, beats, new_beats):
     comp = Composition(channels=song.channels)
 
-    # music_volume = .10
+    audio_segments = []
+    current_seg = [0, 0]
+    if str(new_beats[0]).startswith('p'):
+        current_seg = 'p'
+
+    for i, b in enumerate(new_beats):
+        if current_seg == 'p' and not str(b).startswith('p'):
+            current_seg = [i, i]
+        elif current_seg != 'p' and str(b).startswith('p'):
+            audio_segments.append(current_seg)
+            current_seg = 'p'
+        elif current_seg != 'p':
+            current_seg[1] = i
+    if current_seg != 'p':
+        audio_segments.append(current_seg)
+
     music_volume = 1.0
 
-    starts = N.array(new_beats)
     beats = N.array(beats)
-
-    bis = [N.nonzero(beats == b)[0][0] for b in starts]
-    dists = [0] * len(starts)
-    durs = [0] * len(starts)
-
-    for i, beat in enumerate(starts):
-        if i < len(bis) - 1:
-            if bis[i] + 1 != bis[i + 1]:
-                dists[i] = 1
-        if bis[i] + 1 >= len(beats):
-            durs[i] = beats[bis[i]] - beats[bis[i] - 1]
-        else:
-            durs[i] = beats[bis[i] + 1] - beats[bis[i]]
-
     score_start = 0
+    current_loc = 0.0
+    last_segment_beat = 0
+
     comp.add_track(song)
-    current_loc = float(score_start)
 
-    segments = []
-    cf_durations = []
-    seg_start = starts[0]
-    seg_start_loc = current_loc
+    for aseg in audio_segments:
+        segments = []
+        starts = N.array(new_beats[aseg[0]:aseg[1] + 1])
 
-    cf_locations = []
+        bis = [N.nonzero(beats == b)[0][0] for b in starts]
+        dists = [0] * len(starts)
+        durs = [0] * len(starts)
 
-    for i, start in enumerate(starts):
-        if i == 0 or dists[i - 1] == 0:
-            dur = durs[i]
-            current_loc += dur
-        else:
-            seg = Segment(song, seg_start_loc, seg_start,
-                          current_loc - seg_start_loc)
-            segments.append(seg)
+        for i, beat in enumerate(starts):
+            if i < len(bis) - 1:
+                if bis[i] + 1 != bis[i + 1]:
+                    dists[i] = 1
+            if bis[i] + 1 >= len(beats):
+                durs[i] = beats[bis[i]] - beats[bis[i] - 1]
+            else:
+                durs[i] = beats[bis[i] + 1] - beats[bis[i]]
 
-            # track = Track(wav_fn, t["name"])
-            # comp.add_track(track)
-            dur = durs[i]
-            cf_durations.append(dur)
-            cf_locations.append(current_loc)
 
-            seg_start_loc = current_loc
-            seg_start = start
+        # add pause duration to current location
+        current_loc += (aseg[0] - last_segment_beat) * song.analysis["avg_beat_duration"]
+        last_segment_beat = aseg[1]
 
-            current_loc += dur
+        
+        cf_durations = []
+        seg_start = starts[0]
+        seg_start_loc = current_loc
 
-    last_seg = Segment(song, seg_start_loc, seg_start,
-        current_loc - seg_start_loc)
-    segments.append(last_seg)
+        cf_locations = []
 
-    comp.add_segments(segments)
+        for i, start in enumerate(starts):
+            if i == 0 or dists[i - 1] == 0:
+                dur = durs[i]
+                current_loc += dur
+            else:
+                seg = Segment(song, seg_start_loc, seg_start,
+                              current_loc - seg_start_loc)
+                segments.append(seg)
 
-    all_segs = []
+                # track = Track(wav_fn, t["name"])
+                # comp.add_track(track)
+                dur = durs[i]
+                cf_durations.append(dur)
+                cf_locations.append(current_loc)
 
-    for i, seg in enumerate(segments[:-1]):
-        rawseg = comp.cross_fade(seg, segments[i + 1], cf_durations[i])
-        all_segs.extend([seg, rawseg])
+                seg_start_loc = current_loc
+                seg_start = start
 
-        # decrease volume along crossfades
-        rawseg.track.frames *= music_volume
+                current_loc += dur
 
-    all_segs.append(segments[-1])
+        last_seg = Segment(song, seg_start_loc, seg_start,
+            current_loc - seg_start_loc)
+        segments.append(last_seg)
+
+        comp.add_segments(segments)
+
+        for i, seg in enumerate(segments[:-1]):
+            rawseg = comp.cross_fade(seg, segments[i + 1], cf_durations[i])
+            # all_segs.extend([seg, rawseg])
+
+            # decrease volume along crossfades
+            rawseg.track.frames *= music_volume
+
+
+    # add all the segments to the composition
+    # comp.add_segments(segments)
+
+    # all_segs = []
+
+    # for i, seg in enumerate(segments[:-1]):
+    #     rawseg = comp.cross_fade(seg, segments[i + 1], cf_durations[i])
+    #     all_segs.extend([seg, rawseg])
+
+    #     # decrease volume along crossfades
+    #     rawseg.track.frames *= music_volume
+
+    # all_segs.append(segments[-1])
 
     # add dynamic for music
-    volume = Volume(song, 0.0,
-        (last_seg.comp_location + last_seg.duration) / float(song.samplerate),
-        music_volume)
-    comp.add_dynamic(volume)
+    # volume = Volume(song, 0.0,
+    #     (last_seg.comp_location + last_seg.duration) / float(song.samplerate),
+    #     music_volume)
+    # comp.add_dynamic(volume)
 
     # cf durs?
     # durs
