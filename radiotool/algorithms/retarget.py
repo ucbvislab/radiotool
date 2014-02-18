@@ -267,7 +267,7 @@ def retarget(song, duration, music_labels=None, out_labels=None, out_penalty=Non
         "path": path,
         "target_labels": target,
         "result_labels": result_labels,
-        "transitions": cf_locations
+        "transitions": [Label("crossfade", loc) for loc in cf_locations]
     }
 
     return comp, info

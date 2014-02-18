@@ -5,6 +5,8 @@
 
 import numpy as np
 
+import librosa_analysis
+
 
 class ConstraintPipeline(object):
     def __init__(self, constraints=None):
@@ -26,16 +28,26 @@ class ConstraintPipeline(object):
 
 
 class Constraint(object):
-    def __init__(self):
-        pass
+    def __init__(self): pass
 
-    def apply(self, transition_cost, penalty, song):
-        return transition_cost
+    def apply(self, transition_cost, penalty, song): return transition_cost, penalty
 
 
 class TimbrePitchConstraint(Constraint):
+    def __init__(self, timbre_weight=1, chroma_weight=1):
+        self.timbre_weight = timbre_weight
+        self.chroma_weight = chroma_weight
+
     def apply(self, transition_cost, penalty, song):
-        dists = np.copy(song.analysis["dense_dist"])
+        timbre_dist = librosa_analysis.structure(np.array(song.analysis['timbres']).T)
+        chroma_dist = librosa_analysis.structure(np.array(song.analysis['chroma']).T)
+
+        tw = float(self.timbre_weight) / (float(self.chroma_weight) + float(self.timbre_weight))
+        cw = 1 - tw
+
+        dists = tw * timbre_dist + cw * chroma_dist
+
+        # dists = np.copy(song.analysis["dense_dist"])
         # shift it over
         dists[:-1, :] = dists[1:, :]
         dists[-1, :] = np.inf
