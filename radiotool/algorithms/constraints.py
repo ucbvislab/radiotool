@@ -6,7 +6,7 @@
 import numpy as np
 
 import librosa_analysis
-
+import novelty
 
 class ConstraintPipeline(object):
     def __init__(self, constraints=None):
@@ -106,23 +106,28 @@ class LabelConstraint(Constraint):
                 target_label = self.out_labels[l]
 
                 if node_label == target_label or target_label is None:
-                    new_pen[n_i, l] = 0
+                    new_pen[n_i, l] = 0.0
+                elif node_label is None:
+                    # should this have a penalty?
+                    new_pen[n_i, l] = 0.0
 
                 if self.window > 0:
                     if target_label != prev_target:
                         # reduce penalty for beats prior
                         span = min(self.window, l)
-                        new_pen[n_i, l - span:l] = N.linspace(1.0, 0.01, num=span)
+                        new_pen[n_i, l - span:l] = np.linspace(1.0, 0.01, num=span)
 
                     if target_label != next_target:
                         # reduce penalty for beats later
                         span = min(self.window, len(self.out_labels) - l - 1)
-                        new_pen[n_i, l + 1:l + span + 1] = N.linspace(0.01, 1.0, num=span)
+                        new_pen[n_i, l + 1:l + span + 1] = np.linspace(0.01, 1.0, num=span)
 
             for l in [0, n_target - 1]:
                 target_label = self.out_labels[l]
                 if node_label == target_label or target_label is None:
-                    new_pen[n_i, l] = 0
+                    new_pen[n_i, l] = 0.0
+                elif node_label is None:
+                    new_pen[n_i, l] = 0.0
         
         penalty += new_pen
 
@@ -142,7 +147,7 @@ class PauseConstraint(Constraint):
     def __init__(self, min_length, max_length):
         self.min_len = min_length
         self.max_len = max_length
-        self.to_cost = .25
+        self.to_cost = .075
         self.bw_cost = .05
 
     def apply(self, transition_cost, penalty, song):
@@ -152,6 +157,9 @@ class PauseConstraint(Constraint):
         min_beats = int(np.ceil(self.min_len / float(beat_len)))
         max_beats = int(np.floor(self.max_len / float(beat_len)))
 
+        tc = self.to_cost * min_beats
+        bc = self.bw_cost
+
         new_trans = np.zeros((n_beats + max_beats, n_beats + max_beats))
         new_trans[:n_beats, :n_beats] = transition_cost
         
@@ -160,7 +168,7 @@ class PauseConstraint(Constraint):
 
         # beat to first pause
         p0 = n_beats
-        new_trans[:n_beats, p0] = self.to_cost
+        new_trans[:n_beats, p0] = tc
         
         # beat to other pauses
         new_trans[:n_beats, p0 + 1:] = np.inf
@@ -176,7 +184,7 @@ class PauseConstraint(Constraint):
         # after that, pause-to-pause costs something
         for i in range(p0 + min_beats, p0 + max_beats - 1):
             new_trans[i, :n_beats] = 0.
-            new_trans[i, i + 1] = self.bw_cost
+            new_trans[i, i + 1] = bc
 
         # last pause must go back to beats
         new_trans[p0 + max_beats - 1, :n_beats] = 0.
@@ -184,6 +192,56 @@ class PauseConstraint(Constraint):
         new_pen[p0 + 1:, 0] = np.inf
 
         return new_trans, new_pen
+
+class NoveltyConstraint(Constraint):
+    def __init__(self, in_labels, target_labels, penalty):
+        self.in_labels = in_labels
+        self.out_labels = target_labels
+        self.penalty = penalty
+
+    def apply(self, transition_cost, penalty, song):
+        changepoints = np.array(novelty.novelty(song))
+        beats = song.analysis["beats"]
+        n_beats = len(beats)
+        n_target = penalty.shape[1]
+        cp_beats_i = [np.argmin(np.abs(beats - cp)) for cp in changepoints]
+        cp_beats = [beats[i] for i in cp_beats_i]
+
+        # find emotional changes at each changepoint, if any
+        changes = []
+        for i in cp_beats_i:
+            # check the previous and next 4 beats
+            n_prev = min(4, i)
+            n_next = min(4, n_beats - i)
+            labs = [self.in_labels[j]
+                    for j in range(i - n_prev, i + n_next + 1)]
+            # check first and last beat in this range... assuming a sort of
+            # coarse-grained emotional labeling
+            if labs[0] != labs[-1]:
+                # there is an emotional change at this point in the music
+                changes.append((i, labs[0], labs[-1]))
+
+        for change in changes:
+            print "Found emotional change near changepoint: " + change[1] + " -> " + change[2]
+
+        # find those emotional changes in the target output
+        for l in xrange(1, n_target):
+            target = self.out_labels[l]
+            prev_target = self.out_labels[l - 1]
+            if target != prev_target:
+                for change in changes:
+                    if prev_target == change[1] and target == change[2]:
+                        print "setting change:\t" + change[1] + " -> " + change[2] 
+                        print "\tat beat " + str(l) + " " + str(l * song.analysis["avg_beat_duration"])
+
+                        # give huge preference to hitting the changepoint here
+                        beat_i = change[0]
+                        penalty[:n_beats, l] += 1.0
+                        n_prev = min(2, beat_i)
+                        n_next = min(2, n_beats - beat_i)
+                        penalty[beat_i - n_prev:beat_i + n_next, l] -= 1.0
+
+        return transition_cost, penalty
 
 
 if __name__ == '__main__':

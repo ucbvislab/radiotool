@@ -94,6 +94,7 @@ class Song(Track):
         for l in self.labels:
             if l.time > t: break
             prev_label = l
+        if prev_label is None: return None
         return prev_label.name
 
     def _extract_labels(self, filename):

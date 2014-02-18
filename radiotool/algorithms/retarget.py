@@ -223,18 +223,20 @@ def retarget(song, duration, music_labels=None, out_labels=None, out_penalty=Non
         pen = N.array([1 for i in N.arange(0, duration, beat_length)])
     
     pipeline = constraints.ConstraintPipeline(constraints=[
-        # constraints.PauseConstraint(1, 3),
+        constraints.PauseConstraint(6, 25),
         constraints.TimbrePitchConstraint(),
         constraints.RhythmConstraint(4, 5.0),  # get time signature?
         constraints.MinimumJumpConstraint(8),
-        constraints.LabelConstraint(start, target, pen)
+        constraints.LabelConstraint(start, target, pen),
+        constraints.NoveltyConstraint(start, target, pen)
     ])
 
     trans_cost, penalty = pipeline.apply(song, len(target))
-
-    # import pdb; pdb.set_trace()
-
+    
     cost, prev_node = _build_table_from_costs(trans_cost, penalty)
+
+    import pdb; pdb.set_trace()
+
 
     # compute the dynamic programming table
     # cost, prev_node = _build_table(analysis, duration, start, target, pen)
