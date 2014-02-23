@@ -1,3 +1,5 @@
+import re
+
 from scikits.audiolab import Sndfile, Format
 import numpy as N
 try:
@@ -8,6 +10,7 @@ except:
     LIBXMP = False
 
 from ..utils import zero_crossing_first, zero_crossing_last
+from label import Label
 
 class Track(object):
     """Represents a wrapped .wav file."""
@@ -63,7 +66,6 @@ class Track(object):
         if self.channels == 1 and channels == 1:
             out = self.sound.read_frames(n)
         elif self.channels == 1 and channels == 2:
-            print "here!"
             frames = self.sound.read_frames(n)
             out = N.vstack((frames.copy(), frames.copy())).T
         elif self.channels == 2 and channels == 1:

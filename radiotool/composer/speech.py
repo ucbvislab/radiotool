@@ -5,8 +5,9 @@ class Speech(Track):
     """A :py:class:`radiotool.composer.Track` 
     subclass that wraps a speech .wav file"""
 
-    def __init__(self, fn, name="Speech name"):
-        Track.__init__(self, fn, name)
+    def __init__(self, fn, name="Speech name", labels=None, labels_in_file=False):
+        Track.__init__(self, fn, name, labels=labels,
+                       labels_in_file=labels_in_file)
     
     def refine_cut(self, cut_point, window_size=1):
         self.current_frame = int((cut_point - window_size / 2.0) * self.samplerate)

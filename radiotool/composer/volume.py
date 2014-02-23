@@ -30,3 +30,10 @@ class Volume(Dynamic):
         """Generate the array of multipliers for the dynamic"""
         return N.linspace(self.volume, self.volume, 
             self.duration * channels).reshape(self.duration, channels)
+
+    @staticmethod
+    def from_segment(segment, volume):
+        return Volume(segment.track,
+            segment.comp_location_in_seconds,
+            segment.duration_in_seconds,
+            volume)

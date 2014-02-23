@@ -147,7 +147,8 @@ def retarget_with_change_points(song, cp_times, duration):
     return comp, final_cp_locations
 
 
-def retarget(song, duration, music_labels=None, out_labels=None, out_penalty=None):
+def retarget(song, duration, music_labels=None, out_labels=None, out_penalty=None,
+             volume=1.0):
     """Retarget a song to a duration given input and output labels on
     the music.
 
@@ -261,7 +262,7 @@ def retarget(song, duration, music_labels=None, out_labels=None, out_penalty=Non
     # result_labels = [start[N.where(N.array(beats) == i)[0][0]] for i in path]
 
     # return a radiotool Composition
-    comp, cf_locations = _generate_audio(song, beats, path)
+    comp, cf_locations = _generate_audio(song, beats, path, volume)
 
     info = {
         "cost": N.min(res) / len(path),
@@ -398,7 +399,7 @@ def __fast_argmin_axis_0(a):
     return argmin_array
 
 
-def _generate_audio(song, beats, new_beats):
+def _generate_audio(song, beats, new_beats, volume):
     comp = Composition(channels=song.channels)
 
     audio_segments = []
@@ -416,8 +417,6 @@ def _generate_audio(song, beats, new_beats):
             current_seg[1] = i
     if current_seg != 'p':
         audio_segments.append(current_seg)
-
-    music_volume = 1.0
 
     beats = N.array(beats)
     score_start = 0
@@ -486,10 +485,14 @@ def _generate_audio(song, beats, new_beats):
             # all_segs.extend([seg, rawseg])
 
             # decrease volume along crossfades
-            rawseg.track.frames *= music_volume
+            rawseg.track.frames *= volume
 
         comp.fade_in(segments[0], 6.0)
         comp.fade_out(segments[-1], 6.0)
+
+        for seg in segments:
+            vol = Volume.from_segment(seg, volume)
+            comp.add_dynamic(vol)
 
 
 
@@ -508,10 +511,10 @@ def _generate_audio(song, beats, new_beats):
     # all_segs.append(segments[-1])
 
     # add dynamic for music
-    # volume = Volume(song, 0.0,
+    # vol = Volume(song, 0.0,
     #     (last_seg.comp_location + last_seg.duration) / float(song.samplerate),
-    #     music_volume)
-    # comp.add_dynamic(volume)
+    #     volume)
+    # comp.add_dynamic(vol)
 
     # cf durs?
     # durs

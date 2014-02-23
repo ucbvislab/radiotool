@@ -20,8 +20,11 @@ class Segment:
         """
         self.samplerate = track.samplerate
         self.track = track
+        self.comp_location_in_seconds = comp_location
         self.comp_location = int(comp_location * self.samplerate)
+        self.start_in_seconds = start
         self.start = int(start * self.samplerate)
+        self.duration_in_seconds = duration
         self.duration = int(duration * self.samplerate)
 
     def get_frames(self, channels=2):
