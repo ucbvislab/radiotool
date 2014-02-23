@@ -1,5 +1,11 @@
 from scikits.audiolab import Sndfile, Format
 import numpy as N
+try:
+    import libxmp
+    import libxmp.utils
+    LIBXMP = True
+except:
+    LIBXMP = False
 
 from ..utils import zero_crossing_first, zero_crossing_last
 

@@ -3,13 +3,6 @@ import pickle
 import os
 import re
 
-try:
-    import libxmp
-    import libxmp.utils
-    LIBXMP = True
-except:
-    LIBXMP = False
-
 from ..algorithms import librosa_analysis
 from track import Track
 
