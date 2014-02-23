@@ -224,8 +224,10 @@ def retarget(song, duration, music_labels=None, out_labels=None, out_penalty=Non
     
     pipeline = constraints.ConstraintPipeline(constraints=[
         constraints.PauseConstraint(6, 25),
+        constraints.PauseEntryConstraint(target, .005),
+        constraints.PauseExitConstraint(target, .005),
         constraints.TimbrePitchConstraint(),
-        constraints.RhythmConstraint(4, 5.0),  # get time signature?
+        # constraints.RhythmConstraint(6, 3.0),  # get time signature?
         constraints.MinimumJumpConstraint(8),
         constraints.LabelConstraint(start, target, pen),
         constraints.NoveltyConstraint(start, target, pen)
@@ -234,9 +236,6 @@ def retarget(song, duration, music_labels=None, out_labels=None, out_penalty=Non
     trans_cost, penalty = pipeline.apply(song, len(target))
     
     cost, prev_node = _build_table_from_costs(trans_cost, penalty)
-
-    import pdb; pdb.set_trace()
-
 
     # compute the dynamic programming table
     # cost, prev_node = _build_table(analysis, duration, start, target, pen)
@@ -488,6 +487,10 @@ def _generate_audio(song, beats, new_beats):
 
             # decrease volume along crossfades
             rawseg.track.frames *= music_volume
+
+        comp.fade_in(segments[0], 6.0)
+        comp.fade_out(segments[-1], 6.0)
+
 
 
     # add all the segments to the composition

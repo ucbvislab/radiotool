@@ -6,7 +6,7 @@ from ..utils import zero_crossing_first, zero_crossing_last
 class Track(object):
     """Represents a wrapped .wav file."""
 
-    def __init__(self, fn, name="No name"):
+    def __init__(self, fn, name="No name", labels=None, labels_in_file=False):
         """Create a Track object
 
         :param str. fn: Path to wav file
@@ -18,6 +18,15 @@ class Track(object):
         self.sound = Sndfile(self.filename, 'r')
         self.current_frame = 0
         self.channels = self.sound.channels
+
+        if labels is not None and labels_in_file:
+            raise Exception("Must only define one of labels and labels_in_file")
+        if labels_in_file and not LIBXMP:
+            raise Exception("Cannot use labels_in_file without python-xmp-toolkit")
+        if labels_in_file and LIBXMP:
+            self.labels = self._extract_labels(fn)
+        else:
+            self.labels = labels
 
 
     def read_frames(self, n, channels=None):
@@ -173,3 +182,66 @@ class Track(object):
             self.range_as_mono(n_in_samples, search_end)) + n_in_samples
 
         return frame / float(self.samplerate)
+
+    @property
+    def labels(self):
+        return self._labels
+
+    @labels.setter
+    def labels(self, labels):
+        if labels is None:
+            self._labels = None
+        else:
+            self._labels = sorted(labels, key=lambda x: x.time)
+
+    def label(self, t):
+        """Get the label of the song at a given time in seconds
+        """
+        if self.labels is None:
+            return None
+        prev_label = None
+        for l in self.labels:
+            if l.time > t: break
+            prev_label = l
+        if prev_label is None: return None
+        return prev_label.name
+
+    def _extract_labels(self, filename):
+        if not LIBXMP: return None
+
+        xmp = libxmp.utils.file_to_dict(filename)
+        meta = libxmp.XMPMeta()
+        ns = libxmp.consts.XMP_NS_DM
+        p = meta.get_prefix_for_namespace(ns)
+
+        track_re = re.compile("^" + p + r"Tracks\[(\d+)\]$")
+        n_tracks = 0
+        cp_track = None
+        new_xmp = {}
+        for prop in xmp[ns]:
+            new_xmp[prop[0]] = prop[1:]
+
+        # find the cuepoint markers track
+        name_re = re.compile("^" + p + r"Tracks\[(\d+)\]/" + p + "trackName$")
+        for prop, val in new_xmp.iteritems():
+            match = name_re.match(prop)
+            if match:
+                if val[0] == "CuePoint Markers":
+                    cp_track = match.group(1)
+
+        # get all the markers from it
+        cp_path = re.compile(r"^%sTracks\[%s\]/%smarkers\[(\d+)\]$"  % (p, cp_track, p))
+        markers = []
+        sr = float(new_xmp["%sTracks[%s]/%sframeRate" % (p, cp_track, p)][0].replace('f', ''))
+
+        for prop, val in new_xmp.iteritems():
+            match = cp_path.match(prop)
+            if match:
+                markers.append(Label(
+                    new_xmp[prop + '/' + p + 'name'][0],
+                    float(new_xmp[prop + '/' + p + 'startTime'][0]) / sr))
+
+        if len(markers) is 0:
+            return None
+        return markers
+

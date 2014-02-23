@@ -3,6 +3,8 @@
 # ok, maybe not multiplicative. not sure yet.
 # want to avoid plateaus in the space.
 
+import copy
+
 import numpy as np
 
 import librosa_analysis
@@ -83,7 +85,7 @@ class MinimumJumpConstraint(Constraint):
 
 class LabelConstraint(Constraint):
     def __init__(self, in_labels, target_labels, penalty, penalty_window=0):
-        self.in_labels = in_labels
+        self.in_labels = copy.copy(in_labels)
         self.out_labels = target_labels
         self.penalty = penalty
         self.window = penalty_window
@@ -168,6 +170,7 @@ class PauseConstraint(Constraint):
 
         # beat to first pause
         p0 = n_beats
+        p_n = p0 + max_beats - 1
         new_trans[:n_beats, p0] = tc
         
         # beat to other pauses
@@ -182,16 +185,73 @@ class PauseConstraint(Constraint):
             new_trans[i, i + 1] = 0.
         
         # after that, pause-to-pause costs something
-        for i in range(p0 + min_beats, p0 + max_beats - 1):
-            new_trans[i, :n_beats] = 0.
+        for i in range(p0 + min_beats, p0 + max_beats - 2):
+            new_trans[i, :n_beats] = np.inf
+            # new_trans[i, :n_beats] = 0.
+            new_trans[i, p_n] = 0.
             new_trans[i, i + 1] = bc
 
         # last pause must go back to beats
-        new_trans[p0 + max_beats - 1, :n_beats] = 0.
+        # Also, must exit through last pause
+        new_trans[p_n, :n_beats] = 0.
 
         new_pen[p0 + 1:, 0] = np.inf
 
         return new_trans, new_pen
+
+
+class PauseEntryConstraint(Constraint):
+    def __init__(self, target_labels, penalty_value):
+        self.out_labels = target_labels
+        self.p = penalty_value
+
+    def apply(self, transition_cost, penalty, song):
+        n_beats = len(song.analysis["beats"])
+        n_pauses = transition_cost.shape[0] - n_beats
+        p0 = n_beats
+        
+        if n_pauses > 0:
+            print "Pause entry constraints"
+            target_changes = [0]
+            for l in xrange(1, len(self.out_labels)):
+                target = self.out_labels[l]
+                prev_target = self.out_labels[l - 1]
+                if target != prev_target:
+                    target_changes.append(l)
+
+            target_changes = np.array(target_changes)
+
+            penalty[p0, :] += self.p
+            penalty[p0, target_changes] -= self.p
+
+        return transition_cost, penalty
+
+
+class PauseExitConstraint(Constraint):
+    def __init__(self, target_labels, penalty_value):
+        self.out_labels = target_labels
+        self.p = penalty_value
+
+    def apply(self, transition_cost, penalty, song):
+        n_beats = len(song.analysis["beats"])
+        if transition_cost.shape[0] > n_beats:
+            print "Pause exit constraints"
+            p_n = transition_cost.shape[0] - 1
+            target_changes = [0]
+            for l in xrange(1, len(self.out_labels)):
+                target = self.out_labels[l]
+                prev_target = self.out_labels[l - 1]
+                if target != prev_target:
+                    target_changes.append(l)
+
+
+            target_changes = np.array(target_changes)
+
+            penalty[p_n, :] += self.p
+            penalty[p_n, target_changes] -= self.p
+
+        return transition_cost, penalty
+
 
 class NoveltyConstraint(Constraint):
     def __init__(self, in_labels, target_labels, penalty):
