@@ -225,8 +225,8 @@ def retarget(song, duration, music_labels=None, out_labels=None, out_penalty=Non
     
     pipeline = constraints.ConstraintPipeline(constraints=[
         constraints.PauseConstraint(6, 25),
-        constraints.PauseEntryConstraint(target, .005),
-        constraints.PauseExitConstraint(target, .005),
+        constraints.PauseEntryLabelChangeConstraint(target, .005),
+        constraints.PauseExitLabelChangeConstraint(target, .005),
         constraints.TimbrePitchConstraint(),
         # constraints.RhythmConstraint(6, 3.0),  # get time signature?
         constraints.MinimumJumpConstraint(8),
@@ -425,6 +425,8 @@ def _generate_audio(song, beats, new_beats, volume):
 
     comp.add_track(song)
 
+    all_cf_locations = []
+
     for aseg in audio_segments:
         segments = []
         starts = N.array(new_beats[aseg[0]:aseg[1] + 1])
@@ -482,19 +484,21 @@ def _generate_audio(song, beats, new_beats, volume):
 
         for i, seg in enumerate(segments[:-1]):
             rawseg = comp.cross_fade(seg, segments[i + 1], cf_durations[i])
+
             # all_segs.extend([seg, rawseg])
 
             # decrease volume along crossfades
             rawseg.track.frames *= volume
 
-        comp.fade_in(segments[0], 6.0)
-        comp.fade_out(segments[-1], 6.0)
+        comp.fade_in(segments[0], 3.0)
+        comp.fade_out(segments[-1], 3.0)
 
         for seg in segments:
             vol = Volume.from_segment(seg, volume)
             comp.add_dynamic(vol)
+            # print seg.comp_location_in_seconds, vol.comp_location_in_seconds, seg.duration == vol.duration
 
-
+        all_cf_locations.extend(cf_locations)
 
     # add all the segments to the composition
     # comp.add_segments(segments)
@@ -519,4 +523,4 @@ def _generate_audio(song, beats, new_beats, volume):
     # cf durs?
     # durs
 
-    return comp, cf_locations
+    return comp, all_cf_locations

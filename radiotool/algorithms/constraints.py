@@ -25,6 +25,7 @@ class ConstraintPipeline(object):
         transition_cost = np.ones((n_beats, n_beats))
         penalty = np.zeros((n_beats, target_n_length))
         for constraint in self.constraints:
+            print constraint
             transition_cost, penalty = constraint.apply(transition_cost, penalty, song)
         return transition_cost, penalty
 
@@ -37,17 +38,14 @@ class Constraint(object):
 
 class TimbrePitchConstraint(Constraint):
     def __init__(self, timbre_weight=1, chroma_weight=1):
-        self.timbre_weight = timbre_weight
-        self.chroma_weight = chroma_weight
+        self.tw = float(timbre_weight) / (float(chroma_weight) + float(timbre_weight))
+        self.cw = 1 - self.tw
 
     def apply(self, transition_cost, penalty, song):
         timbre_dist = librosa_analysis.structure(np.array(song.analysis['timbres']).T)
         chroma_dist = librosa_analysis.structure(np.array(song.analysis['chroma']).T)
 
-        tw = float(self.timbre_weight) / (float(self.chroma_weight) + float(self.timbre_weight))
-        cw = 1 - tw
-
-        dists = tw * timbre_dist + cw * chroma_dist
+        dists = self.tw * timbre_dist + self.cw * chroma_dist
 
         # dists = np.copy(song.analysis["dense_dist"])
         # shift it over
@@ -55,6 +53,9 @@ class TimbrePitchConstraint(Constraint):
         dists[-1, :] = np.inf
         transition_cost[:dists.shape[0], :dists.shape[1]] *= dists
         return transition_cost, penalty
+
+    def __repr__(self):
+        return "TimbrePitchConstraint: %f(timbre) + %f(chroma)" % (self.tw, self.cw)
 
 
 class RhythmConstraint(Constraint):
@@ -81,6 +82,9 @@ class MinimumJumpConstraint(Constraint):
                 if 0 < i + j < n_beats and j != 1:
                     transition_cost[i, i + j] = np.inf
         return transition_cost, penalty
+
+    def __repr__(self):
+        return "MinimumJumpConstraint: min_jump(%d)" % self.min_jump
 
 
 class LabelConstraint(Constraint):
@@ -134,6 +138,9 @@ class LabelConstraint(Constraint):
         penalty += new_pen
 
         return transition_cost, penalty
+
+    def __repr__(self):
+        return "LabelConstraint"  
 
 
 class GenericTimeSensitivePenalty(Constraint):
@@ -199,8 +206,11 @@ class PauseConstraint(Constraint):
 
         return new_trans, new_pen
 
+    def __repr__(self):
+        return "PauseConstraint: min(%f), max(%f)" % (self.min_len, self.max_len)
 
-class PauseEntryConstraint(Constraint):
+
+class PauseEntryLabelChangeConstraint(Constraint):
     def __init__(self, target_labels, penalty_value):
         self.out_labels = target_labels
         self.p = penalty_value
@@ -211,23 +221,25 @@ class PauseEntryConstraint(Constraint):
         p0 = n_beats
         
         if n_pauses > 0:
-            print "Pause entry constraints"
             target_changes = [0]
             for l in xrange(1, len(self.out_labels)):
                 target = self.out_labels[l]
                 prev_target = self.out_labels[l - 1]
                 if target != prev_target:
-                    target_changes.append(l)
+                    target_changes.append(max(l - 4, 0))
 
-            target_changes = np.array(target_changes)
+            target_changes = np.array(target_changes)            
 
             penalty[p0, :] += self.p
             penalty[p0, target_changes] -= self.p
 
         return transition_cost, penalty
 
+    def __repr__(self):
+        return "PauseEntryLabelChangeConstraint: penalty(%f)" % self.p
 
-class PauseExitConstraint(Constraint):
+
+class PauseExitLabelChangeConstraint(Constraint):
     def __init__(self, target_labels, penalty_value):
         self.out_labels = target_labels
         self.p = penalty_value
@@ -235,7 +247,6 @@ class PauseExitConstraint(Constraint):
     def apply(self, transition_cost, penalty, song):
         n_beats = len(song.analysis["beats"])
         if transition_cost.shape[0] > n_beats:
-            print "Pause exit constraints"
             p_n = transition_cost.shape[0] - 1
             target_changes = [0]
             for l in xrange(1, len(self.out_labels)):
@@ -251,6 +262,9 @@ class PauseExitConstraint(Constraint):
             penalty[p_n, target_changes] -= self.p
 
         return transition_cost, penalty
+
+    def __repr__(self):
+        return "PauseExitLabelChangeConstraint: penalty(%f)" % self.p
 
 
 class NoveltyConstraint(Constraint):
@@ -303,6 +317,8 @@ class NoveltyConstraint(Constraint):
 
         return transition_cost, penalty
 
+    def __repr__(self):
+        return "NoveltyConstraint"
 
 if __name__ == '__main__':
     import sys

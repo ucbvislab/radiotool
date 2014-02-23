@@ -33,7 +33,7 @@ class Volume(Dynamic):
 
     @staticmethod
     def from_segment(segment, volume):
-        return Volume(segment.track,
-            segment.comp_location_in_seconds,
-            segment.duration_in_seconds,
-            volume)
+        v = Volume(segment.track, 0, 0, volume)
+        v.comp_location = segment.comp_location
+        v.duration = segment.duration
+        return v

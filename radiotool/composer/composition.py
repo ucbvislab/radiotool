@@ -134,7 +134,8 @@ class Composition(object):
         :returns: The fade that has been added to the composition
         :rtype: :py:class:`Fade`
         """
-        dur = int(round(duration * segment.track.samplerate))
+        dur = int(duration * segment.track.samplerate)
+        # dur = int(round(duration * segment.track.samplerate))
         score_loc_in_seconds = (segment.comp_location) /\
             float(segment.track.samplerate)
         f = Fade(segment.track, score_loc_in_seconds, duration, 0.0, 1.0)
@@ -151,7 +152,8 @@ class Composition(object):
         :returns: The fade that has been added to the composition
         :rtype: :py:class:`Fade`
         """
-        dur = int(round(duration * segment.track.samplerate))
+        dur = int(duration * segment.track.samplerate)
+        # dur = int(round(duration * segment.track.samplerate))
         score_loc_in_seconds = (segment.comp_location + segment.duration - dur) /\
             float(segment.track.samplerate)
         f = Fade(segment.track, score_loc_in_seconds, duration, 1.0, 0.0)
@@ -168,8 +170,8 @@ class Composition(object):
         :returns: The fade that has been added to the composition
         :rtype: :py:class:`Fade`
         """
-
-        dur = int(round(duration * segment.track.samplerate))
+        dur = int(duration * segment.track.samplerate)
+        # dur = int(round(duration * segment.track.samplerate))
         if segment.start - dur >= 0:
             segment.start -= dur
         else:
@@ -200,7 +202,8 @@ class Composition(object):
         :returns: The fade that has been added to the composition
         :rtype: :py:class:`Fade`
         """
-        dur = int(round(duration * segment.track.samplerate))
+        dur = int(duration * segment.track.samplerate)
+        # dur = int(round(duration * segment.track.samplerate))
         if segment.start + segment.duration + dur <\
             segment.track.duration:
             segment.duration += dur
@@ -514,7 +517,7 @@ class Composition(object):
         if separate_tracks:
             # build the separate parts of the composition if desired
             for track in self.tracks:
-                out = self.build(track=[track],
+                out = self.build(track_list=[track],
                                  adjust_dynamics=adjust_dynamics,
                                  min_length=min_length,
                                  channels=channels)

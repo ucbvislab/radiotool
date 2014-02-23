@@ -6,3 +6,6 @@ class Label(object):
 
     def sample(self, samplerate):
         return int(samplerate * self.time)
+
+    def __repr__(self):
+        return "Label %s at time %f" % (self.name, self.time)
