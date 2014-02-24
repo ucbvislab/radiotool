@@ -18,3 +18,4 @@ from .volume import Volume
 from .rawvolume import RawVolume
 from .composition import Composition
 from .label import Label
+from .volumebreakpoint import VolumeBreakpoint, VolumeBreakpoints

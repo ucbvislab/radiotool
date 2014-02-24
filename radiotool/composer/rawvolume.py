@@ -27,7 +27,7 @@ class RawVolume(Dynamic):
         if channels == 1:
             return self.volume_frames.reshape(-1, 1)
         if channels == 2:
-            return N.tile(self.volume_frames, (1, 2))
+            return N.tile(self.volume_frames, (2, 1)).T
         raise Exception(
             "RawVolume doesn't know what to do with %s channels" % channels)
         

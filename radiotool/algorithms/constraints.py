@@ -156,8 +156,10 @@ class PauseConstraint(Constraint):
     def __init__(self, min_length, max_length):
         self.min_len = min_length
         self.max_len = max_length
+        # self.to_cost = 0.05
+        self.bw_cost = 0.05
         self.to_cost = .075
-        self.bw_cost = .05
+        # self.bw_cost = .05
 
     def apply(self, transition_cost, penalty, song):
         # we have to manage the pauses...
@@ -226,7 +228,8 @@ class PauseEntryLabelChangeConstraint(Constraint):
                 target = self.out_labels[l]
                 prev_target = self.out_labels[l - 1]
                 if target != prev_target:
-                    target_changes.append(max(l - 4, 0))
+                    target_changes.append(l)
+                    # target_changes.append(max(l - 4, 0))
 
             target_changes = np.array(target_changes)            
 
