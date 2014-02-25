@@ -156,10 +156,12 @@ class PauseConstraint(Constraint):
     def __init__(self, min_length, max_length):
         self.min_len = min_length
         self.max_len = max_length
-        # self.to_cost = 0.05
+        # perhaps these costs should be based on the cost of a 
+        # "bad" transition in the music.
+        self.to_cost = 1.0
+        # self.to_cost = 0.075
         self.bw_cost = 0.05
-        self.to_cost = .075
-        # self.bw_cost = .05
+
 
     def apply(self, transition_cost, penalty, song):
         # we have to manage the pauses...
@@ -168,7 +170,8 @@ class PauseConstraint(Constraint):
         min_beats = int(np.ceil(self.min_len / float(beat_len)))
         max_beats = int(np.floor(self.max_len / float(beat_len)))
 
-        tc = self.to_cost * min_beats
+        tc = self.to_cost
+        # tc = self.to_cost * min_beats
         bc = self.bw_cost
 
         new_trans = np.zeros((n_beats + max_beats, n_beats + max_beats))

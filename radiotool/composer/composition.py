@@ -299,6 +299,92 @@ class Composition(object):
             raise Exception("Segments must be adjacent to add a crossfade (%d, %d)"
                 % (seg1.comp_location + seg1.duration, seg2.comp_location))
 
+    def empty_over_span(self, time, duration):
+        for seg in self.segments:
+            # starts in range
+            if seg.comp_location_in_seconds >= time and\
+                seg.comp_location_in_seconds < time + duration:
+                return False
+            # or, ends in range
+            elif seg.comp_location_in_seconds + seg.duration_in_seconds >= time and\
+                seg.comp_location_in_seconds + seg.duration_in_seconds < time + duration:
+                return False
+            # or, spans entire range
+            elif seg.comp_location_in_seconds < time and\
+                seg.comp_location_in_seconds + seg.duration_in_seconds >= time + duration:
+                return False
+        return True
+
+    def contract(self, time, duration):
+        # remove audio from the composition starting at time
+        # for duration
+
+        contract_dur = 0.0
+        contract_start = time
+
+        if self.empty_over_span(time, duration):
+            contract_dur = duration
+            contract_start = time
+        else:
+            starts = [s.comp_location_in_seconds for s in self.segments]
+            ends = [s.comp_location_in_seconds + s.duration_in_seconds
+                    for s in self.segments]
+
+            key_starts = []
+            key_ends = []
+
+            for start in starts:
+                if start >= time and start < time + duration:
+                    # does a segment cover the location right before this start?
+                    is_key_start = True
+                    for seg in self.segments:
+                        if seg.comp_location_in_seconds < start and\
+                            seg.comp_location_in_seconds + seg.duration_in_seconds >= start:
+                            is_key_start = False
+                            break
+                    if is_key_start:
+                        key_starts.append(start)
+
+            for end in ends:
+                if end >= time and end < time + duration:
+                    # does a segment cover the location right before this start?
+                    is_key_end = True
+                    for seg in self.segments:
+                        if seg.comp_location_in_seconds <= end and\
+                            seg.comp_location_in_seconds + seg.duration_in_seconds > end:
+                            is_key_end = False
+                            break
+                    if is_key_end:
+                        key_ends.append(end)
+
+            if len(key_starts) + len(key_ends) == 0: return 0, 0
+
+            # combine key starts and key ends
+            key_both = [s for s in key_starts]
+            key_both.extend([s for s in key_ends])
+            key_both = sorted(key_both)
+
+            first_key = key_both[0]
+            if first_key in key_starts:
+                contract_start = time
+                contract_dur = first_key - time
+            else:
+                contract_start = first_key
+                if len(key_both) >= 2:
+                    contract_dur = key_both[1] - first_key
+                else:
+                    contract_dur = time + duration - first_key
+
+        for seg in self.segments:
+            if seg.comp_location_in_seconds > contract_start:
+                seg.comp_location_in_seconds -= contract_dur
+                print seg.comp_location_in_seconds
+        for dyn in self.dynamics:
+            if dyn.comp_location_in_seconds > contract_start:
+                dyn.comp_location_in_seconds -= contract_dur
+                print dyn.comp_location_in_seconds
+        return contract_start, contract_dur
+
     def add_music_cue(self, track, comp_cue, song_cue, duration=6.0,
                       padding_before=12.0, padding_after=12.0):
         """Add a music cue to the composition. This doesn't do any audio

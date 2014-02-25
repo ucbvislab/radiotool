@@ -1,4 +1,5 @@
 import copy
+from collections import namedtuple
 
 import numpy as N
 
@@ -6,6 +7,7 @@ from ..composer import Composition, Segment, Volume, Label, RawVolume
 from novelty import novelty
 import constraints
 
+Spring = namedtuple('Spring', ['time', 'duration'])
 
 def retarget_to_length(song, duration, start=True, end=True, slack=5):
     """Create a composition of a song that changes its length
@@ -148,7 +150,7 @@ def retarget_with_change_points(song, cp_times, duration):
 
 
 def retarget(song, duration, music_labels=None, out_labels=None, out_penalty=None,
-             volume=None, volume_breakpoints=None):
+             volume=None, volume_breakpoints=None, springs=None):
     """Retarget a song to a duration given input and output labels on
     the music.
 
@@ -262,11 +264,13 @@ def retarget(song, duration, music_labels=None, out_labels=None, out_penalty=Non
     # result_labels = [start[N.where(N.array(beats) == i)[0][0]] for i in path]
 
     # return a radiotool Composition
-    comp, cf_locations = _generate_audio(song, beats, path,
+    comp, cf_locations, contracted = _generate_audio(song, beats, path,
         volume=volume,
-        volume_breakpoints=volume_breakpoints)
+        volume_breakpoints=volume_breakpoints,
+        springs=springs)
 
     info = {
+        "contracted": contracted,
         "cost": N.min(res) / len(path),
         "path": path,
         "target_labels": target,
@@ -402,7 +406,8 @@ def __fast_argmin_axis_0(a):
 
 
 def _generate_audio(song, beats, new_beats,
-                    volume=None, volume_breakpoints=None):
+                    volume=None, volume_breakpoints=None,
+                    springs=None):
     if volume is not None and volume_breakpoints is not None:
         raise Exception("volume and volume_breakpoints cannot both be defined")
     if volume is None and volume_breakpoints is None:
@@ -495,35 +500,44 @@ def _generate_audio(song, beats, new_beats,
         for i, seg in enumerate(segments[:-1]):
             rawseg = comp.cross_fade(seg, segments[i + 1], cf_durations[i])
 
-            # all_segs.extend([seg, rawseg])
-
-            # DECREASE VOLUME FOR CROSSFADES HERE!
-
             # decrease volume along crossfades
             volume_frames = volume_array[
                 rawseg.comp_location:rawseg.comp_location + rawseg.duration]
             raw_vol = RawVolume(rawseg, volume_frames)
             comp.add_dynamic(raw_vol)
-            # rawseg.track.frames *= volume_frames
 
         comp.fade_in(segments[0], 3.0)
         comp.fade_out(segments[-1], 3.0)
 
+        prev_end = 0.0
         for seg in segments:
             volume_frames = volume_array[seg.comp_location:seg.comp_location + seg.duration]
 
             # this can happen on the final segment:
-            if len(volume_frames) < seg.duration:
+            if len(volume_frames) == 0:
+                volume_frames = N.array([prev_end] * seg.duration)
+            elif len(volume_frames) < seg.duration:
                 delta = [volume_frames[-1]] * (seg.duration - len(volume_frames))
                 volume_frames = N.r_[volume_frames, delta]
             raw_vol = RawVolume(seg, volume_frames)
             comp.add_dynamic(raw_vol)
+
+            prev_end = volume_frames[-1]
 
             # vol = Volume.from_segment(seg, volume)
             # comp.add_dynamic(vol)
             # print seg.comp_location_in_seconds, vol.comp_location_in_seconds, seg.duration == vol.duration
 
         all_cf_locations.extend(cf_locations)
+
+    contracted = []
+    if springs is not None:
+        offset = 0.0
+        for spring in springs:
+            contracted_time, contracted_dur = comp.contract(spring.time - offset, spring.duration)
+            if contracted_dur > 0:
+                contracted.append(Spring(contracted_time, contracted_dur))
+                offset += contracted_dur
 
     # add all the segments to the composition
     # comp.add_segments(segments)
@@ -548,4 +562,4 @@ def _generate_audio(song, beats, new_beats,
     # cf durs?
     # durs
 
-    return comp, all_cf_locations
+    return comp, all_cf_locations, contracted
