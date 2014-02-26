@@ -315,7 +315,7 @@ class Composition(object):
                 return False
         return True
 
-    def contract(self, time, duration):
+    def contract(self, time, duration, min_contraction=0.0):
         # remove audio from the composition starting at time
         # for duration
 
@@ -375,15 +375,15 @@ class Composition(object):
                 else:
                     contract_dur = time + duration - first_key
 
-        for seg in self.segments:
-            if seg.comp_location_in_seconds > contract_start:
-                seg.comp_location_in_seconds -= contract_dur
-                print seg.comp_location_in_seconds
-        for dyn in self.dynamics:
-            if dyn.comp_location_in_seconds > contract_start:
-                dyn.comp_location_in_seconds -= contract_dur
-                print dyn.comp_location_in_seconds
-        return contract_start, contract_dur
+        if contract_dur > min_contraction:
+            for seg in self.segments:
+                if seg.comp_location_in_seconds > contract_start:
+                    seg.comp_location_in_seconds -= contract_dur
+            for dyn in self.dynamics:
+                if dyn.comp_location_in_seconds > contract_start:
+                    dyn.comp_location_in_seconds -= contract_dur
+            return contract_start, contract_dur
+        else: return 0.0, 0.0
 
     def add_music_cue(self, track, comp_cue, song_cue, duration=6.0,
                       padding_before=12.0, padding_after=12.0):

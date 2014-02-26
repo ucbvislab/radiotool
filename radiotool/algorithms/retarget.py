@@ -408,6 +408,7 @@ def __fast_argmin_axis_0(a):
 def _generate_audio(song, beats, new_beats,
                     volume=None, volume_breakpoints=None,
                     springs=None):
+    print "Building volume"
     if volume is not None and volume_breakpoints is not None:
         raise Exception("volume and volume_breakpoints cannot both be defined")
     if volume is None and volume_breakpoints is None:
@@ -442,6 +443,7 @@ def _generate_audio(song, beats, new_beats,
 
     all_cf_locations = []
 
+    print "Building audio"
     for aseg in audio_segments:
         segments = []
         starts = N.array(new_beats[aseg[0]:aseg[1] + 1])
@@ -530,11 +532,14 @@ def _generate_audio(song, beats, new_beats,
 
         all_cf_locations.extend(cf_locations)
 
+    print "Contracting pause springs"
     contracted = []
+    min_contraction = 0.5
     if springs is not None:
         offset = 0.0
         for spring in springs:
-            contracted_time, contracted_dur = comp.contract(spring.time - offset, spring.duration)
+            contracted_time, contracted_dur = comp.contract(spring.time - offset, spring.duration,
+                min_contraction=min_contraction)
             if contracted_dur > 0:
                 contracted.append(Spring(contracted_time, contracted_dur))
                 offset += contracted_dur

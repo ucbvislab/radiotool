@@ -158,7 +158,8 @@ class PauseConstraint(Constraint):
         self.max_len = max_length
         # perhaps these costs should be based on the cost of a 
         # "bad" transition in the music.
-        self.to_cost = 1.0
+        # self.to_cost = 1.0
+        self.to_cost = 0.7
         # self.to_cost = 0.075
         self.bw_cost = 0.05
 
