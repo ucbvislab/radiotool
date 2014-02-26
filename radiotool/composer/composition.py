@@ -136,9 +136,7 @@ class Composition(object):
         """
         dur = int(duration * segment.track.samplerate)
         # dur = int(round(duration * segment.track.samplerate))
-        score_loc_in_seconds = (segment.comp_location) /\
-            float(segment.track.samplerate)
-        f = Fade(segment.track, score_loc_in_seconds, duration, 0.0, 1.0)
+        f = Fade(segment.track, segment.comp_location_in_seconds, duration, 0.0, 1.0)
         self.add_dynamic(f)
         return f
 
@@ -152,10 +150,9 @@ class Composition(object):
         :returns: The fade that has been added to the composition
         :rtype: :py:class:`Fade`
         """
-        dur = int(duration * segment.track.samplerate)
-        # dur = int(round(duration * segment.track.samplerate))
-        score_loc_in_seconds = (segment.comp_location + segment.duration - dur) /\
-            float(segment.track.samplerate)
+        score_loc_in_seconds = segment.comp_location_in_seconds +\
+            segment.duration_in_seconds - duration
+
         f = Fade(segment.track, score_loc_in_seconds, duration, 1.0, 0.0)
         self.add_dynamic(f)
         return f
@@ -185,10 +182,7 @@ class Composition(object):
 
         segment.duration += dur
         
-        score_loc_in_seconds = (segment.comp_location) /\
-            float(segment.track.samplerate)
-
-        f = Fade(segment.track, score_loc_in_seconds, duration, 0.0, 1.0)
+        f = Fade(segment.track, segment.comp_location_in_seconds, duration, 0.0, 1.0)
         self.add_dynamic(f)
         return f
 
@@ -210,9 +204,8 @@ class Composition(object):
         else:
             raise Exception(
                 "Cannot create fade-out that extends past the track's end")
-        score_loc_in_seconds = (segment.comp_location +
-            segment.duration - dur) /\
-            float(segment.track.samplerate)
+        score_loc_in_seconds = segment.comp_location_in_seconds +\
+            segment.duration_in_seconds - duration
         f = Fade(segment.track, score_loc_in_seconds, duration, 1.0, 0.0)
         self.add_dynamic(f)
         return f

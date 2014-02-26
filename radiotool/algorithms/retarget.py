@@ -541,8 +541,23 @@ def _generate_audio(song, beats, new_beats,
             contracted_time, contracted_dur = comp.contract(spring.time - offset, spring.duration,
                 min_contraction=min_contraction)
             if contracted_dur > 0:
-                contracted.append(Spring(contracted_time, contracted_dur))
+                new_cf = []
+                for cf in all_cf_locations:
+                    if cf > contracted_time:
+                        new_cf.append(cf - contracted_dur)
+                    else:
+                        new_cf.append(cf)
+                all_cf_locations = new_cf
+
+                contracted.append(Spring(contracted_time + offset, contracted_dur))
                 offset += contracted_dur
+
+
+    # for seg in comp.segments:
+    #     print seg.comp_location, seg.duration
+    # print
+    # for dyn in comp.dynamics:
+    #     print dyn.comp_location, dyn.duration
 
     # add all the segments to the composition
     # comp.add_segments(segments)
