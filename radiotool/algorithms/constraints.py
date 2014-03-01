@@ -6,6 +6,7 @@
 import copy
 
 import numpy as np
+from scipy.special import binom
 
 import librosa_analysis
 import novelty
@@ -37,9 +38,10 @@ class Constraint(object):
 
 
 class TimbrePitchConstraint(Constraint):
-    def __init__(self, timbre_weight=1, chroma_weight=1):
+    def __init__(self, timbre_weight=1, chroma_weight=1, context=1):
         self.tw = float(timbre_weight) / (float(chroma_weight) + float(timbre_weight))
         self.cw = 1 - self.tw
+        self.m = context
 
     def apply(self, transition_cost, penalty, song):
         timbre_dist = librosa_analysis.structure(np.array(song.analysis['timbres']).T)
@@ -47,11 +49,29 @@ class TimbrePitchConstraint(Constraint):
 
         dists = self.tw * timbre_dist + self.cw * chroma_dist
 
+        if self.m > 1:
+            new_dists = np.zeros(dists.shape)
+            coefs = [binom(self.m * 2, i) for i in range(self.m * 2 + 1)]
+            coefs = np.array(coefs) / np.sum(coefs)
+            for beat_i in xrange(dists.shape[0]):
+                for beat_j in xrange(dists.shape[1]):
+                    entry = 0.0
+                    for i, c in enumerate(coefs):
+                        t = i - self.m
+                        if beat_i + t >= 0 and beat_i + t < dists.shape[0] and\
+                            beat_j + t >= 0 and beat_j + t < dists.shape[1]:
+                            entry += c * dists[beat_i + t, beat_j + t]
+                    new_dists[beat_i, beat_j] = entry
+
+            dists = new_dists
+
         # dists = np.copy(song.analysis["dense_dist"])
         # shift it over
         dists[:-1, :] = dists[1:, :]
         dists[-1, :] = np.inf
+        
         transition_cost[:dists.shape[0], :dists.shape[1]] *= dists
+
         return transition_cost, penalty
 
     def __repr__(self):
@@ -158,8 +178,8 @@ class PauseConstraint(Constraint):
         self.max_len = max_length
         # perhaps these costs should be based on the cost of a 
         # "bad" transition in the music.
-        # self.to_cost = 1.0
-        self.to_cost = 0.7
+        self.to_cost = 1.4
+        # self.to_cost = 0.7
         # self.to_cost = 0.075
         self.bw_cost = 0.05
 

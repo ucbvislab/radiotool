@@ -229,7 +229,7 @@ def retarget(song, duration, music_labels=None, out_labels=None, out_penalty=Non
         constraints.PauseConstraint(6, 25),
         constraints.PauseEntryLabelChangeConstraint(target, .005),
         constraints.PauseExitLabelChangeConstraint(target, .005),
-        constraints.TimbrePitchConstraint(),
+        constraints.TimbrePitchConstraint(context=2),
         # constraints.RhythmConstraint(6, 3.0),  # get time signature?
         constraints.MinimumJumpConstraint(8),
         constraints.LabelConstraint(start, target, pen),
@@ -248,8 +248,8 @@ def retarget(song, duration, music_labels=None, out_labels=None, out_penalty=Non
     best_idx = N.argmin(res)
 
     if N.isfinite(res[best_idx]):
-        path = _reconstruct_path(
-            prev_node, analysis["beats"], best_idx, N.shape(cost)[1] - 1)
+        path, path_cost = _reconstruct_path(
+            prev_node, cost, analysis["beats"], best_idx, N.shape(cost)[1] - 1)
     else:
         # throw an exception here?
         return None
@@ -263,6 +263,31 @@ def retarget(song, duration, music_labels=None, out_labels=None, out_penalty=Non
             result_labels.append(start[N.where(N.array(beats) == i)[0][0]])
     # result_labels = [start[N.where(N.array(beats) == i)[0][0]] for i in path]
 
+    # result labels... but actually labels
+    label_time = 0.0
+    pause_len = song.analysis["avg_beat_duration"]
+    result_full_labels = []
+    prev_label = -1
+    for i in path:
+        if str(i).startswith('p'):
+            label_time += pause_len
+        else:
+            beat_i = N.where(N.array(beats) == i)[0][0]
+            next_i = beat_i + 1
+            current_label = start[beat_i]
+            if current_label != prev_label:
+                if current_label is None:
+                    result_full_labels.append(Label("none", label_time))
+                else:
+                    result_full_labels.append(Label(current_label, label_time))
+            prev_label = current_label
+
+            if (next_i >= len(beats)):
+                label_time += song.analysis["avg_beat_duration"]
+            else:
+                label_time += beats[next_i] - i
+
+
     # return a radiotool Composition
     comp, cf_locations, contracted = _generate_audio(song, beats, path,
         volume=volume,
@@ -275,13 +300,13 @@ def retarget(song, duration, music_labels=None, out_labels=None, out_penalty=Non
         "path": path,
         "target_labels": target,
         "result_labels": result_labels,
-        "transitions": [Label("crossfade", loc) for loc in cf_locations]
+        "transitions": [Label("crossfade", loc) for loc in cf_locations],
+        "path_cost": path_cost
     }
 
     return comp, info
 
-
-def _reconstruct_path(prev_node, beats, end, length):
+def _reconstruct_path(prev_node, cost_table, beats, end, length):
     beats_with_pauses = copy.copy(beats)
     for i in range(prev_node.shape[0] - len(beats)):
         beats_with_pauses.append('p' + str(i))
@@ -293,7 +318,17 @@ def _reconstruct_path(prev_node, beats, end, length):
         node = prev_node[int(node), length]
         path.append(node)
         length -= 1
-    return [beats_with_pauses[int(n)] for n in reversed(path)]
+
+    beat_path = [beats_with_pauses[int(n)] for n in reversed(path)]
+
+    path_cost = []
+    prev_cost = 0.0
+    for li, bi in enumerate(reversed(path)):
+        this_cost = cost_table[bi, li]
+        path_cost.append(this_cost - prev_cost)
+        prev_cost = this_cost
+
+    return beat_path, path_cost
 
 
 def _build_table_from_costs(trans_cost, penalty):

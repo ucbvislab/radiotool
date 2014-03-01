@@ -474,6 +474,14 @@ class Composition(object):
             return frames[:new_cut_point]
         return frames
     
+    def duration(self):
+        return max([x.comp_location + x.duration
+                    for x in self.segments])
+
+    def duration_in_seconds(self):
+        return max([x.comp_location_in_seconds + x.duration_in_seconds
+                    for x in self.segments])
+
     def build(self, track_list=None, adjust_dynamics=False,
         min_length=None, channels=None):
         """
