@@ -263,33 +263,10 @@ def retarget(song, duration, music_labels=None, out_labels=None, out_penalty=Non
             result_labels.append(start[N.where(N.array(beats) == i)[0][0]])
     # result_labels = [start[N.where(N.array(beats) == i)[0][0]] for i in path]
 
-    # result labels... but actually labels
-    label_time = 0.0
-    pause_len = song.analysis["avg_beat_duration"]
-    result_full_labels = []
-    prev_label = -1
-    for i in path:
-        if str(i).startswith('p'):
-            label_time += pause_len
-        else:
-            beat_i = N.where(N.array(beats) == i)[0][0]
-            next_i = beat_i + 1
-            current_label = start[beat_i]
-            if current_label != prev_label:
-                if current_label is None:
-                    result_full_labels.append(Label("none", label_time))
-                else:
-                    result_full_labels.append(Label(current_label, label_time))
-            prev_label = current_label
-
-            if (next_i >= len(beats)):
-                label_time += song.analysis["avg_beat_duration"]
-            else:
-                label_time += beats[next_i] - i
-
 
     # return a radiotool Composition
-    comp, cf_locations, contracted = _generate_audio(song, beats, path,
+    comp, cf_locations, result_full_labels, cost_labels, contracted = _generate_audio(
+        song, beats, path, path_cost, start,
         volume=volume,
         volume_breakpoints=volume_breakpoints,
         springs=springs)
@@ -300,8 +277,9 @@ def retarget(song, duration, music_labels=None, out_labels=None, out_penalty=Non
         "path": path,
         "target_labels": target,
         "result_labels": result_labels,
+        "result_full_labels": result_full_labels,
         "transitions": [Label("crossfade", loc) for loc in cf_locations],
-        "path_cost": path_cost
+        "path_cost": cost_labels
     }
 
     return comp, info
@@ -440,7 +418,7 @@ def __fast_argmin_axis_0(a):
     return argmin_array
 
 
-def _generate_audio(song, beats, new_beats,
+def _generate_audio(song, beats, new_beats, new_beats_cost, music_labels,
                     volume=None, volume_breakpoints=None,
                     springs=None):
     print "Building volume"
@@ -567,6 +545,53 @@ def _generate_audio(song, beats, new_beats,
 
         all_cf_locations.extend(cf_locations)
 
+    # result labels
+    label_time = 0.0
+    pause_len = song.analysis["avg_beat_duration"]
+    result_full_labels = []
+    prev_label = -1
+    for i in new_beats:
+        if str(i).startswith('p'):
+            current_label = None
+            if current_label != prev_label:
+                result_full_labels.append(Label("pause", label_time))
+            prev_label = None
+
+            label_time += pause_len
+        else:
+            beat_i = N.where(N.array(beats) == i)[0][0]
+            next_i = beat_i + 1
+            current_label = music_labels[beat_i]
+            if current_label != prev_label:
+                if current_label is None:
+                    result_full_labels.append(Label("none", label_time))
+                else:
+                    result_full_labels.append(Label(current_label, label_time))
+            prev_label = current_label
+
+            if (next_i >= len(beats)):
+                label_time += song.analysis["avg_beat_duration"]
+            else:
+                label_time += beats[next_i] - i
+
+    # result costs
+    cost_time = 0.0
+    pause_len = song.analysis["avg_beat_duration"]
+    result_cost = []
+    for i, b in enumerate(new_beats):
+        result_cost.append(Label(new_beats_cost[i], cost_time))
+
+        if str(b).startswith('p'):
+            cost_time += pause_len
+        else:
+            beat_i = N.where(N.array(beats) == b)[0][0]
+            next_i = beat_i + 1
+
+            if (next_i >= len(beats)):
+                cost_time += song.analysis["avg_beat_duration"]
+            else:
+                cost_time += beats[next_i] - b
+
     print "Contracting pause springs"
     contracted = []
     min_contraction = 0.5
@@ -584,9 +609,38 @@ def _generate_audio(song, beats, new_beats,
                         new_cf.append(cf)
                 all_cf_locations = new_cf
 
+                first_label = True
+                for lab in result_full_labels:
+                    if lab.time > contracted_time:
+                        # TODO: fix this hack
+                        if lab.name == "pause" and first_label:
+                            pass
+                        else:
+                            lab.time -= contracted_dur
+                        first_label = False
+
+                new_result_cost = []
+                first_label = True
+                # TODO: also this hack. bleh.
+                for cost_lab in result_cost:
+                    if cost_lab.time < contracted_time:
+                        new_result_cost.append(cost_lab)
+                    elif cost_lab.time > contracted_time and\
+                        cost_lab.time <= contracted_time + contracted_dur:
+                        if first_label:
+                            cost_lab.time = contracted_time
+                            new_result_cost.append(cost_lab)
+                        elif cost_lab.name > 0:
+                            print "DELETING nonzero cost label:", cost_lab.name, cost_lab.time
+                        first_label = False
+                    elif cost_lab.time > contracted_time + contracted_dur:
+                        cost_lab.time -= contracted_dur
+                        new_result_cost.append(cost_lab)
+                        first_label = False
+                result_cost = new_result_cost
+
                 contracted.append(Spring(contracted_time + offset, contracted_dur))
                 offset += contracted_dur
-
 
     # for seg in comp.segments:
     #     print seg.comp_location, seg.duration
@@ -617,4 +671,4 @@ def _generate_audio(song, beats, new_beats,
     # cf durs?
     # durs
 
-    return comp, all_cf_locations, contracted
+    return comp, all_cf_locations, result_full_labels, new_result_cost, contracted
