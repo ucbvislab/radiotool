@@ -671,4 +671,4 @@ def _generate_audio(song, beats, new_beats, new_beats_cost, music_labels,
     # cf durs?
     # durs
 
-    return comp, all_cf_locations, result_full_labels, new_result_cost, contracted
+    return comp, all_cf_locations, result_full_labels, result_cost, contracted
