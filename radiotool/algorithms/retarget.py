@@ -308,6 +308,9 @@ def _reconstruct_path(prev_node, cost_table, beats, end, length):
 
     return beat_path, path_cost
 
+def _build_table_from_costs_with_full_constraints(trans_cost, penalty):
+    # this is the algorithm with the full music length constraints
+    pass
 
 def _build_table_from_costs(trans_cost, penalty):
     # create cost matrix
