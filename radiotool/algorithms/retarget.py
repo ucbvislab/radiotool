@@ -233,12 +233,16 @@ def retarget(song, duration, music_labels=None, out_labels=None, out_penalty=Non
         # constraints.RhythmConstraint(6, 3.0),  # get time signature?
         constraints.MinimumJumpConstraint(8),
         constraints.LabelConstraint(start, target, pen),
-        constraints.NoveltyConstraint(start, target, pen)
+        constraints.NoveltyConstraint(start, target, pen),
+        constraints.MusicSegmentDurationConstraint(10, 30)
     ])
 
     trans_cost, penalty = pipeline.apply(song, len(target))
-    
-    cost, prev_node = _build_table_from_costs(trans_cost, penalty)
+
+    if len(trans_cost.shape) == 2:
+        cost, prev_node = _build_table_from_costs(trans_cost, penalty)
+    else:
+        cost, prev_node = _build_table_from_costs_with_full_constraints(trans_cost, penalty)
 
     # compute the dynamic programming table
     # cost, prev_node = _build_table(analysis, duration, start, target, pen)
@@ -310,7 +314,54 @@ def _reconstruct_path(prev_node, cost_table, beats, end, length):
 
 def _build_table_from_costs_with_full_constraints(trans_cost, penalty):
     # this is the algorithm with the full music length constraints
-    pass
+
+    # all of the music length constraints are going to the in the penalty table
+
+    # penalty is
+    # (beats in song) x (beats in output) x (beats in current span of music)
+
+    # cost is 
+    # (beats) x (beats) x (beats in current span of music)
+
+    # In addition to prev_node, we need to know the 
+    # beat index in each segment.
+
+    # We should keep a value for each possible current beat index,
+    # so the cost table should be 3 dimensional like the penalty table 
+    cost = N.zeros(penalty.shape)
+    prev_node = N.zeros(penalty.shape)
+
+    # now we have to compute the cost at each 
+    # (beat) at each (output time) at each (beat index)
+
+    # initial cost
+    cost[:, 0, :] = penalty[:, 0, :]
+
+    n_beats = cost.shape[0]
+    n_out = cost.shape[1]
+    n_max_music = cost.shape[2]
+
+    # WORK IN PROGRESS
+
+    for l in xrange(1, n_out):
+        for n_i in xrange(n_beats):
+            for z in xrange(n_max_music):
+                pass
+
+            total_cost = penalty[n_i, l] + trans_cost[:, n_i] + cost[:, l - 1]
+            min_node = N.argmin(total_cost)
+            cost[n_i, l] = total_cost[min_node]
+            prev_node[n_i, l] = min_node
+
+
+    for l in xrange(1, penalty.shape[1]):
+        tc = penalty[:, l] + trans_cost + cost[:, l - 1][:, N.newaxis]
+        min_nodes = __fast_argmin_axis_0(tc)
+        min_vals = N.amin(tc, axis=0)
+        cost[:, l] = min_vals
+        prev_node[:, l] = min_nodes
+
+    return cost, prev_node 
 
 def _build_table_from_costs(trans_cost, penalty):
     # create cost matrix

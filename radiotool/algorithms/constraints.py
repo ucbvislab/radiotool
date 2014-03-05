@@ -347,6 +347,48 @@ class NoveltyConstraint(Constraint):
     def __repr__(self):
         return "NoveltyConstraint"
 
+class MusicSegmentDurationConstraint(self):
+    def __init__(self, min_length, max_length):
+        self.minlen = min_length
+        self.maxlen = max_length
+
+    def apply(self, transition_cost, penalty, song):
+        beat_len = song["analysis"]["avg_beat_duration"]
+        minlen = int(self.minlen / beat_len)
+        maxlen = int(self.maxlen / beat_len)
+        maxlen_with_padding = maxlen + minlen
+        beats = song.analysis["beats"]
+        n_beats = len(beats)
+        p0 = n_beats
+
+        pen_val = 1.0
+
+        # create new transition cost in 3 dimensions
+        # (beat) x (beat) x (beat index in max span of music)
+        new_tc = transition_cost.reshape((
+            transition_cost.shape[0], transition_cost.shape[1], 1))
+        new_tc = new_tc.repeat(maxlen_with_padding, 2)
+
+        # create new penalty in 3 dimensions
+        # (beats in song) x (beats in output) x (beat index in max span of music)
+        new_penalty = penalty.reshape((penalty.shape[0], penalty.shape[1], 1))
+        new_penalty = new_penalty.repeat(maxlen_with_padding, 2)
+
+        # Constraints
+        # * don't start song in first segment beat
+        new_penalty[:n_beats, 0, 1:] += pen_val
+
+        # * don't go to pause before minimum length music segment
+        new_penalty[p0, :, :minlen] += pen_val
+
+        # * don't go to pause after maximum length music segment
+        new_penalty[p0, :, maxlen:] += pen_val
+
+        # * reset the music segment counter when moving from pause to music
+        new_tc[p0:, :n_beats, 1:] += pen_val
+
+        return new_tc, new_penalty
+
 if __name__ == '__main__':
     import sys
     from radiotool.composer import Song
