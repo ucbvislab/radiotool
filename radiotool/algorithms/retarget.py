@@ -234,11 +234,13 @@ def retarget(song, duration, music_labels=None, out_labels=None, out_penalty=Non
         constraints.MinimumJumpConstraint(8),
         constraints.LabelConstraint(start, target, pen),
         constraints.NoveltyConstraint(start, target, pen),
-        constraints.MusicSegmentDurationConstraint(10, 30)
+        constraints.MusicDurationConstraint(3, 5)
     ])
 
     trans_cost, penalty = pipeline.apply(song, len(target))
 
+    print "Tables sizes: ", trans_cost.shape, penalty.shape
+    print "Building cost table"
     if len(trans_cost.shape) == 2:
         cost, prev_node = _build_table_from_costs(trans_cost, penalty)
     else:
@@ -269,6 +271,7 @@ def retarget(song, duration, music_labels=None, out_labels=None, out_penalty=Non
 
 
     # return a radiotool Composition
+    print "Generating audio"
     comp, cf_locations, result_full_labels, cost_labels, contracted = _generate_audio(
         song, beats, path, path_cost, start,
         volume=volume,
@@ -346,20 +349,20 @@ def _build_table_from_costs_with_full_constraints(trans_cost, penalty):
     for l in xrange(1, n_out):
         for n_i in xrange(n_beats):
             for z in xrange(n_max_music):
-                pass
+                # (what about z == 0?)
+                total_cost = trans_cost[:, n_i, z - 1] +\
+                            penalty[n_i, l, z - 1] +\
+                            cost[:, l - 1, z - 1]
+                min_node = N.argmin(total_cost)
+                cost[n_i, l, z] = total_cost[min_node]
+                prev_node[n_i, l, z] = min_node
 
-            total_cost = penalty[n_i, l] + trans_cost[:, n_i] + cost[:, l - 1]
-            min_node = N.argmin(total_cost)
-            cost[n_i, l] = total_cost[min_node]
-            prev_node[n_i, l] = min_node
-
-
-    for l in xrange(1, penalty.shape[1]):
-        tc = penalty[:, l] + trans_cost + cost[:, l - 1][:, N.newaxis]
-        min_nodes = __fast_argmin_axis_0(tc)
-        min_vals = N.amin(tc, axis=0)
-        cost[:, l] = min_vals
-        prev_node[:, l] = min_nodes
+    # for l in xrange(1, penalty.shape[1]):
+    #     tc = penalty[:, l] + trans_cost + cost[:, l - 1][:, N.newaxis]
+    #     min_nodes = __fast_argmin_axis_0(tc)
+    #     min_vals = N.amin(tc, axis=0)
+    #     cost[:, l] = min_vals
+    #     prev_node[:, l] = min_nodes
 
     return cost, prev_node 
 

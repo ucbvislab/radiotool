@@ -347,7 +347,7 @@ class NoveltyConstraint(Constraint):
     def __repr__(self):
         return "NoveltyConstraint"
 
-class MusicSegmentDurationConstraint(self):
+class MusicSegmentDurationConstraint(Constraint):
     def __init__(self, min_length, max_length):
         self.minlen = min_length
         self.maxlen = max_length
@@ -388,6 +388,60 @@ class MusicSegmentDurationConstraint(self):
         new_tc[p0:, :n_beats, 1:] += pen_val
 
         return new_tc, new_penalty
+
+    def __repr__(self):
+        return "MusicSegmentDurationConstraint"
+
+class MusicDurationConstraint(Constraint):
+    def __init__(self, min_length, max_length):
+        self.minlen = min_length
+        self.maxlen = max_length
+
+    def apply(self, transition_cost, penalty, song):
+        beat_len = song.analysis["avg_beat_duration"]
+        minlen = int(self.minlen / beat_len)
+        maxlen = int(self.maxlen / beat_len)
+        maxlen_with_padding = maxlen + minlen
+        beats = song.analysis["beats"]
+        n_beats = len(beats)
+        n_pause_beats = transition_cost.shape[0] - n_beats
+
+        pen_val = 1.0
+
+        print "max len with padding", maxlen_with_padding
+
+        # Create new transition cost table
+        # (beat * beat index in max span) x (beat * beat index in max span of music)
+        # Is this too large?
+        new_tc_size = n_beats * maxlen_with_padding + n_pause_beats
+        p0 = n_beats * maxlen_with_padding
+        new_tc = np.empty((new_tc_size, new_tc_size))
+
+        # tile the tc over this new table
+        new_tc[:p0, :p0] = np.tile(transition_cost[:n_beats, :n_beats],
+            (maxlen_with_padding, maxlen_with_padding))
+        # tile the pause information as well
+        new_tc[:p0, p0:] = np.tile(transition_cost[:n_beats, n_beats:],
+            (maxlen_with_padding, 1))
+        new_tc[p0:, :p0] = np.tile(transition_cost[n_beats:, :n_beats],
+            (1, maxlen_with_padding))
+        new_tc[p0:, p0:] = transition_cost[n_beats:, n_beats:]
+
+        # Create new penalty table
+        # (beat * beat index in max span) x (beats in output)
+        new_pen = np.empty((new_tc_size, penalty.shape[1]))
+
+        # tile the tc over this new table
+        new_pen[:p0, :] = np.tile(penalty[:n_beats, :],
+            (maxlen_with_padding, 1))
+        new_pen[p0:, :] = penalty[n_beats:, :]
+
+
+
+        return new_tc, new_pen
+
+    def __repr__(self):
+        return "MusicDurationConstraint"
 
 if __name__ == '__main__':
     import sys
