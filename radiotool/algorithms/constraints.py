@@ -23,12 +23,14 @@ class ConstraintPipeline(object):
 
     def apply(self, song, target_n_length):
         n_beats = len(song.analysis["beats"])
+        beat_names = copy.copy(song.analysis["beats"])
         transition_cost = np.ones((n_beats, n_beats))
         penalty = np.zeros((n_beats, target_n_length))
         for constraint in self.constraints:
             print constraint
-            transition_cost, penalty = constraint.apply(transition_cost, penalty, song)
-        return transition_cost, penalty
+            transition_cost, penalty, beat_names = constraint.apply(
+                transition_cost, penalty, song, beat_names)
+        return transition_cost, penalty, beat_names
 
 
 class Constraint(object):
@@ -43,7 +45,7 @@ class TimbrePitchConstraint(Constraint):
         self.cw = 1 - self.tw
         self.m = context
 
-    def apply(self, transition_cost, penalty, song):
+    def apply(self, transition_cost, penalty, song, beat_names):
         timbre_dist = librosa_analysis.structure(np.array(song.analysis['timbres']).T)
         chroma_dist = librosa_analysis.structure(np.array(song.analysis['chroma']).T)
 
@@ -72,7 +74,7 @@ class TimbrePitchConstraint(Constraint):
         
         transition_cost[:dists.shape[0], :dists.shape[1]] *= dists
 
-        return transition_cost, penalty
+        return transition_cost, penalty, beat_names
 
     def __repr__(self):
         return "TimbrePitchConstraint: %f(timbre) + %f(chroma)" % (self.tw, self.cw)
@@ -83,25 +85,25 @@ class RhythmConstraint(Constraint):
         self.m = multiplier
         self.time = beats_per_measure
 
-    def apply(self, transition_cost, penalty, song):
+    def apply(self, transition_cost, penalty, song, beat_names):
         n_beats = len(song.analysis["beats"])
         for i in range(self.time):
             for j in set(range(self.time)) - set([(i + 1) % self.time]):
                 transition_cost[i:n_beats:self.time][j:n_beats:self.time] *= self.m
-        return transition_cost, penalty
+        return transition_cost, penalty, beat_names
 
 
 class MinimumJumpConstraint(Constraint):
     def __init__(self, min_jump):
         self.min_jump = min_jump
 
-    def apply(self, transition_cost, penalty, song):
+    def apply(self, transition_cost, penalty, song, beat_names):
         n_beats = len(song.analysis["beats"])
         for i in range(n_beats):
             for j in range(-(self.min_jump - 1), self.min_jump):
                 if 0 < i + j < n_beats and j != 1:
                     transition_cost[i, i + j] = np.inf
-        return transition_cost, penalty
+        return transition_cost, penalty, beat_names
 
     def __repr__(self):
         return "MinimumJumpConstraint: min_jump(%d)" % self.min_jump
@@ -114,7 +116,7 @@ class LabelConstraint(Constraint):
         self.penalty = penalty
         self.window = penalty_window
 
-    def apply(self, transition_cost, penalty, song):
+    def apply(self, transition_cost, penalty, song, beat_names):
         n_beats = len(song.analysis["beats"])
 
         # extend in_labels to work with pauses that we may have added
@@ -157,7 +159,7 @@ class LabelConstraint(Constraint):
         
         penalty += new_pen
 
-        return transition_cost, penalty
+        return transition_cost, penalty, beat_names
 
     def __repr__(self):
         return "LabelConstraint"  
@@ -167,9 +169,9 @@ class GenericTimeSensitivePenalty(Constraint):
     def __init__(self, penalty):
         self.penalty = penalty
 
-    def apply(self, transition_cost, penalty, song):
+    def apply(self, transition_cost, penalty, song, beat_names):
         penalty[:n_beats, :] += self.penalty
-        return transition_cost, penalty
+        return transition_cost, penalty, beat_names
 
 
 class PauseConstraint(Constraint):
@@ -184,7 +186,7 @@ class PauseConstraint(Constraint):
         self.bw_cost = 0.05
 
 
-    def apply(self, transition_cost, penalty, song):
+    def apply(self, transition_cost, penalty, song, beat_names):
         # we have to manage the pauses...
         n_beats = len(song.analysis["beats"])
         beat_len = song.analysis["avg_beat_duration"]
@@ -230,7 +232,10 @@ class PauseConstraint(Constraint):
 
         new_pen[p0 + 1:, 0] = np.inf
 
-        return new_trans, new_pen
+        # add pauses to beat_names
+        beat_names.extend(["p%d" % i for i in xrange(max_beats)])
+
+        return new_trans, new_pen, beat_names
 
     def __repr__(self):
         return "PauseConstraint: min(%f), max(%f)" % (self.min_len, self.max_len)
@@ -241,7 +246,7 @@ class PauseEntryLabelChangeConstraint(Constraint):
         self.out_labels = target_labels
         self.p = penalty_value
 
-    def apply(self, transition_cost, penalty, song):
+    def apply(self, transition_cost, penalty, song, beat_names):
         n_beats = len(song.analysis["beats"])
         n_pauses = transition_cost.shape[0] - n_beats
         p0 = n_beats
@@ -260,7 +265,7 @@ class PauseEntryLabelChangeConstraint(Constraint):
             penalty[p0, :] += self.p
             penalty[p0, target_changes] -= self.p
 
-        return transition_cost, penalty
+        return transition_cost, penalty, beat_names
 
     def __repr__(self):
         return "PauseEntryLabelChangeConstraint: penalty(%f)" % self.p
@@ -271,7 +276,7 @@ class PauseExitLabelChangeConstraint(Constraint):
         self.out_labels = target_labels
         self.p = penalty_value
 
-    def apply(self, transition_cost, penalty, song):
+    def apply(self, transition_cost, penalty, song, beat_names):
         n_beats = len(song.analysis["beats"])
         if transition_cost.shape[0] > n_beats:
             p_n = transition_cost.shape[0] - 1
@@ -288,7 +293,7 @@ class PauseExitLabelChangeConstraint(Constraint):
             penalty[p_n, :] += self.p
             penalty[p_n, target_changes] -= self.p
 
-        return transition_cost, penalty
+        return transition_cost, penalty, beat_names
 
     def __repr__(self):
         return "PauseExitLabelChangeConstraint: penalty(%f)" % self.p
@@ -300,7 +305,7 @@ class NoveltyConstraint(Constraint):
         self.out_labels = target_labels
         self.penalty = penalty
 
-    def apply(self, transition_cost, penalty, song):
+    def apply(self, transition_cost, penalty, song, beat_names):
         changepoints = np.array(novelty.novelty(song))
         beats = song.analysis["beats"]
         n_beats = len(beats)
@@ -342,62 +347,62 @@ class NoveltyConstraint(Constraint):
                         n_next = min(2, n_beats - beat_i)
                         penalty[beat_i - n_prev:beat_i + n_next, l] -= 1.0
 
-        return transition_cost, penalty
+        return transition_cost, penalty, beat_names
 
     def __repr__(self):
         return "NoveltyConstraint"
 
-class MusicSegmentDurationConstraint(Constraint):
-    def __init__(self, min_length, max_length):
-        self.minlen = min_length
-        self.maxlen = max_length
+# class MusicSegmentDurationConstraint(Constraint):
+#     def __init__(self, min_length, max_length):
+#         self.minlen = min_length
+#         self.maxlen = max_length
 
-    def apply(self, transition_cost, penalty, song):
-        beat_len = song["analysis"]["avg_beat_duration"]
-        minlen = int(self.minlen / beat_len)
-        maxlen = int(self.maxlen / beat_len)
-        maxlen_with_padding = maxlen + minlen
-        beats = song.analysis["beats"]
-        n_beats = len(beats)
-        p0 = n_beats
+#     def apply(self, transition_cost, penalty, song):
+#         beat_len = song["analysis"]["avg_beat_duration"]
+#         minlen = int(self.minlen / beat_len)
+#         maxlen = int(self.maxlen / beat_len)
+#         maxlen_with_padding = maxlen + minlen
+#         beats = song.analysis["beats"]
+#         n_beats = len(beats)
+#         p0 = n_beats
 
-        pen_val = 1.0
+#         pen_val = 1.0
 
-        # create new transition cost in 3 dimensions
-        # (beat) x (beat) x (beat index in max span of music)
-        new_tc = transition_cost.reshape((
-            transition_cost.shape[0], transition_cost.shape[1], 1))
-        new_tc = new_tc.repeat(maxlen_with_padding, 2)
+#         # create new transition cost in 3 dimensions
+#         # (beat) x (beat) x (beat index in max span of music)
+#         new_tc = transition_cost.reshape((
+#             transition_cost.shape[0], transition_cost.shape[1], 1))
+#         new_tc = new_tc.repeat(maxlen_with_padding, 2)
 
-        # create new penalty in 3 dimensions
-        # (beats in song) x (beats in output) x (beat index in max span of music)
-        new_penalty = penalty.reshape((penalty.shape[0], penalty.shape[1], 1))
-        new_penalty = new_penalty.repeat(maxlen_with_padding, 2)
+#         # create new penalty in 3 dimensions
+#         # (beats in song) x (beats in output) x (beat index in max span of music)
+#         new_penalty = penalty.reshape((penalty.shape[0], penalty.shape[1], 1))
+#         new_penalty = new_penalty.repeat(maxlen_with_padding, 2)
 
-        # Constraints
-        # * don't start song in first segment beat
-        new_penalty[:n_beats, 0, 1:] += pen_val
+#         # Constraints
+#         # * don't start song in first segment beat
+#         new_penalty[:n_beats, 0, 1:] += pen_val
 
-        # * don't go to pause before minimum length music segment
-        new_penalty[p0, :, :minlen] += pen_val
+#         # * don't go to pause before minimum length music segment
+#         new_penalty[p0, :, :minlen] += pen_val
 
-        # * don't go to pause after maximum length music segment
-        new_penalty[p0, :, maxlen:] += pen_val
+#         # * don't go to pause after maximum length music segment
+#         new_penalty[p0, :, maxlen:] += pen_val
 
-        # * reset the music segment counter when moving from pause to music
-        new_tc[p0:, :n_beats, 1:] += pen_val
+#         # * reset the music segment counter when moving from pause to music
+#         new_tc[p0:, :n_beats, 1:] += pen_val
 
-        return new_tc, new_penalty
+#         return new_tc, new_penalty
 
-    def __repr__(self):
-        return "MusicSegmentDurationConstraint"
+#     def __repr__(self):
+#         return "MusicSegmentDurationConstraint"
 
 class MusicDurationConstraint(Constraint):
     def __init__(self, min_length, max_length):
         self.minlen = min_length
         self.maxlen = max_length
 
-    def apply(self, transition_cost, penalty, song):
+    def apply(self, transition_cost, penalty, song, beat_names):
         beat_len = song.analysis["avg_beat_duration"]
         minlen = int(self.minlen / beat_len)
         maxlen = int(self.maxlen / beat_len)
@@ -437,8 +442,34 @@ class MusicDurationConstraint(Constraint):
         new_pen[p0:, :] = penalty[n_beats:, :]
 
 
+        #--- CONSTRAINTS ---#
+        # * don't start song in segment beat other than first
+        new_pen[n_beats:(n_beats * maxlen_with_padding), 0] += pen_val
 
-        return new_tc, new_pen
+        # * don't go to pause before minimum length music segment
+        new_tc[:(n_beats * minlen), p0] += pen_val
+
+        # * don't go to pause after maximum length music segment
+        new_tc[(n_beats * maxlen):, p0] += pen_val
+
+        # * after pause, don't go to non-first segment beat
+        new_tc[p0:, n_beats:p0] += pen_val
+
+        # * don't move between beats that don't follow 
+        #   the segment index
+        new_tc[:p0, :p0] += pen_val
+        for i in xrange(1, maxlen_with_padding):
+            new_tc[(i - 1) * n_beats:i * n_beats,
+                   i * n_beats:(i + 1) * n_beats] -= pen_val
+
+        # update beat_names
+        pause_names = beat_names[n_beats:]
+        new_beat_names = []
+        for rep in xrange(maxlen_with_padding):
+            new_beat_names.extend(beat_names[:n_beats])
+        new_beat_names.extend(pause_names)
+
+        return new_tc, new_pen, new_beat_names
 
     def __repr__(self):
         return "MusicDurationConstraint"

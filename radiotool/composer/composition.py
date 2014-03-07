@@ -134,8 +134,6 @@ class Composition(object):
         :returns: The fade that has been added to the composition
         :rtype: :py:class:`Fade`
         """
-        dur = int(duration * segment.track.samplerate)
-        # dur = int(round(duration * segment.track.samplerate))
         f = Fade(segment.track, segment.comp_location_in_seconds, duration, 0.0, 1.0)
         self.add_dynamic(f)
         return f
@@ -154,6 +152,9 @@ class Composition(object):
             segment.duration_in_seconds - duration
 
         f = Fade(segment.track, score_loc_in_seconds, duration, 1.0, 0.0)
+        # bug fixing... perhaps
+        f.comp_location = segment.comp_location + segment.duration -\
+            int(duration * segment.track.samplerate)
         self.add_dynamic(f)
         return f
 
@@ -168,7 +169,6 @@ class Composition(object):
         :rtype: :py:class:`Fade`
         """
         dur = int(duration * segment.track.samplerate)
-        # dur = int(round(duration * segment.track.samplerate))
         if segment.start - dur >= 0:
             segment.start -= dur
         else:
@@ -197,7 +197,6 @@ class Composition(object):
         :rtype: :py:class:`Fade`
         """
         dur = int(duration * segment.track.samplerate)
-        # dur = int(round(duration * segment.track.samplerate))
         if segment.start + segment.duration + dur <\
             segment.track.duration:
             segment.duration += dur
@@ -271,6 +270,9 @@ class Composition(object):
             rs_duration = raw_track.duration / float(raw_track.samplerate)
             
             raw_seg = Segment(raw_track, rs_comp_location, 0.0, rs_duration)
+            # will this fix a bug?
+            raw_seg.duration = raw_track.duration
+            raw_seg.comp_location = seg1.comp_location + seg1.duration
             
             self.add_track(raw_track)
             self.add_segment(raw_seg)
@@ -371,10 +373,12 @@ class Composition(object):
         if contract_dur > min_contraction:
             for seg in self.segments:
                 if seg.comp_location_in_seconds > contract_start:
-                    seg.comp_location_in_seconds -= contract_dur
+                    dur_samples = int(seg.samplerate * contract_dur)
+                    seg.comp_location -= dur_samples
             for dyn in self.dynamics:
                 if dyn.comp_location_in_seconds > contract_start:
-                    dyn.comp_location_in_seconds -= contract_dur
+                    dur_samples = int(seg.samplerate * contract_dur)
+                    dyn.comp_location -= dur_samples
             return contract_start, contract_dur
         else: return 0.0, 0.0
 
@@ -545,9 +549,12 @@ class Composition(object):
                            key=lambda k: k.comp_location)
             for d in dyns:
                 vol_frames = d.to_array(channels)
-                parts[track][d.comp_location - start_loc :
-                             d.comp_location - start_loc + d.duration,
-                             :] *= vol_frames
+                try:
+                    parts[track][d.comp_location - start_loc :
+                                 d.comp_location - start_loc + d.duration,
+                                 :] *= vol_frames
+                except ValueError:
+                    import pdb; pdb.set_trace()
 
         if adjust_dynamics:
             total_energy = RMS_energy(all_frames)

@@ -1,4 +1,5 @@
 import re
+import warnings
 
 from scikits.audiolab import Sndfile, Format
 import numpy as N
@@ -142,6 +143,7 @@ class Track(object):
     @property
     def duration_in_seconds(self):
         """Get the duration of the track in seconds"""
+        "Should not set track length"
         return self.duration / float(self.samplerate)
         
     def loudest_time(self, start=0, duration=0):
