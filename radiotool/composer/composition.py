@@ -512,14 +512,25 @@ class Composition(object):
         
         longest_part = max([x.comp_location + x.duration
                             for x in self.segments])
+        if len(self.dynamics) > 0:
+            longest_part = max((longest_part,
+                max([x.comp_location + x.duration
+                     for x in self.dynamics])))
         
         for track_idx, track in enumerate(track_list):
             segments = sorted([v for v in self.segments if v.track == track], 
                               key=lambda k: k.comp_location + k.duration)
+            dyns = sorted([d for d in self.dynamics if d.track == track],
+                           key=lambda k: k.comp_location)
+
             if len(segments) > 0:
                 start_loc = min([x.comp_location for x in segments])
-                end_loc = max([x.comp_location + x.duration
-                               for x in segments])
+                end_loc = max([x.comp_location + x.duration for x in segments])
+                if len(dyns) > 0:
+                    start_loc = min((start_loc, 
+                         min([d.comp_location for d in dyns])))
+                    end_loc = max((end_loc,
+                        max([d.comp_location + d.duration for d in dyns])))
                 
                 starts[track] = start_loc
 
@@ -545,16 +556,13 @@ class Composition(object):
                                  s.comp_location - start_loc + s.duration,
                                  :] = frames
 
-            dyns = sorted([d for d in self.dynamics if d.track == track],
-                           key=lambda k: k.comp_location)
             for d in dyns:
                 vol_frames = d.to_array(channels)
-                try:
-                    parts[track][d.comp_location - start_loc :
-                                 d.comp_location - start_loc + d.duration,
-                                 :] *= vol_frames
-                except ValueError:
-                    import pdb; pdb.set_trace()
+
+                parts[track][d.comp_location - start_loc :
+                             d.comp_location - start_loc + d.duration,
+                             :] *= vol_frames
+
 
         if adjust_dynamics:
             total_energy = RMS_energy(all_frames)

@@ -71,6 +71,9 @@ class TimbrePitchConstraint(Constraint):
         # shift it over
         dists[:-1, :] = dists[1:, :]
         dists[-1, :] = np.inf
+
+        # don't use the final beat
+        dists[:, -1] = np.inf
         
         transition_cost[:dists.shape[0], :dists.shape[1]] *= dists
 

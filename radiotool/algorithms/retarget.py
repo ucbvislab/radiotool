@@ -225,7 +225,7 @@ def retarget(song, duration, music_labels=None, out_labels=None, out_penalty=Non
     else:
         pen = N.array([1 for i in N.arange(0, duration, beat_length)])
     
-    pipeline = constraints.ConstraintPipeline(constraints=[
+    pipeline = constraints.ConstraintPipeline(constraints=(
         constraints.PauseConstraint(6, 25),
         constraints.PauseEntryLabelChangeConstraint(target, .005),
         constraints.PauseExitLabelChangeConstraint(target, .005),
@@ -234,8 +234,8 @@ def retarget(song, duration, music_labels=None, out_labels=None, out_penalty=Non
         constraints.MinimumJumpConstraint(8),
         constraints.LabelConstraint(start, target, pen),
         constraints.NoveltyConstraint(start, target, pen),
-        constraints.MusicDurationConstraint(3, 5)
-    ])
+        constraints.MusicDurationConstraint(1, 5)
+    ))
 
     trans_cost, penalty, beat_names = pipeline.apply(song, len(target))
 
@@ -308,6 +308,7 @@ def _reconstruct_path(prev_node, cost_table, beat_names, end, length):
 
     return beat_path, path_cost
 
+@profile
 def _build_table_from_costs(trans_cost, penalty):
     # create cost matrix
     cost = N.zeros(penalty.shape)
@@ -469,15 +470,16 @@ def _generate_audio(song, beats, new_beats, new_beats_cost, music_labels,
                 if bis[i] + 1 != bis[i + 1]:
                     dists[i] = 1
             if bis[i] + 1 >= len(beats):
-                durs[i] = beats[bis[i]] - beats[bis[i] - 1]
+                # use the average beat duration if we don't know
+                # how long the beat is supposed to be
+                print "USING BEAT DURATION IN SYNTHESIS - POTENTIALLY NOT GOOD"
+                durs[i] = song.analysis["avg_beat_duration"]
             else:
                 durs[i] = beats[bis[i] + 1] - beats[bis[i]]
 
-
         # add pause duration to current location
         current_loc += (aseg[0] - last_segment_beat) * song.analysis["avg_beat_duration"]
-        last_segment_beat = aseg[1]
-
+        last_segment_beat = aseg[1] + 1
         
         cf_durations = []
         seg_start = starts[0]
@@ -549,8 +551,8 @@ def _generate_audio(song, beats, new_beats, new_beats_cost, music_labels,
     pause_len = song.analysis["avg_beat_duration"]
     result_full_labels = []
     prev_label = -1
-    for i in new_beats:
-        if str(i).startswith('p'):
+    for beat in new_beats:
+        if str(beat).startswith('p'):
             current_label = None
             if current_label != prev_label:
                 result_full_labels.append(Label("pause", label_time))
@@ -558,7 +560,7 @@ def _generate_audio(song, beats, new_beats, new_beats_cost, music_labels,
 
             label_time += pause_len
         else:
-            beat_i = N.where(N.array(beats) == i)[0][0]
+            beat_i = N.where(N.array(beats) == beat)[0][0]
             next_i = beat_i + 1
             current_label = music_labels[beat_i]
             if current_label != prev_label:
@@ -569,9 +571,10 @@ def _generate_audio(song, beats, new_beats, new_beats_cost, music_labels,
             prev_label = current_label
 
             if (next_i >= len(beats)):
+                print "USING AVG BEAT DURATION - POTENTIALLY NOT GOOD"
                 label_time += song.analysis["avg_beat_duration"]
             else:
-                label_time += beats[next_i] - i
+                label_time += beats[next_i] - beat
 
     # result costs
     cost_time = 0.0
@@ -600,16 +603,26 @@ def _generate_audio(song, beats, new_beats, new_beats_cost, music_labels,
             contracted_time, contracted_dur = comp.contract(spring.time - offset, spring.duration,
                 min_contraction=min_contraction)
             if contracted_dur > 0:
-                new_cf = []
-                for cf in all_cf_locations:
-                    if cf > contracted_time:
-                        new_cf.append(cf - contracted_dur)
-                    else:
-                        new_cf.append(cf)
-                all_cf_locations = new_cf
+                # new_cf = []
+                # for cf in all_cf_locations:
+                #     if cf > contracted_time:
+                #         new_cf.append(cf - contracted_dur)
+                #     else:
+                #         new_cf.append(cf)
+                # all_cf_locations = new_cf
+
+                # for lab in result_full_labels:
+                #     if lab.time > contracted_time + contracted_dur:
+                #         lab.time -= contracted_dur
 
                 first_label = True
-                for lab in result_full_labels:
+                for lab_i, lab in enumerate(result_full_labels):
+                    # is this contracted in a pause that already started?
+                    # if lab_i + 1 < len(result_full_labels):
+                    #     next_lab = result_full_labels[lab_i + 1]
+                    #     if lab.time < contracted_time <= next_lab.time:
+                    #         first_label = False
+
                     if lab.time > contracted_time:
                         # TODO: fix this hack
                         if lab.name == "pause" and first_label:
@@ -617,6 +630,20 @@ def _generate_audio(song, beats, new_beats, new_beats_cost, music_labels,
                         else:
                             lab.time -= contracted_dur
                         first_label = False
+
+                # new_result_cost = []
+                # for cost_lab in result_cost:
+                #     if cost_lab.time < contracted_time:
+                #         new_result_cost.append(cost_lab)
+                #     elif contracted_time < cost_lab.time <=\
+                #         contracted_time + contracted_dur:
+                #         # remove cost labels in this range
+                #         if cost_lab.name > 0:
+                #             print "DELETING nonzero cost label", cost_lab.name, cost_lab.time
+                #     else:
+                #         cost_lab.time -= contracted_dur
+                #         new_result_cost.append(cost_lab)
+
 
                 new_result_cost = []
                 first_label = True
