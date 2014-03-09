@@ -1,4 +1,8 @@
-from setuptools import setup
+# from setuptools import setup
+from numpy.distutils.core import setup, Extension
+
+build_table = Extension('radiotool.algorithms.build_table',
+                        ['radiotool/algorithms/build_table.f90'])
 
 setup(name='radiotool',
       version='0.3.3',
@@ -12,6 +16,7 @@ setup(name='radiotool',
             'radiotool.composer',
             'radiotool.algorithms'
       ],
+      ext_modules = [build_table],
       license='GPL v3',
       install_requires=[
             'numpy',
@@ -26,3 +31,4 @@ setup(name='radiotool',
       zip_safe=False,
       test_suite='nose.collector',
       tests_require=['nose'])
+

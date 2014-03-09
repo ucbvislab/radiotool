@@ -8,3 +8,5 @@
 
 # from .composition import Composition
 from .novelty import novelty
+from .build_table import build_table
+import retarget

@@ -5,6 +5,7 @@ import numpy as N
 
 from ..composer import Composition, Segment, Volume, Label, RawVolume
 from novelty import novelty
+from . import build_table
 import constraints
 
 Spring = namedtuple('Spring', ['time', 'duration'])
@@ -148,7 +149,6 @@ def retarget_with_change_points(song, cp_times, duration):
 
     return comp, final_cp_locations
 
-
 def retarget(song, duration, music_labels=None, out_labels=None, out_penalty=None,
              volume=None, volume_breakpoints=None, springs=None):
     """Retarget a song to a duration given input and output labels on
@@ -234,14 +234,15 @@ def retarget(song, duration, music_labels=None, out_labels=None, out_penalty=Non
         constraints.MinimumJumpConstraint(8),
         constraints.LabelConstraint(start, target, pen),
         constraints.NoveltyConstraint(start, target, pen),
-        constraints.MusicDurationConstraint(1, 5)
+        # constraints.MusicDurationConstraint(1, 5)
     ))
 
     trans_cost, penalty, beat_names = pipeline.apply(song, len(target))
 
     print "Tables sizes: ", trans_cost.shape, penalty.shape
     print "Building cost table"
-    cost, prev_node = _build_table_from_costs(trans_cost, penalty)
+    # fortran method
+    cost, prev_node = build_table(trans_cost, penalty)
 
     # compute the dynamic programming table
     # cost, prev_node = _build_table(analysis, duration, start, target, pen)
@@ -308,7 +309,6 @@ def _reconstruct_path(prev_node, cost_table, beat_names, end, length):
 
     return beat_path, path_cost
 
-@profile
 def _build_table_from_costs(trans_cost, penalty):
     # create cost matrix
     cost = N.zeros(penalty.shape)
@@ -324,7 +324,6 @@ def _build_table_from_costs(trans_cost, penalty):
         prev_node[:, l] = min_nodes
 
     return cost, prev_node
-
 
 def _build_table(analysis, duration, start, target, out_penalty):
     beats = analysis["beats"]
