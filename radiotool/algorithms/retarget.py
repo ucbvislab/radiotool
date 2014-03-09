@@ -234,7 +234,7 @@ def retarget(song, duration, music_labels=None, out_labels=None, out_penalty=Non
         constraints.MinimumJumpConstraint(8),
         constraints.LabelConstraint(start, target, pen),
         constraints.NoveltyConstraint(start, target, pen),
-        # constraints.MusicDurationConstraint(1, 5)
+        constraints.MusicDurationConstraint(5, 10)
     ))
 
     trans_cost, penalty, beat_names = pipeline.apply(song, len(target))
