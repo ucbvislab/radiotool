@@ -393,9 +393,9 @@ class MusicDurationConstraint(Constraint):
         # tile the tc over this new table
         for x in range(maxlen_with_padding):
             for y in range(maxlen_with_padding):
-                new_tc[x * n_beats:(x + 1)*n_beats,
-                       y * n_beats:(y + 1) * n_beats] =\
-                       transition_cost[:n_beats, :n_beats]
+                new_tc[x * maxlen_with_padding + y, :p0] =\
+                    np.tile(transition_cost, maxlen_with_padding)
+
         # tile the pause information as well
         for x in range(maxlen_with_padding):
             new_tc[x * n_beats:(x + 1) * n_beats, p0:] =\
