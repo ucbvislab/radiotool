@@ -234,7 +234,7 @@ def retarget(song, duration, music_labels=None, out_labels=None, out_penalty=Non
         constraints.MinimumJumpConstraint(8),
         constraints.LabelConstraint(start, target, pen),
         constraints.NoveltyConstraint(start, target, pen),
-        constraints.MusicDurationConstraint(5, 10)
+        constraints.MusicDurationConstraint(5, 30)
     ))
 
     trans_cost, penalty, beat_names = pipeline.apply(song, len(target))
@@ -243,7 +243,7 @@ def retarget(song, duration, music_labels=None, out_labels=None, out_penalty=Non
     print "Building cost table"
     # fortran method
     cost, prev_node = build_table(trans_cost, penalty)
-
+    import pdb; pdb.set_trace()
     # compute the dynamic programming table
     # cost, prev_node = _build_table(analysis, duration, start, target, pen)
 

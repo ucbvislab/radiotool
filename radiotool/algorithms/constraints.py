@@ -391,22 +391,19 @@ class MusicDurationConstraint(Constraint):
             shape=(new_tc_size, penalty.shape[1]))
 
         # tile the tc over this new table
-        for x in range(maxlen_with_padding):
-            for y in range(maxlen_with_padding):
-                new_tc[x * maxlen_with_padding + y, :p0] =\
-                    np.tile(transition_cost, maxlen_with_padding)
+        new_tc[:p0, :p0] = np.tile(transition_cost[:n_beats, :n_beats],
+            (maxlen_with_padding, maxlen_with_padding))
 
         # tile the pause information as well
-        for x in range(maxlen_with_padding):
-            new_tc[x * n_beats:(x + 1) * n_beats, p0:] =\
-                transition_cost[:n_beats, n_beats:]
-            new_tc[p0:, x * n_beats:(x + 1) * n_beats] =\
-                transition_cost[n_beats:, :n_beats]
+        new_tc[:p0, p0:] = np.tile(transition_cost[:n_beats, n_beats:],
+            (maxlen_with_padding, 1))
+        new_tc[p0:, :p0] = np.tile(transition_cost[n_beats:, :n_beats],
+            (1, maxlen_with_padding))
         new_tc[p0:, p0:] = transition_cost[n_beats:, n_beats:]
 
         # tile the penalty over this new table
-        for x in range(maxlen_with_padding):
-            new_pen[x * n_beats:(x + 1) * n_beats, :] = penalty[:n_beats, :]
+        new_pen[:p0, :] = np.tile(penalty[:n_beats, :],
+            (maxlen_with_padding, 1))
         new_pen[p0:, :] = penalty[n_beats:, :]
 
         #--- CONSTRAINTS ---#
@@ -424,10 +421,7 @@ class MusicDurationConstraint(Constraint):
 
         # * don't move between beats that don't follow 
         #   the segment index
-        for x in range(new_tc_size):
-            new_tc[x, :p0] += pen_val 
-
-        # new_tc[:p0, :p0] += pen_val
+        new_tc[:p0, :p0] += pen_val
         for i in xrange(1, maxlen_with_padding):
             new_tc[(i - 1) * n_beats:i * n_beats,
                    i * n_beats:(i + 1) * n_beats] -= pen_val
