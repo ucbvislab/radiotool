@@ -361,7 +361,6 @@ class MusicDurationConstraint(Constraint):
         self.minlen = min_length
         self.maxlen = max_length
 
-    @profile
     def apply(self, transition_cost, penalty, song, beat_names):
         beat_len = song.analysis["avg_beat_duration"]
         minlen = int(self.minlen / beat_len)

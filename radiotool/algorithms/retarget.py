@@ -234,7 +234,7 @@ def retarget(song, duration, music_labels=None, out_labels=None, out_penalty=Non
         constraints.MinimumJumpConstraint(8),
         constraints.LabelConstraint(start, target, pen),
         constraints.NoveltyConstraint(start, target, pen),
-        constraints.MusicDurationConstraint(5, 10)
+        # constraints.MusicDurationConstraint(5, 10)
     ))
 
     trans_cost, penalty, beat_names = pipeline.apply(song, len(target))
@@ -243,6 +243,9 @@ def retarget(song, duration, music_labels=None, out_labels=None, out_penalty=Non
     print "Building cost table"
     # fortran method
     cost, prev_node = build_table(trans_cost, penalty)
+
+    # forward/backward memory efficient method
+    opt_path_fb = _build_table_forward_backward(trans_cost, penalty)
 
     # compute the dynamic programming table
     # cost, prev_node = _build_table(analysis, duration, start, target, pen)
@@ -254,9 +257,12 @@ def retarget(song, duration, music_labels=None, out_labels=None, out_penalty=Non
     if N.isfinite(res[best_idx]):
         path, path_cost = _reconstruct_path(
             prev_node, cost, beat_names, best_idx, N.shape(cost)[1] - 1)
+        opt_path = [beat_names.index(x) for x in path]
     else:
         # throw an exception here?
         return None
+
+    import pdb; pdb.set_trace()
 
     # how did we do?
     result_labels = []
@@ -308,6 +314,117 @@ def _reconstruct_path(prev_node, cost_table, beat_names, end, length):
         prev_cost = this_cost
 
     return beat_path, path_cost
+
+def _build_table_forward_backward(trans_cost, penalty):
+
+    def space_efficient_cost(tc, pen, start_beat, end_beat):
+        # forward
+        cost = pen[:, 0]
+        if start_beat is not None:
+            cost = N.ones(pen.shape[0]) * N.inf
+            cost[start_beat] = pen[start_beat, 0]
+        for l in xrange(1, pen.shape[1]):
+            p = pen[:, l]
+            if l == pen.shape[1] - 1 and end_beat is not None:
+                p = N.ones(pen.shape[0]) * N.inf
+                p[end_beat] = pen[end_beat, -1]
+            vals = p + tc + cost[:, N.newaxis]
+            min_vals = N.amin(vals, axis=0)
+            cost = min_vals
+
+        return cost
+
+
+    def backward_space_efficient_cost(tc, pen, start_beat, end_beat):
+        # backward
+        cost = pen[:, -1]
+        if end_beat is not None:
+            cost = N.ones(pen.shape[0]) * N.inf
+            cost[end_beat] = pen[end_beat, -1]
+        for l in xrange(pen.shape[1] - 2, -1, -1):
+            p = pen[:, l]
+            if l == 0 and start_beat is not None:
+                p = N.ones(pen.shape[0]) * N.inf
+                p[start_beat] = pen[start_beat, 0]
+            vals = p + tc.T + cost[:, N.newaxis]
+            min_vals = N.amin(vals, axis=0)
+            cost = min_vals
+
+        return cost
+
+
+    def cost_and_path(tc, pen, start_beat, end_beat):
+        cost = N.zeros(pen.shape)
+        prev_node = N.zeros(pen.shape)
+
+        cost[:, 0] = pen[:, 0]
+        if start_beat is not None:
+            cost[:, 0] = N.ones(pen.shape[0]) * N.inf
+            cost[start_beat, 0] = pen[start_beat, 0]
+
+        for l in xrange(1, pen.shape[1]):
+            p = pen[:, l]
+            if l == pen.shape[1] - 1 and end_beat is not None:
+                p = N.ones(pen.shape[0]) * N.inf
+                p[end_beat] = pen[end_beat, -1]
+            vals = p + tc + cost[:, l - 1][:, N.newaxis]
+            min_nodes = __fast_argmin_axis_0(vals)
+            min_vals = N.amin(vals, axis=0)
+            cost[:, l] = min_vals
+            prev_node[:, l] = min_nodes
+
+        end = N.argmin(cost[:, -1])
+        path = [end]
+        node = end
+        length = pen.shape[1] - 1
+        while length > 0:
+            node = prev_node[int(node), length]
+            path.append(node)
+            length -= 1
+
+        path = [x for x in reversed(path)]
+        return path
+
+
+    def divide_and_conquer_cost_and_path(tc, pen, start_beat, end_beat, offset):
+        l = pen.shape[1]  # out beats
+        opt_path = []
+
+        if l == 0: return
+        elif l == 1:
+            global_path[offset] = start_beat
+            return
+        elif l == 2 and start_beat is not None and end_beat is not None:
+            global_path[offset] = start_beat
+            global_path[offset + 1] = end_beat
+            return
+        elif l <= 3:
+            opt_path = cost_and_path(tc, pen, start_beat, end_beat)
+            global_path[offset:offset + pen.shape[1]] = opt_path
+            return
+
+        l_over_2 = N.floor(l / 2.0)
+        if l_over_2 % 2 == 0:
+            f = space_efficient_cost(tc, pen[:, :l_over_2 + 1], start_beat, None)
+            g = backward_space_efficient_cost(tc, pen[:, l_over_2:], None, end_beat)
+        else:
+            f = space_efficient_cost(tc, pen[:, :l_over_2 + 1], start_beat, None)
+            g = backward_space_efficient_cost(tc, pen[:, l_over_2 - 1:], None, end_beat)
+
+        opt_i = N.argmin(f + g)
+
+        global_path[l_over_2 + offset] = opt_i
+
+        divide_and_conquer_cost_and_path(tc, pen[:, :l_over_2 + 1], start_beat, opt_i, offset)
+        divide_and_conquer_cost_and_path(tc, pen[:, l_over_2:], opt_i, end_beat, l_over_2 + offset)
+
+        return
+
+    global_path = N.zeros(penalty.shape[1])
+    divide_and_conquer_cost_and_path(trans_cost, penalty, None, None, 0)
+
+    return global_path
+
 
 def _build_table_from_costs(trans_cost, penalty):
     # create cost matrix
