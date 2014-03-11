@@ -247,6 +247,14 @@ def retarget(song, duration, music_labels=None, out_labels=None, out_penalty=Non
     # forward/backward memory efficient method
     opt_path_fb = _build_table_forward_backward(trans_cost, penalty)
 
+    fb_cost = []
+    for i, node in enumerate(opt_path_fb):
+        if i == 0:
+            fb_cost.append(0)
+        else:
+            fb_cost.append(trans_cost[opt_path_fb[i - 1], node] + penalty[node, i])
+    fb_cost = N.array(fb_cost)
+
     # compute the dynamic programming table
     # cost, prev_node = _build_table(analysis, duration, start, target, pen)
 
@@ -318,7 +326,6 @@ def _reconstruct_path(prev_node, cost_table, beat_names, end, length):
 def _build_table_forward_backward(trans_cost, penalty):
 
     def space_efficient_cost(tc, pen, start_beat, end_beat):
-        # forward
         cost = pen[:, 0]
         if start_beat is not None:
             cost = N.ones(pen.shape[0]) * N.inf
@@ -336,7 +343,6 @@ def _build_table_forward_backward(trans_cost, penalty):
 
 
     def backward_space_efficient_cost(tc, pen, start_beat, end_beat):
-        # backward
         cost = pen[:, -1]
         if end_beat is not None:
             cost = N.ones(pen.shape[0]) * N.inf
@@ -387,6 +393,7 @@ def _build_table_forward_backward(trans_cost, penalty):
 
 
     def divide_and_conquer_cost_and_path(tc, pen, start_beat, end_beat, offset):
+        # print "divide and conquer with", start_beat, end_beat, pen.shape[1]
         l = pen.shape[1]  # out beats
         opt_path = []
 
@@ -398,25 +405,26 @@ def _build_table_forward_backward(trans_cost, penalty):
             global_path[offset] = start_beat
             global_path[offset + 1] = end_beat
             return
-        elif l <= 3:
+        elif l == 2:
             opt_path = cost_and_path(tc, pen, start_beat, end_beat)
             global_path[offset:offset + pen.shape[1]] = opt_path
             return
 
         l_over_2 = N.floor(l / 2.0)
-        if l_over_2 % 2 == 0:
-            f = space_efficient_cost(tc, pen[:, :l_over_2 + 1], start_beat, None)
-            g = backward_space_efficient_cost(tc, pen[:, l_over_2:], None, end_beat)
-        else:
-            f = space_efficient_cost(tc, pen[:, :l_over_2 + 1], start_beat, None)
-            g = backward_space_efficient_cost(tc, pen[:, l_over_2 - 1:], None, end_beat)
+
+        f = space_efficient_cost(tc, pen[:, :l_over_2 + 1], start_beat, None)
+        g = backward_space_efficient_cost(tc, pen[:, l_over_2:], None, end_beat)
 
         opt_i = N.argmin(f + g)
-
         global_path[l_over_2 + offset] = opt_i
 
-        divide_and_conquer_cost_and_path(tc, pen[:, :l_over_2 + 1], start_beat, opt_i, offset)
-        divide_and_conquer_cost_and_path(tc, pen[:, l_over_2:], opt_i, end_beat, l_over_2 + offset)
+        # first half
+        divide_and_conquer_cost_and_path(
+            tc, pen[:, :l_over_2 + 1], start_beat, opt_i, offset)
+
+        # second half
+        divide_and_conquer_cost_and_path(
+            tc, pen[:, l_over_2:], opt_i, end_beat, l_over_2 + offset)
 
         return
 
