@@ -405,7 +405,18 @@ def _build_table_forward_backward(trans_cost, penalty):
             global_path[offset] = start_beat
             global_path[offset + 1] = end_beat
             return
+        elif l == 2 and start_beat is not None:
+            global_path[offset] = start_beat
+            global_path[offset + 1] =\
+                N.argmin(tc[start_beat, :] + pen[:, 1])
+            return
+        elif l == 2 and end_beat is not None:
+            global_path[offset + 1] = end_beat
+            global_path[offset] =\
+                N.argmin(tc[:, end_beat] + pen[:, 0])
+            return
         elif l == 2:
+            print "actually running full optimize"
             opt_path = cost_and_path(tc, pen, start_beat, end_beat)
             global_path[offset:offset + pen.shape[1]] = opt_path
             return
