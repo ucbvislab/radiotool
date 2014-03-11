@@ -323,7 +323,39 @@ def _reconstruct_path(prev_node, cost_table, beat_names, end, length):
 
     return beat_path, path_cost
 
-def _build_table_forward_backward(trans_cost, penalty):
+def _build_table_forward_backward(trans_cost, penalty,
+                                  min_beats=None, max_beats=None):
+
+    if max_beats is not None and min_beats is not None:
+        max_beats_with_padding = min_beats + max_beats
+    elif max_beats is not None:
+        # 8? Two measures of padding? Just a thought
+        max_beats_with_padding = max_beats + 8
+
+
+    def tc_and_pen_at_beat_i(tc, pen, i, new_tc, new_pen):
+        new_tc[:, :] = N.copy(tc)
+        new_pen[:, :] = N.copy(pen)
+        #--- CONSTRAINTS ---#
+        # * don't start song in segment beat other than first
+        new_pen[n_beats:(n_beats * maxlen_with_padding), 0] += pen_val
+
+        # * don't go to pause before minimum length music segment
+        new_tc[:(n_beats * minlen), p0] += pen_val
+
+        # * don't go to pause after maximum length music segment
+        new_tc[(n_beats * maxlen):, p0] += pen_val
+
+        # * after pause, don't go to non-first segment beat
+        new_tc[p0:, n_beats:p0] += pen_val
+
+        # * don't move between beats that don't follow
+        # the segment index
+        new_tc[:p0, :p0] += pen_val
+        for i in xrange(1, maxlen_with_padding):
+            new_tc[(i - 1) * n_beats:i * n_beats,
+                   i * n_beats:(i + 1) * n_beats] -= pen_val
+
 
     def space_efficient_cost(tc, pen, start_beat, end_beat):
         cost = pen[:, 0]
