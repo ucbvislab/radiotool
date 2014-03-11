@@ -245,32 +245,51 @@ def retarget(song, duration, music_labels=None, out_labels=None, out_penalty=Non
     cost, prev_node = build_table(trans_cost, penalty)
 
     # forward/backward memory efficient method
-    opt_path_fb = _build_table_forward_backward(trans_cost, penalty)
+    first_pause = 0
+    for i, bn in enumerate(beat_names):
+        if str(bn).startswith('p'):
+            first_pause = i
+            break
 
-    fb_cost = []
-    for i, node in enumerate(opt_path_fb):
-        if i == 0:
-            fb_cost.append(0)
-        else:
-            fb_cost.append(trans_cost[opt_path_fb[i - 1], node] + penalty[node, i])
-    fb_cost = N.array(fb_cost)
+    path_i = _build_table_forward_backward(trans_cost, penalty, first_pause=first_pause, max_beats=None, min_beats=None)
+
+    path = [beat_names[i % len(beat_names)] for i in path_i]
+    for i, p in enumerate(path):
+        if not str(p).startswith('p'):
+            path[i] = float(p)
+
+    import pdb; pdb.set_trace()
+
+    # need to compute path cost in the forward/backward method
+    # because of changing duration constraints
+    path_cost = N.zeros(path_i.shape)
+
+    # path_cost = []
+    # for i, node in enumerate(path):
+    #     if i == 0:
+    #         path_cost.append(0)
+    #     else:
+    #         path_cost.append(trans_cost[path[i - 1], node] + penalty[node, i])
+    # path_cost = N.array(path_cost)
+
+
 
     # compute the dynamic programming table
     # cost, prev_node = _build_table(analysis, duration, start, target, pen)
 
     # find the cheapest path    
-    res = cost[:, -1]
-    best_idx = N.argmin(res)
 
-    if N.isfinite(res[best_idx]):
-        path, path_cost = _reconstruct_path(
-            prev_node, cost, beat_names, best_idx, N.shape(cost)[1] - 1)
-        opt_path = [beat_names.index(x) for x in path]
-    else:
-        # throw an exception here?
-        return None
+    # no longer using this method here
 
-    import pdb; pdb.set_trace()
+    # res = cost[:, -1]
+    # best_idx = N.argmin(res)
+    # if N.isfinite(res[best_idx]):
+    #     path, path_cost = _reconstruct_path(
+    #         prev_node, cost, beat_names, best_idx, N.shape(cost)[1] - 1)
+    #     opt_path = [beat_names.index(x) for x in path]
+    # else:
+    #     # throw an exception here?
+    #     return None
 
     # how did we do?
     result_labels = []
@@ -292,7 +311,7 @@ def retarget(song, duration, music_labels=None, out_labels=None, out_penalty=Non
 
     info = {
         "contracted": contracted,
-        "cost": N.min(res) / len(path),
+        "cost": N.sum(path_cost) / len(path),
         "path": path,
         "target_labels": target,
         "result_labels": result_labels,
@@ -324,37 +343,166 @@ def _reconstruct_path(prev_node, cost_table, beat_names, end, length):
     return beat_path, path_cost
 
 def _build_table_forward_backward(trans_cost, penalty,
-                                  min_beats=None, max_beats=None):
+                                  min_beats=None, max_beats=None, first_pause=None):
 
     if max_beats is not None and min_beats is not None:
         max_beats_with_padding = min_beats + max_beats
     elif max_beats is not None:
         # 8? Two measures of padding? Just a thought
         max_beats_with_padding = max_beats + 8
+    else:
+        max_beats_with_padding = 1
+        max_beats = N.inf
+        min_beats = 0
+
+    p0 = first_pause
 
 
-    def tc_and_pen_at_beat_i(tc, pen, i, new_tc, new_pen):
-        new_tc[:, :] = N.copy(tc)
-        new_pen[:, :] = N.copy(pen)
+    def tc_column_j_at_beat_i(tc, column_j, beat_i, tc_column):
+        # print "beat", beat_i, "column", column_j
+        pen_val = 1.0
+        n_beats = tc.shape[0]
+        for i in xrange(max_beats_with_padding):
+            offset = n_beats * i
+            tc_column[offset:offset + n_beats] = tc[:, column_j]
+
         #--- CONSTRAINTS ---#
-        # * don't start song in segment beat other than first
-        new_pen[n_beats:(n_beats * maxlen_with_padding), 0] += pen_val
-
         # * don't go to pause before minimum length music segment
-        new_tc[:(n_beats * minlen), p0] += pen_val
+        if beat_i < min_beats and column_j == p0:
+            # print "changing (1)"
+            tc_column += pen_val
 
         # * don't go to pause after maximum length music segment
-        new_tc[(n_beats * maxlen):, p0] += pen_val
+        if beat_i >= max_beats and column_j == p0:
+            # print "changing (2)"
+            tc_column += pen_val
 
         # * after pause, don't go to non-first segment beat
-        new_tc[p0:, n_beats:p0] += pen_val
+        if beat_i > 0 and column_j < p0:
+            # print "changing (3)"
+            for i in xrange(max_beats_with_padding):
+                tc_column[i * n_beats + p0:(i + 1) * n_beats] += pen_val
 
-        # * don't move between beats that don't follow
-        # the segment index
-        new_tc[:p0, :p0] += pen_val
-        for i in xrange(1, maxlen_with_padding):
-            new_tc[(i - 1) * n_beats:i * n_beats,
-                   i * n_beats:(i + 1) * n_beats] -= pen_val
+        # * don't move between beats the don't follow segment index
+        if beat_i > 0:
+            # print "changing (4)"
+            for i in xrange(max_beats_with_padding):
+                tc_column[i * n_beats:i * n_beats + p0] += pen_val
+            tc_column[(beat_i - 1) * n_beats:(beat_i - 1) * n_beats + p0] -= pen_val
+
+
+    def pen_j_at_length_l_at_beat_i(pen, j, length_l, beat_i):
+        pen_val = 1.0
+        new_pen = pen[j, length_l]
+
+        #--- CONSTRAINTS ---#
+        # * don't start song in segment beat other than first
+        if beat_i > 0 and length_l == 0:
+            new_pen += pen_val
+
+        return new_pen
+
+
+    def pen_at_length_l_at_beat_i(pen, length_l, beat_i, new_pen):
+        pen_val = 1.0
+        new_pen[:] = N.copy(pen[:, length_l])
+
+        #--- CONSTRAINTS ---#
+        # * don't start song in segment beat other than first
+        if beat_i > 0 and length_l == 0:
+            new_pen[:] += pen_val
+
+
+    def space_efficient_cost_with_duration_constraint(tc, pen, start_beat, end_beat):
+        n_beats = pen.shape[0]
+        pen_i_l = N.empty(pen.shape[0])
+        cost = N.empty(n_beats * max_beats_with_padding)
+
+        # generate initial cost
+        if start_beat is not None:
+            cost[:] = N.inf
+            beat_i_of_start = int(start_beat / float(n_beats))
+            pen_at_length_l_at_beat_i(pen, 0, beat_i_of_start, pen_i_l)
+            cost[start_beat] = pen_i_l[start_beat]
+        else:
+            for i in xrange(max_beats_with_padding):
+                pen_at_length_l_at_beat_i(pen, 0, i, pen_i_l)
+                offset = n_beats * i
+                cost[offset:offset + n_beats] = pen_i_l
+
+        # optimize
+        for l in xrange(1, pen.shape[1]):
+            vals_col = N.empty(n_beats * max_beats_with_padding)
+            min_vals = N.empty(n_beats * max_beats_with_padding)
+
+            if l == pen.shape[1] - 1 and end_beat is not None:
+                # handle end beat set
+                beat_i_of_end = int(end_beat / float(n_beats))
+                beat_j_of_end = end_beat % n_beats
+                pen_at_length_l_at_beat_i(pen, l, beat_i_of_end, pen_i_l)
+
+                for i in xrange(max_beats_with_padding):
+                    for j in xrange(n_beats):
+                        if i * n_beats + j == end_beat:
+                            tc_column_j_at_beat_i(tc, j, i, vals_col)
+                            min_vals[i * n_beats + j] = N.min(vals_col + cost + pen_i_l[beat_j_of_end])
+                        else:
+                            min_vals[i * n_beats + j] = N.inf
+            else:
+                for i in xrange(max_beats_with_padding):
+                    for j in xrange(n_beats):
+                        tc_column_j_at_beat_i(tc, j, i, vals_col)
+                        vals_col += cost + pen_j_at_length_l_at_beat_i(pen, j, l, i)
+                        min_vals[i * n_beats + j] = N.min(vals_col) 
+            cost = min_vals
+
+        return cost
+
+
+    def backward_space_efficient_cost_with_duration_constraint(tc, pen, start_beat, end_beat):
+        n_beats = pen.shape[0]
+        pen_i_l = N.empty(pen.shape[0])
+        cost = N.empty(n_beats * max_beats_with_padding)
+
+        # generate initial cost
+        if end_beat is not None:
+            cost[:] = N.inf
+            beat_i_of_end = int(end_beat / float(n_beats))
+            pen_at_length_l_at_beat_i(pen, pen.shape[1] - 1, beat_i_of_end, pen_i_l)
+            cost[end_beat] = pen_i_l[end_beat]
+        else:
+            for i in xrange(max_beats_with_padding):
+                pen_at_length_l_at_beat_i(pen, pen.shape[1] - 1, i, pen_i_l)
+                offset = n_beats * i
+                cost[offset:offset + n_beats] = pen_i_l
+
+        # optimize
+        for l in xrange(pen.shape[1] - 2, -1, -1):
+            vals_col = N.empty(n_beats * max_beats_with_padding)
+            min_vals = N.empty(n_beats * max_beats_with_padding)
+
+            if l == 0 and start_beat is not None:
+                # handle start beat set
+                beat_i_of_start = int(start_beat / float(n_beats))
+                beat_j_of_start = start_beat % n_beats
+                pen_at_length_l_at_beat_i(pen, l, beat_i_of_start, pen_i_l)
+
+                for i in xrange(max_beats_with_padding):
+                    for j in xrange(n_beats):
+                        if i * n_beats + j == start_beat:
+                            tc_column_j_at_beat_i(tc.T, j, i, vals_col)
+                            min_vals[i * n_beats + j] = N.min(vals_col + cost + pen_i_l[beat_j_of_start])
+                        else:
+                            min_vals[i * n_beats + j] = N.inf
+            else:
+                for i in xrange(max_beats_with_padding):
+                    for j in xrange(n_beats):
+                        tc_column_j_at_beat_i(tc.T, j, i, vals_col)
+                        vals_col += cost + pen_j_at_length_l_at_beat_i(pen, j, l, i)
+                        min_vals[i * n_beats + j] = N.min(vals_col) 
+            cost = min_vals
+
+        return cost
 
 
     def space_efficient_cost(tc, pen, start_beat, end_beat):
@@ -455,8 +603,10 @@ def _build_table_forward_backward(trans_cost, penalty,
 
         l_over_2 = N.floor(l / 2.0)
 
-        f = space_efficient_cost(tc, pen[:, :l_over_2 + 1], start_beat, None)
-        g = backward_space_efficient_cost(tc, pen[:, l_over_2:], None, end_beat)
+        f = space_efficient_cost_with_duration_constraint(tc, pen[:, :l_over_2 + 1], start_beat, None)
+        g = backward_space_efficient_cost_with_duration_constraint(tc, pen[:, l_over_2:], None, end_beat)
+        # f = space_efficient_cost(tc, pen[:, :l_over_2 + 1], start_beat, None)
+        # g = backward_space_efficient_cost(tc, pen[:, l_over_2:], None, end_beat)
 
         opt_i = N.argmin(f + g)
         global_path[l_over_2 + offset] = opt_i
@@ -471,7 +621,7 @@ def _build_table_forward_backward(trans_cost, penalty,
 
         return
 
-    global_path = N.zeros(penalty.shape[1])
+    global_path = N.zeros(penalty.shape[1], dtype=N.int)
     divide_and_conquer_cost_and_path(trans_cost, penalty, None, None, 0)
 
     return global_path
