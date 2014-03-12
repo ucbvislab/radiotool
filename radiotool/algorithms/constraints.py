@@ -6,7 +6,6 @@
 import copy
 
 import numpy as np
-import tables as tb
 from scipy.special import binom
 
 import librosa_analysis
@@ -379,34 +378,27 @@ class MusicDurationConstraint(Constraint):
         # Is this too large?
         new_tc_size = n_beats * maxlen_with_padding + n_pause_beats
         p0 = n_beats * maxlen_with_padding
-
-        h5file = tb.openFile('tmp_tc.h5', mode='w', title="Transition cost")
-        root = h5file.root
-        new_tc = h5file.createCArray(root, 'tc', tb.Float64Atom(),
-            shape=(new_tc_size, new_tc_size))
-        # Create new penalty table
-        # (beat * beat index in max span) x (beats in output)
-        new_pen = h5file.createCArray(root, 'pen', tb.Float64Atom(),
-            shape=(new_tc_size, penalty.shape[1]))
+        new_tc = np.empty((new_tc_size, new_tc_size))
 
         # tile the tc over this new table
-        for x in range(maxlen_with_padding):
-            for y in range(maxlen_with_padding):
-                new_tc[x * maxlen_with_padding + y, :p0] =\
-                    np.tile(transition_cost, maxlen_with_padding)
-
+        new_tc[:p0, :p0] = np.tile(transition_cost[:n_beats, :n_beats],
+            (maxlen_with_padding, maxlen_with_padding))
         # tile the pause information as well
-        for x in range(maxlen_with_padding):
-            new_tc[x * n_beats:(x + 1) * n_beats, p0:] =\
-                transition_cost[:n_beats, n_beats:]
-            new_tc[p0:, x * n_beats:(x + 1) * n_beats] =\
-                transition_cost[n_beats:, :n_beats]
+        new_tc[:p0, p0:] = np.tile(transition_cost[:n_beats, n_beats:],
+            (maxlen_with_padding, 1))
+        new_tc[p0:, :p0] = np.tile(transition_cost[n_beats:, :n_beats],
+            (1, maxlen_with_padding))
         new_tc[p0:, p0:] = transition_cost[n_beats:, n_beats:]
 
-        # tile the penalty over this new table
-        for x in range(maxlen_with_padding):
-            new_pen[x * n_beats:(x + 1) * n_beats, :] = penalty[:n_beats, :]
+        # Create new penalty table
+        # (beat * beat index in max span) x (beats in output)
+        new_pen = np.empty((new_tc_size, penalty.shape[1]))
+
+        # tile the tc over this new table
+        new_pen[:p0, :] = np.tile(penalty[:n_beats, :],
+            (maxlen_with_padding, 1))
         new_pen[p0:, :] = penalty[n_beats:, :]
+
 
         #--- CONSTRAINTS ---#
         # * don't start song in segment beat other than first
@@ -423,10 +415,7 @@ class MusicDurationConstraint(Constraint):
 
         # * don't move between beats that don't follow 
         #   the segment index
-        for x in range(new_tc_size):
-            new_tc[x, :p0] += pen_val 
-
-        # new_tc[:p0, :p0] += pen_val
+        new_tc[:p0, :p0] += pen_val
         for i in xrange(1, maxlen_with_padding):
             new_tc[(i - 1) * n_beats:i * n_beats,
                    i * n_beats:(i + 1) * n_beats] -= pen_val
