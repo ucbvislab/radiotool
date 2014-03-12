@@ -431,42 +431,6 @@ def _build_table_forward_backward(trans_cost, penalty,
             elif (beat_seg_i < max_beats_with_padding - 1) and backward:
                 tc_column[(beat_seg_i + 1) * n_beats:(beat_seg_i + 2) * n_beats] -= pen_val
 
-    def tc_column_j_at_pause(tc, column_j, tc_column):
-        tc_column[:p0_full] = N.tile(tc[:p0, column_j], max_beats_with_padding)
-        tc_column[p0_full:] = tc[p0:, column_j]
-
-        #--- CONSTRAINTS ---#
-        # * don't move between beats the don't follow segment index
-        if column_j < p0:
-            tc_column[:p0_full] += pen_val
-
-
-    def tc_column_j_at_beat_i(tc, column_j, beat_i, tc_column):
-        tc_column[:p0_full] = N.tile(tc[:p0, column_j], max_beats_with_padding)
-        tc_column[p0_full:] = tc[p0:, column_j]
-
-        #--- CONSTRAINTS ---#
-        # * don't go to pause before minimum length music segment
-        if beat_i < min_beats and column_j == p0:
-            # print "changing (1)"
-            tc_column += pen_val
-
-        # * don't go to pause after maximum length music segment
-        if beat_i > max_beats and column_j == p0:
-            # print "changing (2)"
-            tc_column += pen_val
-
-        # * after pause, don't go to non-first segment beat
-        if beat_i > 0 and column_j < p0:
-            # print "changing (3)"
-            tc_column[p0_full:] += pen_val
-
-        # * don't move between beats the don't follow segment index
-        if column_j < p0:
-            tc_column[:p0_full] += pen_val
-        if beat_i > 0:
-            tc_column[(beat_i - 1) * n_beats:(beat_i - 1) * n_beats] -= pen_val
-
 
     def get_pen_value(pen, i, l, global_start_l):
         pen_index = 0
@@ -476,42 +440,26 @@ def _build_table_forward_backward(trans_cost, penalty,
             pen_index = i % n_beats
         new_pen = pen[pen_index, l]
 
-        if global_start_l == 0 and i < p0_full:
-            beat_seg_i = int(i / float(n_beats))
-            if beat_seg_i > 0:
-                new_pen += pen_val
-        return new_pen
-
-    def pen_j_at_length_l_at_beat_i(pen, j, length_l, beat_i, global_start_l):
-
-        new_pen = pen[j, length_l]
-
         #--- CONSTRAINTS ---#
         # * don't start song in segment beat other than first
-        if beat_i > 0 and global_start_l == 0:
+        if global_start_l == 0 and (n_beats <= i < p0_full):
             new_pen += pen_val
 
         return new_pen
 
 
-    def pen_at_length_l_at_beat_i(pen, length_l, beat_i, new_pen, global_start_l):
-        new_pen[:] = N.copy(pen[:p0, length_l])
+    def get_pen_column(pen, column, new_pen, global_start_l):
+        new_pen[:p0_full] = N.tile(pen[:p0, column], max_beats_with_padding)
+        new_pen[p0_full:] = pen[p0:, column] 
 
         #--- CONSTRAINTS ---#
         # * don't start song in segment beat other than first
-        if beat_i > 0 and global_start_l == 0:
-            new_pen[:] += pen_val
+        if global_start_l == 0:
+            new_pen[n_beats:p0_full] += pen_val
 
-    def get_pen_column(pen, column, new_pen, global_start_l):
-        tmp_pen = N.empty(n_beats)
-        for i in xrange(max_beats_with_padding):
-            pen_at_length_l_at_beat_i(pen, column, i, tmp_pen, global_start_l)
-            offset = n_beats * i
-            new_pen[offset:offset + n_beats] = tmp_pen
-        new_pen[p0_full:] = pen[p0:, column] 
 
     def space_efficient_cost_with_duration_constraint(tc, pen, start_beat, end_beat, global_start_l):
-        pen_i_l = N.empty(n_beats)
+        pen_val = N.empty(all_full)
         cost = N.empty(all_full)
 
         # generate initial cost
@@ -534,9 +482,11 @@ def _build_table_forward_backward(trans_cost, penalty,
                 min_vals[end_beat] = N.min(vals_col + cost + end_pen)
 
             else:
+                get_pen_column(pen, l, pen_val, global_start_l + l)
                 for idx in xrange(all_full):
                     get_tc_column(tc, idx, vals_col)
-                    vals_col += cost + get_pen_value(pen, idx, l, global_start_l + l)
+                    vals_col += cost + pen_val[idx]
+                    # vals_col += cost + get_pen_value(pen, idx, l, global_start_l + l)
                     min_vals[idx] = N.min(vals_col)
 
             cost[:] = min_vals
@@ -545,7 +495,7 @@ def _build_table_forward_backward(trans_cost, penalty,
 
 
     def backward_space_efficient_cost_with_duration_constraint(tc, pen, start_beat, end_beat, global_start_l):
-        pen_i_l = N.empty(n_beats)
+        pen_val = N.empty(all_full)
         cost = N.empty(all_full)
 
         # generate initial cost
@@ -568,9 +518,11 @@ def _build_table_forward_backward(trans_cost, penalty,
                 min_vals[end_beat] = N.min(vals_col + cost + start_pen)
 
             else:
+                get_pen_column(pen, l, pen_val, global_start_l + l)
                 for idx in xrange(all_full):
                     get_tc_column(tc, idx, vals_col, backward=True)
-                    vals_col += cost + get_pen_value(pen, idx, l, global_start_l + l)
+                    vals_col += cost + pen_val[idx]
+                    # vals_col += cost + get_pen_value(pen, idx, l, global_start_l + l)
                     min_vals[idx] = N.min(vals_col)
 
             cost[:] = min_vals
@@ -651,16 +603,8 @@ def _build_table_forward_backward(trans_cost, penalty,
         opt_path = []
 
         if l == 0: return
-        elif l == 1:
-            print "****setting global path", offset, start_beat
-            global_path[offset] = start_beat
-            return
-        elif l == 2 and start_beat is not None and end_beat is not None:
-            print "***setting global path", offset, start_beat
-            global_path[offset] = start_beat
-            print "***setting global path", offset + 1, end_beat
-            global_path[offset + 1] = end_beat
-            return
+        elif l == 1: return
+        elif l == 2 and start_beat is not None and end_beat is not None: return
         elif l == 2 and start_beat is not None:
             new_pen = N.empty(all_full)
             get_pen_column(pen, 1, new_pen, offset)
@@ -675,9 +619,7 @@ def _build_table_forward_backward(trans_cost, penalty,
                 beat_j_of_start = start_beat % n_beats
                 get_tc_column(tc, start_beat, tc_column, backward=True)
 
-            print "**setting global path", offset, start_beat
             global_path[offset] = start_beat
-            print "**setting global path", offset + 1, N.argmin(tc_column + new_pen)
             global_path[offset + 1] = N.argmin(tc_column + new_pen)
 
             global_path_cost[offset + 1] = N.min(tc_column + new_pen)
@@ -696,9 +638,7 @@ def _build_table_forward_backward(trans_cost, penalty,
                 beat_j_of_end = end_beat % n_beats
                 get_tc_column(tc, end_beat, tc_column)
 
-            print "*setting global path", offset, N.argmin(tc_column + new_pen)
             global_path[offset] = N.argmin(tc_column + new_pen)
-            print "*setting global path", offset + 1, end_beat
             global_path[offset + 1] = end_beat
 
             global_path_cost[offset] = N.min(tc_column + new_pen)
@@ -719,11 +659,8 @@ def _build_table_forward_backward(trans_cost, penalty,
         # g = backward_space_efficient_cost(tc, pen[:, l_over_2:], None, end_beat)
 
         opt_i = N.argmin(f + g)
-        print "setting global path", l_over_2 + offset, opt_i
         global_path[l_over_2 + offset] = opt_i
         global_path_cost[l_over_2 + offset] = N.min(f)
-
-        # import pdb; pdb.set_trace()
 
         # first half
         divide_and_conquer_cost_and_path(
