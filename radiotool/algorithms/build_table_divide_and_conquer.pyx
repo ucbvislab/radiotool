@@ -1,4 +1,4 @@
-# cython: infer_types=True
+#cython: infer_types=True
 import cython
 import numpy as N
 cimport numpy as N
@@ -109,16 +109,16 @@ cdef double[:] space_efficient_cost_with_duration_constraint(
         if l == pen.shape[1] - 1 and end_beat != -1:
             # handle end beat set
             end_pen = get_pen_value(pen, end_beat, l, global_start_l + l, p)
-            get_tc_column(tc, idx, vals_col, 0, p)
+            get_tc_column(tc, end_beat, vals_col, 0, p)
 
             min_vals[:] = N.inf
-            min_vals[end_beat] = N.min(vals_col + cost + end_pen)
+            min_vals[end_beat] = N.min(N.add(N.add(vals_col, cost), end_pen))
 
         else:
             get_pen_column(pen, l, pen_val, global_start_l + l, p)
             for idx in range(p.all_full):
                 get_tc_column(tc, idx, vals_col, 0, p)
-                vals_col += cost + pen_val[idx]
+                vals_col += N.add(cost, pen_val[idx])
                 min_vals[idx] = N.min(vals_col)
 
         cost[:] = min_vals
@@ -146,16 +146,16 @@ cdef double[:] backward_space_efficient_cost_with_duration_constraint(
         if l == 0 and start_beat != -1:
             # handle start beat set
             start_pen = get_pen_value(pen, end_beat, l, global_start_l + l, p)
-            get_tc_column(tc, idx, vals_col, 1, p)
+            get_tc_column(tc, start_beat, vals_col, 1, p)
 
             min_vals[:] = N.inf
-            min_vals[end_beat] = N.min(vals_col + cost + start_pen)
+            min_vals[end_beat] = N.min(N.add(N.add(vals_col, cost), start_pen))
 
         else:
             get_pen_column(pen, l, pen_val, global_start_l + l, p)
             for idx in xrange(p.all_full):
                 get_tc_column(tc, idx, vals_col, 1, p)
-                vals_col += cost + pen_val[idx]
+                vals_col += N.add(cost, pen_val[idx])
                 min_vals[idx] = N.min(vals_col)
 
         cost[:] = min_vals
@@ -210,7 +210,7 @@ cdef divide_and_conquer_cost_and_path(
     cdef double[:] g =\
         backward_space_efficient_cost_with_duration_constraint(tc, pen[:, l_over_2:], -1, end_beat, offset + l_over_2, p)
 
-    cdef int opt_i = int(N.argmin(f + g))
+    cdef int opt_i = int(N.argmin(N.add(f, g)))
     global_path[l_over_2 + offset] = opt_i
     # global_path_cost[l_over_2 + offset] = N.min(f + g)
 
@@ -250,7 +250,7 @@ cpdef int[:] _build_table_forward_backward(double[:, :] trans_cost, double[:, :]
     p.p0_full = p.n_beats * p.max_beats_with_padding
     p.all_full = p.p0_full + p.n_pauses
 
-    global_path_cost = N.zeros(penalty.shape[1])
+    # global_path_cost = N.zeros(penalty.shape[1])
     global_path = N.zeros(penalty.shape[1], dtype=N.int32)
     divide_and_conquer_cost_and_path(trans_cost, penalty, -1, -1, 0, global_path, p)
 
