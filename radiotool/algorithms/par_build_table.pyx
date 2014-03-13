@@ -2,8 +2,11 @@
 #cython: boundscheck=False
 #cython: wraparound=False
 #cython: cdivision=True
+# distutils: extra_compile_args = -fopenmp
+# distutils: extra_link_args = -fopenmp
 import cython
 from cpython.array cimport array, clone
+from cython cimport parallel
 
 cdef struct Params:
     double pen_val
@@ -17,7 +20,7 @@ cdef struct Params:
     int all_full
 
 
-cdef void get_tc_column(double[:, :] tc, int column, double[:] tc_column, int backward, Params p):
+cdef void get_tc_column(double[:, :] tc, int column, double[:] tc_column, int backward, Params p) nogil:
     cdef int tc_index = 0
     cdef int beat_seg_i = 0
     cdef int i, j
@@ -81,7 +84,7 @@ cdef void get_tc_column(double[:, :] tc, int column, double[:] tc_column, int ba
                 tc_column[i] -= p.pen_val
 
 
-cdef double get_pen_value(double[:, :] pen, int i, int l, int global_start_l, Params p):
+cdef double get_pen_value(double[:, :] pen, int i, int l, int global_start_l, Params p) nogil:
     cdef int pen_index = 0
     if i >= p.p0_full:
         pen_index = p.n_beats + (i - p.p0_full)
@@ -96,7 +99,7 @@ cdef double get_pen_value(double[:, :] pen, int i, int l, int global_start_l, Pa
 
     return new_pen
 
-cdef void get_pen_column(double[:, :] pen, int column, double[:] new_pen, int global_start_l, Params p):
+cdef void get_pen_column(double[:, :] pen, int column, double[:] new_pen, int global_start_l, Params p) nogil:
     cdef int i, j
 
     for i in range(p.max_beats_with_padding):
@@ -115,7 +118,7 @@ cdef void get_pen_column(double[:, :] pen, int column, double[:] new_pen, int gl
 
 cdef void space_efficient_cost_with_duration_constraint(
     double[:, :] tc, double[:, :] pen, int start_beat, int end_beat, int global_start_l, Params p,
-    double[:] cost, double[:] pen_val, double[:] vals_col, double[:] min_vals):
+    double[:] cost, double[:] pen_val, double[:] vals_col, double[:] min_vals) nogil:
 
 
     cdef int l, idx, i
@@ -156,12 +159,10 @@ cdef void space_efficient_cost_with_duration_constraint(
 
         cost[:] = min_vals
 
-    # return cost
-
 
 cdef void backward_space_efficient_cost_with_duration_constraint(
     double[:, :] tc, double[:, :] pen, int start_beat, int end_beat, int global_start_l, Params p,
-    double[:] cost, double[:] pen_val, double[:] vals_col, double[:] min_vals):
+    double[:] cost, double[:] pen_val, double[:] vals_col, double[:] min_vals) nogil:
     
     cdef int l, idx, i
     cdef double minval
@@ -201,8 +202,6 @@ cdef void backward_space_efficient_cost_with_duration_constraint(
 
         cost[:] = min_vals
 
-    # return cost
-
 
 cdef void divide_and_conquer_cost_and_path(
     double[:, :] tc, double[:, :] pen, int start_beat, int end_beat, int offset,
@@ -212,8 +211,9 @@ cdef void divide_and_conquer_cost_and_path(
 
     cdef int l = pen.shape[1]  # out beats
     cdef double[:] new_pen, tc_column
-    cdef int i, opt_i, l_over_2
+    cdef int i, opt_i, l_over_2, f_done, g_done
     cdef double minval = -1.0
+    cdef int prange_i
 
     if l == 0:
         pass
@@ -266,11 +266,18 @@ cdef void divide_and_conquer_cost_and_path(
     else:
         l_over_2 = int(float(l) / 2.0)
 
-        # not sure why we need 8 of these arrays instead of 4
-        space_efficient_cost_with_duration_constraint(
-            tc, pen[:, :l_over_2 + 1], start_beat, -1, offset, p, f, mv1, mv2, mv3)
-        backward_space_efficient_cost_with_duration_constraint(
-            tc, pen[:, l_over_2:], -1, end_beat, offset + l_over_2, p, g, mv4, mv5, mv6)
+        # space_efficient_cost_with_duration_constraint(
+        #     tc, pen[:, :l_over_2 + 1], start_beat, -1, offset, p, f, mv1, mv2, mv3)
+        # backward_space_efficient_cost_with_duration_constraint(
+        #     tc, pen[:, l_over_2:], -1, end_beat, offset + l_over_2, p, g, mv4, mv5, mv6)
+
+        for prange_i in parallel.prange(2, nogil=True):
+            if prange_i == 0:
+                space_efficient_cost_with_duration_constraint(
+                    tc, pen[:, :l_over_2 + 1], start_beat, -1, offset, p, f, mv1, mv2, mv3)
+            elif prange_i == 1:
+                backward_space_efficient_cost_with_duration_constraint(
+                    tc, pen[:, l_over_2:], -1, end_beat, offset + l_over_2, p, g, mv4, mv5, mv6)       
 
         minval = -1.0
         opt_i = 0

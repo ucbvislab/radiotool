@@ -9,8 +9,13 @@ from . import build_table
 from . import build_table_mem_efficient
 import constraints
 
-
-
+import pyximport
+pyximport.install(
+    {
+        "extra_compile_args": ['-fopenmp'],
+        "extra_link_args": ['-fopenmp']
+    })
+import par_build_table
 
 Spring = namedtuple('Spring', ['time', 'duration'])
 
@@ -235,7 +240,7 @@ def retarget(song, duration, music_labels=None, out_labels=None, out_penalty=Non
         constraints.PauseEntryLabelChangeConstraint(target, .005),
         constraints.PauseExitLabelChangeConstraint(target, .005),
         constraints.TimbrePitchConstraint(context=2),
-        constraints.EnergyConstraint(),
+        # constraints.EnergyConstraint(),
         # constraints.RhythmConstraint(3, 5.0),  # get time signature?
         constraints.MinimumJumpConstraint(8),
         constraints.LabelConstraint(start, target, pen),
@@ -281,8 +286,8 @@ def retarget(song, duration, music_labels=None, out_labels=None, out_penalty=Non
 
     # max_beats = 16
     # min_beats = 8
-    max_beats = None
-    min_beats = None
+    max_beats = 2
+    min_beats = 1
 
     # path2_i, path2_cost = _build_table_forward_backward(trans_cost2, penalty2,
     #     first_pause=first_pause, max_beats=max_beats, min_beats=min_beats)
@@ -298,8 +303,12 @@ def retarget(song, duration, music_labels=None, out_labels=None, out_penalty=Non
         path_i = build_table_mem_efficient(tc2, pen2,
             first_pause=first_pause, max_beats=max_beats, min_beats=min_beats)
         t2 = time.clock()
+        path2_i = par_build_table.build_table(tc2, pen2,
+            first_pause=first_pause, max_beats=max_beats, min_beats=min_beats)
+        t3 = time.clock()
 
         print "Table build took %f seconds" % (t2 - t1)
+        print "Parallel build table took %f seconds" % (t3- t2)
 
         path = []
         first_pause_full = (max_beats + min_beats) * first_pause
@@ -309,6 +318,17 @@ def retarget(song, duration, music_labels=None, out_labels=None, out_penalty=Non
                 path.append('p' + str(i - first_pause_full))
             else:
                 path.append(float(beat_names[i % n_beats]))
+
+        path2 = []
+        first_pause_full = (max_beats + min_beats) * first_pause
+        n_beats = first_pause
+        for i in path2_i:
+            if i >= first_pause_full:
+                path2.append('p' + str(i - first_pause_full))
+            else:
+                path2.append(float(beat_names[i % n_beats]))
+
+        import pdb; pdb.set_trace()
 
         # need to compute path cost in the forward/backward method
         # because of changing duration constraints
