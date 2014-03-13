@@ -8,6 +8,10 @@ from novelty import novelty
 from . import build_table
 import constraints
 
+import pyximport
+pyximport.install()
+from . import build_table_divide_and_conquer
+
 Spring = namedtuple('Spring', ['time', 'duration'])
 
 def retarget_to_length(song, duration, start=True, end=True, slack=5):
@@ -149,6 +153,7 @@ def retarget_with_change_points(song, cp_times, duration):
 
     return comp, final_cp_locations
 
+
 def retarget(song, duration, music_labels=None, out_labels=None, out_penalty=None,
              volume=None, volume_breakpoints=None, springs=None):
     """Retarget a song to a duration given input and output labels on
@@ -234,31 +239,16 @@ def retarget(song, duration, music_labels=None, out_labels=None, out_penalty=Non
         constraints.MinimumJumpConstraint(8),
         constraints.LabelConstraint(start, target, pen),
         constraints.NoveltyConstraint(start, target, pen),
-        constraints.MusicDurationConstraint(song.analysis["avg_beat_duration"] * 1, song.analysis["avg_beat_duration"] * 2)
-    ))
-
-    pipeline2 = constraints.ConstraintPipeline(constraints=(
-        constraints.PauseConstraint(6, 25),
-        constraints.PauseEntryLabelChangeConstraint(target, .005),
-        constraints.PauseExitLabelChangeConstraint(target, .005),
-        constraints.TimbrePitchConstraint(context=2),
-        # constraints.RhythmConstraint(6, 3.0),  # get time signature?
-        constraints.MinimumJumpConstraint(8),
-        constraints.LabelConstraint(start, target, pen),
-        constraints.NoveltyConstraint(start, target, pen),
         # constraints.MusicDurationConstraint(5, 10)
     ))
 
 
     trans_cost, penalty, beat_names = pipeline.apply(song, len(target))
 
-    trans_cost2, penalty2, beat_names2 = pipeline2.apply(song, len(target))
-
-    print "Tables sizes: ", trans_cost.shape, penalty.shape
     print "Building cost table"
-    # fortran method
-    cost, prev_node = build_table(trans_cost, penalty)
 
+    # fortran method
+    # cost, prev_node = build_table(trans_cost, penalty)
     # path_cost = []
     # for i, node in enumerate(path):
     #     if i == 0:
@@ -269,26 +259,26 @@ def retarget(song, duration, music_labels=None, out_labels=None, out_penalty=Non
 
 
 
-    # compute the dynamic programming table
+    # compute the dynamic programming table (prev python method)
     # cost, prev_node = _build_table(analysis, duration, start, target, pen)
 
     # find the cheapest path    
 
     # no longer using this method here
 
-    res = cost[:, -1]
-    best_idx = N.argmin(res)
-    if N.isfinite(res[best_idx]):
-        path, path_cost = _reconstruct_path(
-            prev_node, cost, beat_names, best_idx, N.shape(cost)[1] - 1)
-        opt_path = [beat_names.index(x) for x in path]
-    else:
-        # throw an exception here?
-        return None
+    # res = cost[:, -1]
+    # best_idx = N.argmin(res)
+    # if N.isfinite(res[best_idx]):
+    #     path, path_cost = _reconstruct_path(
+    #         prev_node, cost, beat_names, best_idx, N.shape(cost)[1] - 1)
+    #     opt_path = [beat_names.index(x) for x in path]
+    # else:
+    #     # throw an exception here?
+    #     return None
 
     # forward/backward memory efficient method
     first_pause = 0
-    for i, bn in enumerate(beat_names2):
+    for i, bn in enumerate(beat_names):
         if str(bn).startswith('p'):
             first_pause = i
             break
@@ -296,23 +286,28 @@ def retarget(song, duration, music_labels=None, out_labels=None, out_penalty=Non
     max_beats = 2
     min_beats = 1
 
-    path2_i, path2_cost = _build_table_forward_backward(trans_cost2, penalty2,
+    # path2_i, path2_cost = _build_table_forward_backward(trans_cost2, penalty2,
+    #     first_pause=first_pause, max_beats=max_beats, min_beats=min_beats)
+
+    tc2 = N.nan_to_num(trans_cost)
+    pen2 = N.nan_to_num(penalty)
+
+    path_i = build_table_divide_and_conquer.build_table(tc2, pen2,
         first_pause=first_pause, max_beats=max_beats, min_beats=min_beats)
 
-    path2 = []
+    path = []
     first_pause_full = (max_beats + min_beats) * first_pause
-    n_beats2 = first_pause
-    for i in path2_i:
+    n_beats = first_pause
+    for i in path_i:
         if i >= first_pause_full:
-            path2.append('p' + str(i - first_pause_full))
+            path.append('p' + str(i - first_pause_full))
         else:
-            path2.append(float(beat_names2[i % n_beats2]))
+            path.append(float(beat_names[i % n_beats]))
 
     # need to compute path cost in the forward/backward method
     # because of changing duration constraints
-    # path2_cost = N.zeros(path2_i.shape)
+    path_cost = N.zeros(path_i.shape)
 
-    import pdb; pdb.set_trace()
 
     # how did we do?
     result_labels = []
@@ -476,7 +471,7 @@ def _build_table_forward_backward(trans_cost, penalty,
             if l == pen.shape[1] - 1 and end_beat is not None:
                 # handle end beat set
                 end_pen = get_pen_value(pen, end_beat, l, global_start_l + l)
-                get_tc_column(tc, idx, vals_col)
+                get_tc_column(tc, end_beat, vals_col)
 
                 min_vals[:] = N.inf
                 min_vals[end_beat] = N.min(vals_col + cost + end_pen)
@@ -511,11 +506,11 @@ def _build_table_forward_backward(trans_cost, penalty,
         for l in xrange(1, pen.shape[1]):
             if l == 0 and start_beat is not None:
                 # handle start beat set
-                start_pen = get_pen_value(pen, end_beat, l, global_start_l + l)
-                get_tc_column(tc, idx, vals_col, backward=True)
+                start_pen = get_pen_value(pen, start_beat, l, global_start_l + l)
+                get_tc_column(tc, start_beat, vals_col, backward=True)
 
                 min_vals[:] = N.inf
-                min_vals[end_beat] = N.min(vals_col + cost + start_pen)
+                min_vals[start_beat] = N.min(vals_col + cost + start_pen)
 
             else:
                 get_pen_column(pen, l, pen_val, global_start_l + l)
@@ -598,7 +593,6 @@ def _build_table_forward_backward(trans_cost, penalty,
 
 
     def divide_and_conquer_cost_and_path(tc, pen, start_beat, end_beat, offset):
-        print "divide and conquer with", start_beat, end_beat, pen.shape[1]
         l = pen.shape[1]  # out beats
         opt_path = []
 
@@ -657,6 +651,7 @@ def _build_table_forward_backward(trans_cost, penalty,
 
         # f = space_efficient_cost(tc, pen[:, :l_over_2 + 1], start_beat, None)
         # g = backward_space_efficient_cost(tc, pen[:, l_over_2:], None, end_beat)
+
 
         opt_i = N.argmin(f + g)
         global_path[l_over_2 + offset] = opt_i
