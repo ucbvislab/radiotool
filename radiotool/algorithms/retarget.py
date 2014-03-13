@@ -153,7 +153,7 @@ def retarget_with_change_points(song, cp_times, duration):
 
     return comp, final_cp_locations
 
-
+@profile
 def retarget(song, duration, music_labels=None, out_labels=None, out_penalty=None,
              volume=None, volume_breakpoints=None, springs=None):
     """Retarget a song to a duration given input and output labels on
@@ -242,39 +242,47 @@ def retarget(song, duration, music_labels=None, out_labels=None, out_penalty=Non
         # constraints.MusicDurationConstraint(5, 10)
     ))
 
+    pipeline2 = constraints.ConstraintPipeline(constraints=(
+        constraints.PauseConstraint(6, 25),
+        constraints.PauseEntryLabelChangeConstraint(target, .005),
+        constraints.PauseExitLabelChangeConstraint(target, .005),
+        constraints.TimbrePitchConstraint(context=2),
+        # constraints.RhythmConstraint(6, 3.0),  # get time signature?
+        constraints.MinimumJumpConstraint(8),
+        constraints.LabelConstraint(start, target, pen),
+        constraints.NoveltyConstraint(start, target, pen),
+        constraints.MusicDurationConstraint(song.analysis["avg_beat_duration"], song.analysis["avg_beat_duration"] * 2)
+    ))
 
     trans_cost, penalty, beat_names = pipeline.apply(song, len(target))
+    trans_cost2, penalty2, beat_names2 = pipeline2.apply(song, len(target))
 
     print "Building cost table"
 
     # fortran method
-    # cost, prev_node = build_table(trans_cost, penalty)
-    # path_cost = []
-    # for i, node in enumerate(path):
+    cost2, prev_node2 = build_table(trans_cost2, penalty2)
+    res = cost2[:, -1]
+    best_idx = N.argmin(res)
+    if N.isfinite(res[best_idx]):
+        path2, path_cost2 = _reconstruct_path(
+            prev_node2, cost2, beat_names2, best_idx, N.shape(cost2)[1] - 1)
+        opt_path2 = [beat_names2.index(x) for x in path2]
+    else:
+        # throw an exception here?
+        return None
+
+    # path_cost2 = []
+    # for i, node in enumerate(path2):
     #     if i == 0:
-    #         path_cost.append(0)
+    #         path_cost2.append(0)
     #     else:
-    #         path_cost.append(trans_cost[path[i - 1], node] + penalty[node, i])
-    # path_cost = N.array(path_cost)
+    #         path_cost2.append(trans_cost2[path2[i - 1], node] + penalty2[node, i])
+    # path_cost2 = N.array(path_cost2)
 
 
 
     # compute the dynamic programming table (prev python method)
     # cost, prev_node = _build_table(analysis, duration, start, target, pen)
-
-    # find the cheapest path    
-
-    # no longer using this method here
-
-    # res = cost[:, -1]
-    # best_idx = N.argmin(res)
-    # if N.isfinite(res[best_idx]):
-    #     path, path_cost = _reconstruct_path(
-    #         prev_node, cost, beat_names, best_idx, N.shape(cost)[1] - 1)
-    #     opt_path = [beat_names.index(x) for x in path]
-    # else:
-    #     # throw an exception here?
-    #     return None
 
     # forward/backward memory efficient method
     first_pause = 0
@@ -303,6 +311,8 @@ def retarget(song, duration, music_labels=None, out_labels=None, out_penalty=Non
             path.append('p' + str(i - first_pause_full))
         else:
             path.append(float(beat_names[i % n_beats]))
+
+    import pdb; pdb.set_trace()
 
     # need to compute path cost in the forward/backward method
     # because of changing duration constraints

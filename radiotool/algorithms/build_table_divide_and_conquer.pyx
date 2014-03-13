@@ -114,18 +114,9 @@ cdef void get_pen_column(double[:, :] pen, int column, double[:] new_pen, int gl
 
 
 cdef double[:] space_efficient_cost_with_duration_constraint(
-    double[:, :] tc, double[:, :] pen, int start_beat, int end_beat, int global_start_l, Params p):
+    double[:, :] tc, double[:, :] pen, int start_beat, int end_beat, int global_start_l, Params p,
+    double[:] pen_val, double[:] cost, double[:] vals_col, double[:] min_vals):
 
-    cdef array ar1, ar2, ar3, ar4, template = array('d')
-    ar1 = clone(template, p.all_full, False)
-    ar2 = clone(template, p.all_full, False)
-    ar3 = clone(template, p.all_full, False)
-    ar4 = clone(template, p.all_full, False)
-
-    cdef double[:] pen_val = ar1
-    cdef double[:] cost = ar2
-    cdef double[:] vals_col = ar3
-    cdef double[:] min_vals = ar4
 
     cdef int l, idx, i
     cdef double minval
@@ -169,19 +160,9 @@ cdef double[:] space_efficient_cost_with_duration_constraint(
 
 
 cdef double[:] backward_space_efficient_cost_with_duration_constraint(
-    double[:, :] tc, double[:, :] pen, int start_beat, int end_beat, int global_start_l, Params p):
+    double[:, :] tc, double[:, :] pen, int start_beat, int end_beat, int global_start_l, Params p,
+    double[:] pen_val, double[:] cost, double[:] vals_col, double[:] min_vals):
     
-    cdef array ar1, ar2, ar3, ar4, template = array('d')
-    ar1 = clone(template, p.all_full, False)
-    ar2 = clone(template, p.all_full, False)
-    ar3 = clone(template, p.all_full, False)
-    ar4 = clone(template, p.all_full, False)
-
-    cdef double[:] pen_val = ar1
-    cdef double[:] cost = ar2
-    cdef double[:] vals_col = ar3
-    cdef double[:] min_vals = ar4
-
     cdef int l, idx, i
     cdef double minval
     
@@ -223,15 +204,20 @@ cdef double[:] backward_space_efficient_cost_with_duration_constraint(
     return cost
 
 
-cdef divide_and_conquer_cost_and_path(
+cdef void divide_and_conquer_cost_and_path(
     double[:, :] tc, double[:, :] pen, int start_beat, int end_beat, int offset,
-    int[:] global_path, Params p):
+    int[:] global_path, Params p,
+    double[:] mv1, double[:] mv2, double[:] mv3, double[:] mv4,
+    double[:] mv5, double[:] mv6, double[:] mv7, double[:] mv8):
 
     cdef int l = pen.shape[1]  # out beats
-    cdef array ar1, ar2, template = array('d')
     cdef double[:] new_pen, tc_column, f, g
     cdef int i, opt_i, l_over_2
     cdef double minval = -1.0
+
+    # cdef array array1, array2, array3, array4, array5, array6, array7, array8
+    # cdef double[:] mv1, mv2, mv3, mv4, mv5, mv6, mv7, mv8
+
 
     if l == 0:
         pass
@@ -240,12 +226,10 @@ cdef divide_and_conquer_cost_and_path(
     elif l == 2 and start_beat != -1 and end_beat != -1:
         pass
     elif l == 2 and start_beat != -1:
-        ar1 = clone(template, p.all_full, False)
-        ar2 = clone(template, p.all_full, False)
-        new_pen = ar1
+        new_pen = mv1
         get_pen_column(pen, 1, new_pen, offset, p)
 
-        tc_column = ar2
+        tc_column = mv2
         get_tc_column(tc, start_beat, tc_column, 1, p)
 
         global_path[offset] = start_beat
@@ -261,12 +245,10 @@ cdef divide_and_conquer_cost_and_path(
 
         # global_path_cost[offset + 1] = N.min(tc_column + new_pen)
     elif l == 2 and end_beat != -1:
-        ar1 = clone(template, p.all_full, False)
-        ar2 = clone(template, p.all_full, False)
-        new_pen = ar1
+        new_pen = mv1
         get_pen_column(pen, 0, new_pen, offset, p)
 
-        tc_column = ar2
+        tc_column = mv2
         get_tc_column(tc, end_beat, tc_column, 0, p)
 
         minval = -1.0
@@ -281,15 +263,18 @@ cdef divide_and_conquer_cost_and_path(
 
         # global_path_cost[offset] = N.min(tc_column + new_pen)
     elif l == 2:
-        print "actually running full optimize"
+        pass
         # opt_path = cost_and_path(tc, pen, start_beat, end_beat)
         # global_path[offset:offset + pen.shape[1]] = opt_path
 
     else:
         l_over_2 = int(float(l) / 2.0)
 
-        f = space_efficient_cost_with_duration_constraint(tc, pen[:, :l_over_2 + 1], start_beat, -1, offset, p)
-        g = backward_space_efficient_cost_with_duration_constraint(tc, pen[:, l_over_2:], -1, end_beat, offset + l_over_2, p)
+        # not sure why we need 8 of these arrays instead of 4
+        f = space_efficient_cost_with_duration_constraint(
+            tc, pen[:, :l_over_2 + 1], start_beat, -1, offset, p, mv1, mv2, mv3, mv4)
+        g = backward_space_efficient_cost_with_duration_constraint(
+            tc, pen[:, l_over_2:], -1, end_beat, offset + l_over_2, p, mv5, mv6, mv7, mv8)
 
         minval = -1.0
         opt_i = 0
@@ -303,11 +288,13 @@ cdef divide_and_conquer_cost_and_path(
 
         # first half
         divide_and_conquer_cost_and_path(
-            tc, pen[:, :l_over_2 + 1], start_beat, opt_i, offset, global_path, p)
+            tc, pen[:, :l_over_2 + 1], start_beat, opt_i, offset, global_path, p,
+            mv1, mv2, mv3, mv4, mv5, mv6, mv7, mv8)
 
         # second half
         divide_and_conquer_cost_and_path(
-            tc, pen[:, l_over_2:], opt_i, end_beat, l_over_2 + offset, global_path, p)
+            tc, pen[:, l_over_2:], opt_i, end_beat, l_over_2 + offset, global_path, p,
+            mv1, mv2, mv3, mv4, mv5, mv6, mv7, mv8)
 
     return
 
@@ -340,11 +327,32 @@ cpdef int[:] build_table(double[:, :] trans_cost, double[:, :] penalty,
 
     # global_path_cost = N.zeros(penalty.shape[1])
 
+    cdef array dtemplate = array('d')
+    cdef array array1, array2, array3, array4, array5, array6, array7, array8
+    cdef double[:] mv1, mv2, mv3, mv4, mv5, mv6, mv7, mv8
+    array1 = clone(dtemplate, p.all_full, False)
+    array2 = clone(dtemplate, p.all_full, False)
+    array3 = clone(dtemplate, p.all_full, False)
+    array4 = clone(dtemplate, p.all_full, False)
+    array5 = clone(dtemplate, p.all_full, False)
+    array6 = clone(dtemplate, p.all_full, False)
+    array7 = clone(dtemplate, p.all_full, False)
+    array8 = clone(dtemplate, p.all_full, False)
+    mv1 = array1
+    mv2 = array2
+    mv3 = array3
+    mv4 = array4
+    mv5 = array5
+    mv6 = array6
+    mv7 = array7
+    mv8 = array8
+
     cdef array ar, template = array('i')
     ar = clone(template, penalty.shape[1], False)
     cdef int[:] global_path = ar
 
-    divide_and_conquer_cost_and_path(trans_cost, penalty, -1, -1, 0, global_path, p)
+    divide_and_conquer_cost_and_path(trans_cost, penalty, -1, -1, 0, global_path, p,
+        mv1, mv2, mv3, mv4, mv5, mv6, mv7, mv8)
 
     return global_path
 
