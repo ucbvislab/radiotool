@@ -7,6 +7,7 @@ import copy
 
 import numpy as np
 from scipy.special import binom
+import scipy.spatial.distance
 
 import librosa_analysis
 import novelty
@@ -175,6 +176,42 @@ class GenericTimeSensitivePenalty(Constraint):
     def apply(self, transition_cost, penalty, song, beat_names):
         penalty[:n_beats, :] += self.penalty
         return transition_cost, penalty, beat_names
+
+
+class EnergyConstraint(Constraint):
+    # does not work with music duration constraint yet
+    def __init__(self, penalty=3.0):
+        self.penalty = penalty
+
+    def apply(self, transition_cost, penalty, song, beat_names):
+        sr = song.samplerate
+        frames = song.all_as_mono()
+        n_beats = len(song.analysis["beats"])
+
+        energies = np.zeros(n_beats)
+        for i, beat in enumerate(beat_names[:n_beats - 1]):
+            start_frame = sr * beat
+            end_frame = sr * beat_names[:n_beats][i + 1]
+            beat_frames = frames[start_frame:end_frame]
+            beat_frames *= np.hamming(len(beat_frames))
+            energies[i] = np.sqrt(np.mean(beat_frames * beat_frames))
+
+        energies[-1] = energies[-2]
+        energies = [[x] for x in energies]
+
+        dist_matrix = 10 * scipy.spatial.distance.squareform(
+            scipy.spatial.distance.pdist(energies, 'euclidean'))
+
+        # shift it
+        dist_matrix[:-1, :] = dist_matrix[1:, :]
+        dist_matrix[-1, :] = np.inf
+
+        transition_cost[:n_beats, :n_beats] *= (dist_matrix * self.penalty + 1)
+
+        return transition_cost, penalty, beat_names
+
+    def __repr__(self):
+        return "EnergyConstraint: penalty=%f" % self.penalty
 
 
 class PauseConstraint(Constraint):

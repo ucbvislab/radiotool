@@ -65,6 +65,7 @@ class RawTrack(Track):
             print "Trying to retrieve too many frames!"
             print "Asked for", n
             n = self.remaining_frames()
+            print "Returning", n
 
         if self.channels == 1 and channels == 1:
             out = self.frames[self.current_frame:self.current_frame + n]

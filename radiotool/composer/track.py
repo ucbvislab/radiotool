@@ -63,6 +63,7 @@ class Track(object):
             print "Trying to retrieve too many frames!"
             print "Asked for", n
             n = self.remaining_frames()
+            print "Returning", n
 
         if self.channels == 1 and channels == 1:
             out = self.sound.read_frames(n)

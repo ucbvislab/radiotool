@@ -215,10 +215,6 @@ cdef void divide_and_conquer_cost_and_path(
     cdef int i, opt_i, l_over_2
     cdef double minval = -1.0
 
-    # cdef array array1, array2, array3, array4, array5, array6, array7, array8
-    # cdef double[:] mv1, mv2, mv3, mv4, mv5, mv6, mv7, mv8
-
-
     if l == 0:
         pass
     elif l == 1:
@@ -283,6 +279,7 @@ cdef void divide_and_conquer_cost_and_path(
                 minval = f[i] + g[i]
                 opt_i = i
 
+        print "setting time %d to %d" % (l_over_2 + offset, opt_i)
         global_path[l_over_2 + offset] = opt_i
         # global_path_cost[l_over_2 + offset] = N.min(f + g)
 
@@ -324,8 +321,6 @@ cpdef int[:] build_table(double[:, :] trans_cost, double[:, :] penalty,
     p.max_beats_with_padding = max_beats_with_padding
     p.p0_full = p.n_beats * p.max_beats_with_padding
     p.all_full = p.p0_full + p.n_pauses
-
-    # global_path_cost = N.zeros(penalty.shape[1])
 
     # double arrays for use throughout the computation
     cdef array dtemplate = array('d')
