@@ -203,6 +203,18 @@ cdef void backward_space_efficient_cost_with_duration_constraint(
         cost[:] = min_vals
 
 
+cdef inline int minimum(double[:] buffer1, double[:] buffer2) nogil:
+    cdef int idx
+    cdef int opt_i = 0
+    cdef double minval = buffer1[0] + buffer2[0]
+    for idx in range(1, buffer1.shape[0]):
+        if buffer1[idx] + buffer2[idx] < minval:
+            minval = buffer1[idx] + buffer2[idx]
+            opt_i = idx
+
+    return opt_i
+
+
 cdef void divide_and_conquer_cost_and_path(
     double[:, :] tc, double[:, :] pen, int start_beat, int end_beat, int offset,
     int[:] global_path, Params p,
@@ -213,7 +225,20 @@ cdef void divide_and_conquer_cost_and_path(
     cdef double[:] new_pen, tc_column
     cdef int i, opt_i, l_over_2, f_done, g_done
     cdef double minval = -1.0
-    cdef int prange_i
+    cdef int prange_i, stride
+
+    # par stuff
+    cdef int oi1, oi2, oi3, oi4
+    cdef double min1, min2, min3, min4
+    cdef array dtemplate = array('d')
+    cdef array itemplate = array('i')
+    cdef ar1, ar2
+    cdef double[:] min_val_arr
+    cdef int[:] opt_i_arr
+    ar1 = clone(dtemplate, 4, False)
+    ar2 = clone(itemplate, 4, False)
+    min_val_arr = ar1
+    opt_i_arr = ar2
 
     if l == 0:
         pass
@@ -279,12 +304,45 @@ cdef void divide_and_conquer_cost_and_path(
                 backward_space_efficient_cost_with_duration_constraint(
                     tc, pen[:, l_over_2:], -1, end_beat, offset + l_over_2, p, g, mv4, mv5, mv6)       
 
-        minval = -1.0
+        
+
+        stride = int(float(f.shape[0]) / 4.0)
+
+        for i in parallel.prange(4, nogil=True):
+            if i == 0:
+                opt_i_arr[i] = minimum(f[:stride], g[:stride])
+                min_val_arr[i] = f[opt_i_arr[i]] + g[opt_i_arr[i]]
+            if i == 1:
+                opt_i_arr[i] = minimum(f[stride:2 * stride], g[stride:2 * stride])
+                min_val_arr[i] = f[stride + opt_i_arr[i]] + g[stride + opt_i_arr[i]]
+            if i == 2:
+                opt_i_arr[i] = minimum(f[2 * stride:3 * stride], g[2 * stride:3 * stride])
+                min_val_arr[i] = f[stride * 2 + opt_i_arr[i]] + g[stride * 2 + opt_i_arr[i]]
+            if i == 3:
+                opt_i_arr[i] = minimum(f[3 * stride:], g[3 * stride:])
+                min_val_arr[i] = f[stride * 3 + opt_i_arr[i]] + g[stride * 3 + opt_i_arr[i]]
+
         opt_i = 0
-        for i in range(f.shape[0]):
-            if minval == -1.0 or f[i] + g[i] < minval:
-                minval = f[i] + g[i]
-                opt_i = i
+        minval = min_val_arr[0]
+        if min_val_arr[1] < minval:
+            opt_i = 1
+            minval = min_val_arr[1]
+        if min_val_arr[2] < minval:
+            opt_i = 2
+            minval = min_val_arr[2]
+        if min_val_arr[3] < minval:
+            opt_i = 3
+            minval = min_val_arr[3]
+
+        opt_i = opt_i_arr[opt_i]
+
+        # ## -- OLD WAY -- ##
+        # minval = -1.0
+        # opt_i = 0
+        # for i in range(f.shape[0]):
+        #     if minval == -1.0 or f[i] + g[i] < minval:
+        #         minval = f[i] + g[i]
+        #         opt_i = i
 
         # print "setting time %d to %d" % (l_over_2 + offset, opt_i)
         global_path[l_over_2 + offset] = opt_i

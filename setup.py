@@ -3,10 +3,23 @@ from distutils.core import setup
 from distutils.extension import Extension
 from Cython.Distutils import build_ext
 
+import os
+import platform
+if platform.system() == "Darwin":
+      # openmp doesn't work with clang, the default OSX C compiler
+      os.environ["CC"] = "gcc-4.2"
+      os.environ["LDSHARED"] = "gcc-4.2"
+      os.environ["OMP_NUM_THREADS"] = "4"
+      os.environ["LDFLAGS"] = "-shared -lpython2.7 -I/usr/include/python2.7/"
+
+
+
 build_table_mem_efficient = Extension('radiotool.algorithms.build_table_mem_efficient',
-                                      ['radiotool/algorithms/build_table_mem_efficient.pyx'])
+                                      ['radiotool/algorithms/build_table_mem_efficient.pyx'],
+                                      extra_compile_args=['-O3'])
 par_build_table = Extension('radiotool.algorithms.par_build_table',
-                            ['radiotool/algorithms/par_build_table.pyx'])
+                            ['radiotool/algorithms/par_build_table.pyx'],
+                            extra_compile_args=['-fopenmp', '-O3'], extra_link_args=['-fopenmp'])
 
 setup(name='radiotool',
       version='0.3.3',
