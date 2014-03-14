@@ -151,7 +151,7 @@ def retarget_with_change_points(song, cp_times, duration):
 
     return comp, final_cp_locations
 
-@profile
+
 def retarget(song, duration, music_labels=None, out_labels=None, out_penalty=None,
              volume=None, volume_breakpoints=None, springs=None):
     """Retarget a song to a duration given input and output labels on
@@ -238,6 +238,7 @@ def retarget(song, duration, music_labels=None, out_labels=None, out_penalty=Non
         constraints.MinimumJumpConstraint(8),
         constraints.LabelConstraint(start, target, pen),
         constraints.NoveltyConstraint(start, target, pen),
+        # constraints.MusicDurationConstraint(song.analysis["avg_beat_duration"]*4, song.analysis["avg_beat_duration"]*32)
     ))
 
     trans_cost, penalty, beat_names = pipeline.apply(song, len(target))
@@ -279,8 +280,10 @@ def retarget(song, duration, music_labels=None, out_labels=None, out_penalty=Non
 
     max_beats = 16
     min_beats = 4
-
     max_beats = min(max_beats, penalty.shape[1])
+
+    # max_beats = None
+    # min_beats = None
 
     # path2_i, path2_cost = _build_table_forward_backward(trans_cost2, penalty2,
     #     first_pause=first_pause, max_beats=max_beats, min_beats=min_beats)
@@ -294,9 +297,11 @@ def retarget(song, duration, music_labels=None, out_labels=None, out_penalty=Non
 
         # path2_i = build_table_mem_efficient(tc2, pen2,
         #     first_pause=first_pause, max_beats=max_beats, min_beats=min_beats)
+        # path2_i = N.array([x for x in path2_i])
 
         path_i = par_build_table(tc2, pen2,
             first_pause=first_pause, max_beats=max_beats, min_beats=min_beats)
+        path_i = [x for x in path_i]
 
         path = []
         first_pause_full = (max_beats + min_beats) * first_pause
@@ -309,9 +314,7 @@ def retarget(song, duration, music_labels=None, out_labels=None, out_penalty=Non
 
         # need to compute path cost in the forward/backward method
         # because of changing duration constraints
-        path_cost = N.zeros(path_i.shape)
-
-        import pdb; pdb.set_trace()
+        path_cost = N.zeros(len(path_i))
 
     else:
         print "Running optimization (fast, full table)"
@@ -357,6 +360,7 @@ def retarget(song, duration, music_labels=None, out_labels=None, out_penalty=Non
         "contracted": contracted,
         "cost": N.sum(path_cost) / len(path),
         "path": path,
+        "path_i": path_i,
         "target_labels": target,
         "result_labels": result_labels,
         "result_full_labels": result_full_labels,

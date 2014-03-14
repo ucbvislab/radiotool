@@ -313,14 +313,14 @@ cdef void divide_and_conquer_cost_and_path(
                 opt_i_arr[i] = minimum(f[:stride], g[:stride])
                 min_val_arr[i] = f[opt_i_arr[i]] + g[opt_i_arr[i]]
             if i == 1:
-                opt_i_arr[i] = minimum(f[stride:2 * stride], g[stride:2 * stride])
-                min_val_arr[i] = f[stride + opt_i_arr[i]] + g[stride + opt_i_arr[i]]
+                opt_i_arr[i] = stride + minimum(f[stride:2 * stride], g[stride:2 * stride])
+                min_val_arr[i] = f[opt_i_arr[i]] + g[opt_i_arr[i]]
             if i == 2:
-                opt_i_arr[i] = minimum(f[2 * stride:3 * stride], g[2 * stride:3 * stride])
-                min_val_arr[i] = f[stride * 2 + opt_i_arr[i]] + g[stride * 2 + opt_i_arr[i]]
+                opt_i_arr[i] = 2 * stride + minimum(f[2 * stride:3 * stride], g[2 * stride:3 * stride])
+                min_val_arr[i] = f[opt_i_arr[i]] + g[opt_i_arr[i]]
             if i == 3:
-                opt_i_arr[i] = minimum(f[3 * stride:], g[3 * stride:])
-                min_val_arr[i] = f[stride * 3 + opt_i_arr[i]] + g[stride * 3 + opt_i_arr[i]]
+                opt_i_arr[i] = 3 * stride + minimum(f[3 * stride:], g[3 * stride:])
+                min_val_arr[i] = f[opt_i_arr[i]] + g[opt_i_arr[i]]
 
         opt_i = 0
         minval = min_val_arr[0]
