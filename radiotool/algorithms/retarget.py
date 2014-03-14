@@ -277,10 +277,10 @@ def retarget(song, duration, music_labels=None, out_labels=None, out_penalty=Non
             first_pause = i
             break
 
-    max_beats = 64
+    max_beats = 16
     min_beats = 4
 
-    # max_beats = min(max_beats, penalty.shape[1])
+    max_beats = min(max_beats, penalty.shape[1])
 
     # path2_i, path2_cost = _build_table_forward_backward(trans_cost2, penalty2,
     #     first_pause=first_pause, max_beats=max_beats, min_beats=min_beats)
