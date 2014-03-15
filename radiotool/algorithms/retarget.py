@@ -279,7 +279,7 @@ def retarget(song, duration, music_labels=None, out_labels=None, out_penalty=Non
             break
 
     max_beats = 16
-    min_beats = 4
+    min_beats = 1
     max_beats = min(max_beats, penalty.shape[1])
 
     # max_beats = None
@@ -629,6 +629,7 @@ def _generate_audio(song, beats, new_beats, new_beats_cost, music_labels,
         comp.add_segments(segments)
 
         for i, seg in enumerate(segments[:-1]):
+            print cf_durations[i], seg.duration_in_seconds, segments[i + 1].duration_in_seconds
             rawseg = comp.cross_fade(seg, segments[i + 1], cf_durations[i])
 
             # decrease volume along crossfades
@@ -637,8 +638,8 @@ def _generate_audio(song, beats, new_beats, new_beats_cost, music_labels,
             raw_vol = RawVolume(rawseg, volume_frames)
             comp.add_dynamic(raw_vol)
 
-        comp.fade_in(segments[0], 3.0)
-        comp.fade_out(segments[-1], 3.0)
+        comp.fade_in(segments[0], min(3.0, segments[0].duration_in_seconds))
+        comp.fade_out(segments[-1], min(3.0, segments[-1].duration_in_seconds))
 
         prev_end = 0.0
 
