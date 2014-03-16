@@ -125,7 +125,7 @@ cdef void space_efficient_cost_with_duration_constraint(
     double[:] cost, double[:] pen_val, double[:] vals_col, double[:] min_vals):
 
 
-    cdef int l, idx, i
+    cdef int l, idx, i, beat_seg_i
     cdef double minval
 
     # generate initial cost
@@ -162,6 +162,29 @@ cdef void space_efficient_cost_with_duration_constraint(
             # beat segment index, or that go to a pause.
             # Or if we're in a pause, those that go to 
             # other pauses or go to the first beat segment index.
+
+            # 4 categories of beats we could be coming from
+
+            # less than min beat
+            for idx in range(p.min_beats * p.n_beats):
+                beat_seg_i = idx % p.n_beats
+                # can only move to beat_seg_i + 1
+
+            # between min and max beats
+            for idx in range(p.min_beats * p.n_beats, (p.max_beats + 1) * p.n_beats):
+                beat_seg_i = idx % p.n_beats
+                # can move to beat_seg_i + 1, or to the first pause
+
+            # after max beats
+            for idx in range((p.max_beats + 1) * p.n_beats, p.p0_full):
+                beat_seg_i = idx % p.n_beats
+                # can only move to beat_seg_i + 1
+
+            # pause beat
+            for idx in range(p.p0_full, p.all_full):
+                # can only move to beat_seg_i = 0
+                pass
+
 
             for idx in range(p.all_full):
                 get_tc_column(tc, idx, vals_col, 0, p)

@@ -445,7 +445,7 @@ class MusicDurationConstraint(Constraint):
         new_tc[:(n_beats * minlen), p0] += pen_val
 
         # * don't go to pause after maximum length music segment
-        new_tc[(n_beats * maxlen):n_beats * (maxlen_with_padding + 1), p0] += pen_val
+        new_tc[n_beats * (maxlen + 1):n_beats * (maxlen_with_padding + 1), p0] += pen_val
 
         # * after pause, don't go to non-first segment beat
         new_tc[p0:, n_beats:p0] += pen_val
