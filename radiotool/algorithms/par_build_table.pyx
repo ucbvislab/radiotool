@@ -55,9 +55,9 @@ cdef void get_tc_column(double[:, :] tc, int column, double[:] tc_column, int ba
 
     # * don't go to pause after maximum length music segment
     if (column == p.p0_full) and (not backward):
-        for i in range(p.n_beats * p.max_beats, p.all_full):
+        for i in range(p.n_beats * p.max_beats, p.p0_full):
             tc_column[i] += p.pen_val
-    elif (column >= p.n_beats * p.max_beats) and backward:
+    elif (p.p0_full > column >= p.n_beats * p.max_beats) and backward:
         tc_column[p.p0_full] += p.pen_val
 
     # * after pause, don't go to non-first segment beat
@@ -83,6 +83,12 @@ cdef void get_tc_column(double[:, :] tc, int column, double[:] tc_column, int ba
             for i in range((beat_seg_i + 1) * p.n_beats, (beat_seg_i + 2) * p.n_beats):
                 tc_column[i] -= p.pen_val
 
+        # you're also allowed to move infinitely among the
+        # last beat if max_beats is not set (== -1)
+        if p.max_beats == -1 and (beat_seg_i == p.min_beats):
+            for i in range(beat_seg_i * p.n_beats, (beat_seg_i + 1) * p.n_beats):
+                tc_column[i] -= p.pen_val
+
 
 cdef double get_pen_value(double[:, :] pen, int i, int l, int global_start_l, Params p) nogil:
     cdef int pen_index = 0
@@ -98,6 +104,7 @@ cdef double get_pen_value(double[:, :] pen, int i, int l, int global_start_l, Pa
         new_pen += p.pen_val
 
     return new_pen
+
 
 cdef void get_pen_column(double[:, :] pen, int column, double[:] new_pen, int global_start_l, Params p) nogil:
     cdef int i, j
@@ -371,6 +378,9 @@ cpdef int[:] build_table(double[:, :] trans_cost, double[:, :] penalty,
     elif max_beats != -1:
         # 8? Two measures of padding? Just a thought
         max_beats_with_padding = max_beats + 8
+    elif min_beats != -1:
+        max_beats = -1
+        max_beats_with_padding = min_beats
     else:
         max_beats_with_padding = 1
         max_beats = 1

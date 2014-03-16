@@ -278,9 +278,9 @@ def retarget(song, duration, music_labels=None, out_labels=None, out_penalty=Non
             first_pause = i
             break
 
-    max_beats = 16
-    min_beats = 1
-    max_beats = min(max_beats, penalty.shape[1])
+    max_beats = 8
+    min_beats = 2
+    # max_beats = min(max_beats, penalty.shape[1])
 
     # max_beats = None
     # min_beats = None
@@ -299,12 +299,29 @@ def retarget(song, duration, music_labels=None, out_labels=None, out_penalty=Non
         #     first_pause=first_pause, max_beats=max_beats, min_beats=min_beats)
         # path2_i = N.array([x for x in path2_i])
 
+
+        import pstats, cProfile
+
+        cProfile.runctx(
+            "build_table_mem_efficient(tc2, pen2, first_pause=first_pause, max_beats=max_beats, min_beats=min_beats)",
+            globals(), locals(), "Profile.prof")
+
+        s = pstats.Stats("Profile.prof")
+        s.strip_dirs().sort_stats("time").print_stats()
+
+
+        import pdb; pdb.set_trace()
+
         path_i = par_build_table(tc2, pen2,
             first_pause=first_pause, max_beats=max_beats, min_beats=min_beats)
         path_i = [x for x in path_i]
 
         path = []
-        first_pause_full = (max_beats + min_beats) * first_pause
+        if max_beats == -1:
+            max_with_padding = min_beats
+        else:
+            max_with_padding = min_beats + max_beats
+        first_pause_full = max_with_padding * first_pause
         n_beats = first_pause
         for i in path_i:
             if i >= first_pause_full:
