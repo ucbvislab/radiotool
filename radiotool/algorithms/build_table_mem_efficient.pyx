@@ -152,6 +152,17 @@ cdef void space_efficient_cost_with_duration_constraint(
 
         else:
             get_pen_column(pen, l, pen_val, global_start_l + l, p)
+
+            # Based on the nature of our problem
+            # we have a HARD CONSTRAINT that the music
+            # must move forward in the beat segment index.
+
+            # This means that we don't need to check any of the
+            # transitions except those that move to the next
+            # beat segment index, or that go to a pause.
+            # Or if we're in a pause, those that go to 
+            # other pauses or go to the first beat segment index.
+
             for idx in range(p.all_full):
                 get_tc_column(tc, idx, vals_col, 0, p)
 
