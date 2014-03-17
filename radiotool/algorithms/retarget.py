@@ -303,7 +303,7 @@ def retarget(song, duration, music_labels=None, out_labels=None, out_penalty=Non
         import pstats, cProfile
 
         cProfile.runctx(
-            "build_table_mem_efficient(tc2, pen2, first_pause=first_pause, max_beats=max_beats, min_beats=min_beats)",
+            "path3_i = build_table_mem_efficient(tc2, pen2, first_pause=first_pause, max_beats=max_beats, min_beats=min_beats)",
             globals(), locals(), "Profile.prof")
 
         s = pstats.Stats("Profile.prof")
