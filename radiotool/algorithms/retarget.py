@@ -278,7 +278,7 @@ def retarget(song, duration, music_labels=None, out_labels=None, out_penalty=Non
             first_pause = i
             break
 
-    max_beats = 120
+    max_beats = 200
     min_beats = 40
     max_beats = min(max_beats, penalty.shape[1])
 
