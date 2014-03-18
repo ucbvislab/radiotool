@@ -499,8 +499,6 @@ cpdef int[:] build_table(double[:, :] trans_cost, double[:, :] penalty,
     p.p0_full = p.n_beats * p.max_beats_with_padding
     p.all_full = p.p0_full + p.n_pauses
 
-    print "build table all_full:", p.all_full
-
     # double arrays for use throughout the computation
     cdef array dtemplate = array('d')
     cdef array array1, array2, array3, array4, array5, array6, array7, array8
