@@ -37,7 +37,21 @@ class ConstraintPipeline(object):
 class Constraint(object):
     def __init__(self): pass
 
-    def apply(self, transition_cost, penalty, song): return transition_cost, penalty
+    def apply(self, transition_cost, penalty, song, beat_names):
+        return transition_cost, penalty, beat_names
+
+
+class RandomJitterConstraint(Constraint):
+    def __init__(self, jitter_max=.001):
+        self.jitter = jitter_max
+
+    def apply(self, transition_cost, penalty, song, beat_names):
+        return (
+            transition_cost + self.jitter * np.random.rand(
+                transition_cost.shape[0], transition_cost.shape[1]),
+            penalty + self.jitter * np.random.rand(
+                penalty.shape[0], penalty.shape[1]),
+            beat_names)
 
 
 class TimbrePitchConstraint(Constraint):
@@ -392,6 +406,7 @@ class NoveltyConstraint(Constraint):
     def __repr__(self):
         return "NoveltyConstraint"
 
+
 class MusicDurationConstraint(Constraint):
     def __init__(self, min_length, max_length):
         self.minlen = min_length
@@ -466,6 +481,7 @@ class MusicDurationConstraint(Constraint):
 
     def __repr__(self):
         return "MusicDurationConstraint"
+
 
 if __name__ == '__main__':
     import sys

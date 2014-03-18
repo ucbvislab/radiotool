@@ -238,7 +238,8 @@ def retarget(song, duration, music_labels=None, out_labels=None, out_penalty=Non
         constraints.MinimumJumpConstraint(8),
         constraints.LabelConstraint(start, target, pen),
         constraints.NoveltyConstraint(start, target, pen),
-        # constraints.MusicDurationConstraint(song.analysis["avg_beat_duration"]*4, song.analysis["avg_beat_duration"]*8)
+        constraints.RandomJitterConstraint(),
+        # constraints.MusicDurationConstraint(song.analysis["avg_beat_duration"]*2, song.analysis["avg_beat_duration"]*4)
     ))
 
     trans_cost, penalty, beat_names = pipeline.apply(song, len(target))
@@ -278,8 +279,8 @@ def retarget(song, duration, music_labels=None, out_labels=None, out_penalty=Non
             first_pause = i
             break
 
-    max_beats = 8
-    min_beats = 4
+    max_beats = 4
+    min_beats = 2
     # max_beats = min(max_beats, penalty.shape[1])
 
     # max_beats = None
@@ -326,6 +327,11 @@ def retarget(song, duration, music_labels=None, out_labels=None, out_penalty=Non
             first_pause=first_pause, max_beats=max_beats, min_beats=min_beats)
         path_i = [x for x in path_i]
         t2 = time.clock()
+
+        with open("memeff-path.txt", 'w') as f:
+            for i,x in enumerate(path_i):
+                f.write(str(i) + ' ' + str(x) + "\n")
+
 
         print "Built table in %f seconds" % (t2 - t1)
 
@@ -407,6 +413,10 @@ def _reconstruct_path(prev_node, cost_table, beat_names, end, length):
         node = prev_node[int(node), length]
         path.append(node)
         length -= 1
+
+    with open("fortran-path.txt", 'w') as f:
+        for i,x in enumerate(reversed(path)):
+            f.write(str(i) + ' ' + str(x) + "\n")
 
     beat_path = [beat_names[int(n)] for n in reversed(path)]
 

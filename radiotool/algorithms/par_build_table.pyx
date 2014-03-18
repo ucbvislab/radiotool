@@ -31,14 +31,14 @@ cdef void get_tc_column(double[:, :] tc, int column, double[:] tc_column, int ba
         tc_index = column % p.n_beats
 
     if not backward:
-        for i in range(p.max_beats_with_padding):
+        for i in range(p.max_beats):
             for j in range(p.p0):
                 tc_column[i * p.n_beats + j] = tc[j, tc_index]
 
         for i in range(p.p0_full, p.all_full):
             tc_column[i] = tc[p.p0 + i - p.p0_full, tc_index]
     else:
-        for i in range(p.max_beats_with_padding):
+        for i in range(p.max_beats):
             for j in range(p.p0):
                 tc_column[i * p.n_beats + j] = tc[tc_index, j]
 
@@ -79,7 +79,7 @@ cdef void get_tc_column(double[:, :] tc, int column, double[:] tc_column, int ba
             for i in range((beat_seg_i - 1) * p.n_beats, beat_seg_i * p.n_beats):
                 tc_column[i] -= p.pen_val
 
-        elif (beat_seg_i < p.max_beats_with_padding - 1) and backward:
+        elif (beat_seg_i < p.max_beats - 1) and backward:
             for i in range((beat_seg_i + 1) * p.n_beats, (beat_seg_i + 2) * p.n_beats):
                 tc_column[i] -= p.pen_val
 
@@ -109,7 +109,7 @@ cdef double get_pen_value(double[:, :] pen, int i, int l, int global_start_l, Pa
 cdef void get_pen_column(double[:, :] pen, int column, double[:] new_pen, int global_start_l, Params p) nogil:
     cdef int i, j
 
-    for i in range(p.max_beats_with_padding):
+    for i in range(p.max_beats):
         for j in range(p.p0):
             new_pen[i * p.n_beats + j] = pen[j, column]
 
@@ -372,6 +372,7 @@ cdef void divide_and_conquer_cost_and_path(
                 minval = tc_column[i] + new_pen[i]
                 opt_i = i
 
+        print "$ setting time %d to %d" % (offset + 1, opt_i)
         global_path[offset + 1] = opt_i
 
         # global_path_cost[offset + 1] = N.min(tc_column + new_pen)
@@ -389,6 +390,7 @@ cdef void divide_and_conquer_cost_and_path(
                 minval = tc_column[i] + new_pen[i]
                 opt_i = i
 
+        print "* setting time %d to %d" % (offset, opt_i)
         global_path[offset] = opt_i
         global_path[offset + 1] = end_beat
 
@@ -414,45 +416,52 @@ cdef void divide_and_conquer_cost_and_path(
                 backward_space_efficient_cost_with_duration_constraint(
                     tc, pen[:, l_over_2:], -1, end_beat, offset + l_over_2, p, g, mv4, mv5, mv6)       
 
-        stride = f.shape[0] / 4
+        # stride = f.shape[0] / 4
 
-        for i in parallel.prange(4, nogil=True):
-            if i == 0:
-                opt_i_arr[i] = minimum(f[:stride], g[:stride])
-                min_val_arr[i] = f[opt_i_arr[i]] + g[opt_i_arr[i]]
-            if i == 1:
-                opt_i_arr[i] = stride + minimum(f[stride:2 * stride], g[stride:2 * stride])
-                min_val_arr[i] = f[opt_i_arr[i]] + g[opt_i_arr[i]]
-            if i == 2:
-                opt_i_arr[i] = 2 * stride + minimum(f[2 * stride:3 * stride], g[2 * stride:3 * stride])
-                min_val_arr[i] = f[opt_i_arr[i]] + g[opt_i_arr[i]]
-            if i == 3:
-                opt_i_arr[i] = 3 * stride + minimum(f[3 * stride:], g[3 * stride:])
-                min_val_arr[i] = f[opt_i_arr[i]] + g[opt_i_arr[i]]
+        # for i in parallel.prange(4, nogil=True):
+        #     if i == 0:
+        #         opt_i_arr[i] = minimum(f[:stride], g[:stride])
+        #         min_val_arr[i] = f[opt_i_arr[i]] + g[opt_i_arr[i]]
+        #     if i == 1:
+        #         opt_i_arr[i] = stride + minimum(f[stride:2 * stride], g[stride:2 * stride])
+        #         min_val_arr[i] = f[opt_i_arr[i]] + g[opt_i_arr[i]]
+        #     if i == 2:
+        #         opt_i_arr[i] = 2 * stride + minimum(f[2 * stride:3 * stride], g[2 * stride:3 * stride])
+        #         min_val_arr[i] = f[opt_i_arr[i]] + g[opt_i_arr[i]]
+        #     if i == 3:
+        #         opt_i_arr[i] = 3 * stride + minimum(f[3 * stride:], g[3 * stride:])
+        #         min_val_arr[i] = f[opt_i_arr[i]] + g[opt_i_arr[i]]
 
-        opt_i = 0
-        minval = min_val_arr[0]
-        if min_val_arr[1] < minval:
-            opt_i = 1
-            minval = min_val_arr[1]
-        if min_val_arr[2] < minval:
-            opt_i = 2
-            minval = min_val_arr[2]
-        if min_val_arr[3] < minval:
-            opt_i = 3
-            minval = min_val_arr[3]
+        # opt_i = 0
+        # minval = min_val_arr[0]
+        # if min_val_arr[1] < minval:
+        #     opt_i = 1
+        #     minval = min_val_arr[1]
+        # if min_val_arr[2] < minval:
+        #     opt_i = 2
+        #     minval = min_val_arr[2]
+        # if min_val_arr[3] < minval:
+        #     opt_i = 3
+        #     minval = min_val_arr[3]
 
-        opt_i = opt_i_arr[opt_i]
+        # opt_i = opt_i_arr[opt_i]
 
         # ## -- OLD WAY -- ##
-        # minval = -1.0
-        # opt_i = 0
-        # for i in range(f.shape[0]):
-        #     if minval == -1.0 or f[i] + g[i] < minval:
-        #         minval = f[i] + g[i]
-        #         opt_i = i
+        minval = -1.0
+        opt_i = 0
+        for i in range(f.shape[0]):
+            if minval == -1.0 or f[i] + g[i] < minval:
+                minval = f[i] + g[i]
+                opt_i = i
 
-        # print "setting time %d to %d" % (l_over_2 + offset, opt_i)
+        print "setting time %d to %d" % (l_over_2 + offset, opt_i)
+        print "cost", f[opt_i] + g[opt_i]
+
+        for i in range(f.shape[0]):
+            if f[opt_i] + g[opt_i] == f[i] + g[i]:
+                print "  same as", i
+
+
         global_path[l_over_2 + offset] = opt_i
         # global_path_cost[l_over_2 + offset] = N.min(f + g)
 
