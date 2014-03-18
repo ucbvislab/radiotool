@@ -226,7 +226,7 @@ cdef void backward_space_efficient_cost_with_duration_constraint(
         get_pen_column(pen, pen.shape[1] - 1, cost, global_start_l + pen.shape[1] - 1, p)
 
     # optimize
-    for l in xrange(1, pen.shape[1]):
+    for l in xrange(pen.shape[1] - 1, 0, -1):
         if l == 0 and start_beat != -1:
             # handle start beat set
             start_pen = get_pen_value(pen, start_beat, l, global_start_l + l, p)

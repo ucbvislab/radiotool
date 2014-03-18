@@ -238,7 +238,7 @@ def retarget(song, duration, music_labels=None, out_labels=None, out_penalty=Non
         constraints.MinimumJumpConstraint(8),
         constraints.LabelConstraint(start, target, pen),
         constraints.NoveltyConstraint(start, target, pen),
-        constraints.RandomJitterConstraint(),
+        # constraints.RandomJitterConstraint(),
         # constraints.MusicDurationConstraint(song.analysis["avg_beat_duration"]*2, song.analysis["avg_beat_duration"]*4)
     ))
 
@@ -279,8 +279,8 @@ def retarget(song, duration, music_labels=None, out_labels=None, out_penalty=Non
             first_pause = i
             break
 
-    max_beats = 4
-    min_beats = 2
+    max_beats = 200
+    min_beats = 40
     # max_beats = min(max_beats, penalty.shape[1])
 
     # max_beats = None
@@ -291,7 +291,6 @@ def retarget(song, duration, music_labels=None, out_labels=None, out_penalty=Non
 
     tc2 = N.nan_to_num(trans_cost)
     pen2 = N.nan_to_num(penalty)
-
 
     if max_beats is not None and min_beats is not None:
         print "Running optimization (parallel, memory efficient) with min_beats(%d) and max_beats(%d)" %\
@@ -358,9 +357,9 @@ def retarget(song, duration, music_labels=None, out_labels=None, out_penalty=Non
         res = cost[:, -1]
         best_idx = N.argmin(res)
         if N.isfinite(res[best_idx]):
-            path, path_cost = _reconstruct_path(
+            path, path_cost, path_i = _reconstruct_path(
                 prev_node, cost, beat_names, best_idx, N.shape(cost)[1] - 1)
-            path_i = [beat_names.index(x) for x in path]
+            # path_i = [beat_names.index(x) for x in path]
         else:
             # throw an exception here?
             return None
@@ -427,7 +426,9 @@ def _reconstruct_path(prev_node, cost_table, beat_names, end, length):
         path_cost.append(this_cost - prev_cost)
         prev_cost = this_cost
 
-    return beat_path, path_cost
+    path_i = [int(x) for x in reversed(path)]
+
+    return beat_path, path_cost, path_i
 
 
 def _build_table_from_costs(trans_cost, penalty):

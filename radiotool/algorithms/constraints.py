@@ -267,6 +267,9 @@ class PauseConstraint(Constraint):
 
         # pause to pause default
         new_trans[p0:, p0:] = np.inf
+
+        # pause to beat default
+        new_trans[p0:, :p0] = np.inf
         
         # must stay in pauses until min pause
         for i in range(p0, p0 + min_beats):
