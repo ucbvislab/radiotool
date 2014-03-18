@@ -435,8 +435,6 @@ cdef void divide_and_conquer_cost_and_path(
                 backward_space_efficient_cost_with_duration_constraint(
                     tc, pen[:, l_over_2:], -1, end_beat, offset + l_over_2, p, g, mv4, mv5, mv6)       
 
-        print "done with par"
-
         # stride = int(float(f.shape[0]) / 4.0)
 
         # for i in parallel.prange(4, nogil=True):
@@ -474,8 +472,6 @@ cdef void divide_and_conquer_cost_and_path(
             if minval == -1.0 or f[i] + g[i] < minval:
                 minval = f[i] + g[i]
                 opt_i = i
-
-        print "here"
 
         # print "setting time %d to %d" % (l_over_2 + offset, opt_i)
         global_path[l_over_2 + offset] = opt_i
@@ -531,21 +527,13 @@ cpdef int[:] build_table(double[:, :] trans_cost, double[:, :] penalty,
     cdef array array1, array2, array3, array4, array5, array6, array7, array8
     cdef double[:] mv1, mv2, mv3, mv4, mv5, mv6, f, g
     array1 = clone(dtemplate, p.all_full, False)
-    print "a1"
     array2 = clone(dtemplate, p.all_full, False)
-    print "a2"
     array3 = clone(dtemplate, p.all_full, False)
-    print "a3"
     array4 = clone(dtemplate, p.all_full, False)
-    print "a4"
     array5 = clone(dtemplate, p.all_full, False)
-    print "a5"
     array6 = clone(dtemplate, p.all_full, False)
-    print "a6"
     array7 = clone(dtemplate, p.all_full, False)
-    print "a7"
     array8 = clone(dtemplate, p.all_full, False)
-    print "a8"
     f = array1
     g = array2
     mv1 = array3
@@ -557,7 +545,6 @@ cpdef int[:] build_table(double[:, :] trans_cost, double[:, :] penalty,
 
     cdef array ar, template = array('i')
     ar = clone(template, penalty.shape[1], False)
-    print "ar"
     cdef int[:] global_path = ar
 
     divide_and_conquer_cost_and_path(trans_cost, penalty, -1, -1, 0, global_path, p,
