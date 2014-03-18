@@ -265,7 +265,7 @@ cdef void backward_space_efficient_cost_with_duration_constraint(
                 min_vals[idx] = minval
 
             # beat segment between min beat and max beat
-            for idx in range(p.n_beats * (p.min_beats - 1), p.n_beats * p.max_beats):
+            for idx in range(p.n_beats * (p.min_beats - 1), p.n_beats * (p.max_beats - 1)):
                 beat_seg_i = idx / p.n_beats
                 orig_beat_i = idx % p.n_beats
 
@@ -283,33 +283,12 @@ cdef void backward_space_efficient_cost_with_duration_constraint(
 
                 min_vals[idx] = minval
 
-            if p.max_beats_with_padding > p.max_beats:
-                # padding doesn't mean anything with this current formulation                
+            # max beat segment
+            for idx in range(p.n_beats * (p.max_beats - 1), p.n_beats * p.max_beats):
+                orig_beat_i = idx % p.n_beats
 
-                # beat segment after max beat
-                for idx in range(p.n_beats * p.max_beats, p.p0_full - p.n_beats):
-                    # can't go anywhere. hard constraint.
-                    # this is going to disallow this at the end of the song.
-
-                    min_vals[idx] = 99999999.0
-
-                    # beat_seg_i = idx / p.n_beats
-                    # orig_beat_i = idx % p.n_beats
-
-                    # # could only be going to beat_seg_i + 1
-                    # seg_start_beat = (beat_seg_i + 1) * p.n_beats
-                    # minval = -1
-                    # for j in range(p.n_beats):
-                    #     tmpval = tc[orig_beat_i, j] + pen_val[idx] + cost[seg_start_beat + j]
-                    #     if minval == -1 or tmpval < minval:
-                    #         minval = tmpval
-
-                    # min_vals[idx] = minval
-
-                # absolute max beat segment
-                for idx in range(p.n_beats * (p.max_beats_with_padding - 1), p.p0_full):
-                    # can't go anywhere. hard constraint.
-                    min_vals[idx] = 99999999.0
+                # must be going to first pause beat
+                min_vals[idx] = tc[orig_beat_i, p.p0] + pen_val[idx] + cost[p.p0_full]
 
             # pause beats except the last one
             for idx in range(p.p0_full, p.all_full - 1):
