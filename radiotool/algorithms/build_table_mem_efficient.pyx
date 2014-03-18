@@ -1,6 +1,7 @@
 #cython: infer_types=True
 #cython: boundscheck=True
 #cython: wraparound=False
+#cython: profile=True
 #cython: cdivision=True
 import cython
 from cpython.array cimport array, clone

@@ -1,5 +1,6 @@
 import copy
 from collections import namedtuple
+import time
 
 import numpy as N
 
@@ -247,28 +248,6 @@ def retarget(song, duration, music_labels=None, out_labels=None, out_penalty=Non
 
     print "Building cost table"
 
-    # fortran method
-    # cost2, prev_node2 = build_table(trans_cost2, penalty2)
-    # res = cost2[:, -1]
-    # best_idx = N.argmin(res)
-    # if N.isfinite(res[best_idx]):
-    #     path2, path_cost2 = _reconstruct_path(
-    #         prev_node2, cost2, beat_names2, best_idx, N.shape(cost2)[1] - 1)
-    #     opt_path2 = [beat_names2.index(x) for x in path2]
-    # else:
-    #     # throw an exception here?
-    #     return None
-
-    # path_cost2 = []
-    # for i, node in enumerate(path2):
-    #     if i == 0:
-    #         path_cost2.append(0)
-    #     else:
-    #         path_cost2.append(trans_cost2[path2[i - 1], node] + penalty2[node, i])
-    # path_cost2 = N.array(path_cost2)
-
-
-
     # compute the dynamic programming table (prev python method)
     # cost, prev_node = _build_table(analysis, duration, start, target, pen)
 
@@ -281,13 +260,7 @@ def retarget(song, duration, music_labels=None, out_labels=None, out_penalty=Non
 
     max_beats = 200
     min_beats = 40
-    # max_beats = min(max_beats, penalty.shape[1])
-
-    # max_beats = None
-    # min_beats = None
-
-    # path2_i, path2_cost = _build_table_forward_backward(trans_cost2, penalty2,
-    #     first_pause=first_pause, max_beats=max_beats, min_beats=min_beats)
+    max_beats = min(max_beats, penalty.shape[1])
 
     tc2 = N.nan_to_num(trans_cost)
     pen2 = N.nan_to_num(penalty)
@@ -296,41 +269,11 @@ def retarget(song, duration, music_labels=None, out_labels=None, out_penalty=Non
         print "Running optimization (parallel, memory efficient) with min_beats(%d) and max_beats(%d)" %\
             (min_beats, max_beats)
 
-        # path2_i = build_table_mem_efficient(tc2, pen2,
-        #     first_pause=first_pause, max_beats=max_beats, min_beats=min_beats)
-        # path2_i = N.array([x for x in path2_i])
-
-
-        # import pstats, cProfile
-
-        # cProfile.runctx(
-        #     "path3_i = build_table_mem_efficient(tc2, pen2, first_pause=first_pause, max_beats=max_beats, min_beats=min_beats)",
-        #     globals(), locals(), "Profile.prof")
-
-        # s = pstats.Stats("Profile.prof")
-        # s.strip_dirs().sort_stats("time").print_stats()
-
-        # cProfile.runctx(
-        #     "path2_i = par_build_table(tc2, pen2, first_pause=first_pause, max_beats=max_beats, min_beats=min_beats)",
-        #     globals(), locals(), "Profile2.prof")
-
-        # s2 = pstats.Stats("Profile2.prof")
-        # s2.strip_dirs().sort_stats("time").print_stats()
-
-
-        # import pdb; pdb.set_trace()
-
-        import time
         t1 = time.clock()
         path_i = par_build_table(tc2, pen2,
             first_pause=first_pause, max_beats=max_beats, min_beats=min_beats)
         path_i = [x for x in path_i]
         t2 = time.clock()
-
-        with open("memeff-path.txt", 'w') as f:
-            for i,x in enumerate(path_i):
-                f.write(str(i) + ' ' + str(x) + "\n")
-
 
         print "Built table in %f seconds" % (t2 - t1)
 
@@ -412,10 +355,6 @@ def _reconstruct_path(prev_node, cost_table, beat_names, end, length):
         node = prev_node[int(node), length]
         path.append(node)
         length -= 1
-
-    with open("fortran-path.txt", 'w') as f:
-        for i,x in enumerate(reversed(path)):
-            f.write(str(i) + ' ' + str(x) + "\n")
 
     beat_path = [beat_names[int(n)] for n in reversed(path)]
 
