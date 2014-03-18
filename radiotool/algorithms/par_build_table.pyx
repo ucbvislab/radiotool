@@ -73,7 +73,7 @@ cdef void get_tc_column(double[:, :] tc, int column, double[:] tc_column, int ba
         for i in range(p.p0_full):
             tc_column[i] += p.pen_val
 
-        beat_seg_i = int(column / float(p.n_beats))
+        beat_seg_i = column / p.n_beats
 
         if (beat_seg_i > 0) and (not backward):
             for i in range((beat_seg_i - 1) * p.n_beats, beat_seg_i * p.n_beats):
@@ -127,9 +127,8 @@ cdef void space_efficient_cost_with_duration_constraint(
     double[:, :] tc, double[:, :] pen, int start_beat, int end_beat, int global_start_l, Params p,
     double[:] cost, double[:] pen_val, double[:] vals_col, double[:] min_vals) nogil:
 
-
-    cdef int l, idx, i
-    cdef double minval
+    cdef int l, idx, i, beat_seg_i, seg_start_beat, j, full_j, orig_beat_j
+    cdef double minval, tmpval
 
     # generate initial cost
     if start_beat != -1:
@@ -155,13 +154,62 @@ cdef void space_efficient_cost_with_duration_constraint(
 
         else:
             get_pen_column(pen, l, pen_val, global_start_l + l, p)
-            for idx in range(p.all_full):
-                get_tc_column(tc, idx, vals_col, 0, p)
 
+            # Based on the nature of our problem
+            # we have a HARD CONSTRAINT that the music
+            # must move forward in the beat segment index.
+
+            # This means that we don't need to check any of the
+            # transitions except those that move to the next
+            # beat segment index, or that go to a pause.
+            # Or if we're in a pause, those that go to 
+            # other pauses or go to the first beat segment index.
+
+            # categories of beats we could be going to
+
+            # first beat segment
+            for idx in range(p.n_beats):
+                # could only get here from the last pause beat
+                min_vals[idx] = tc[p.n_beats + p.n_pauses - 1, idx] + pen_val[idx] + cost[p.all_full - 1]
+
+            # all other music beat segments
+            for idx in range(p.n_beats, p.p0_full):
+                beat_seg_i = idx / p.n_beats
+                orig_beat_i = idx % p.n_beats
+
+                # must have gotten here from beat_seg_i - 1
+                # and minimum value will be min cost from
+                # another music beat
+                seg_start_beat = (beat_seg_i - 1) * p.n_beats
                 minval = -1
-                for i in range(cost.shape[0]):
-                    if minval == -1 or vals_col[i] + cost[i] + pen_val[idx] < minval:
-                        minval = vals_col[i] + cost[i] + pen_val[idx]
+                for j in range(p.n_beats):
+                    tmpval = tc[j, orig_beat_i] + pen_val[idx] + cost[seg_start_beat + j]
+                    if minval == -1 or tmpval < minval:
+                        minval = tmpval
+
+                min_vals[idx] = minval
+
+            # first pause beat:
+            # must have gotten here from 
+            # min beat <= beat seg <= max beat
+            minval = -1
+            for full_j in range(p.n_beats * (p.min_beats - 1), p.n_beats * p.max_beats):
+                orig_beat_j = full_j % p.n_beats
+                tmpval = tc[orig_beat_j, p.p0] + pen_val[p.p0_full] + cost[full_j]
+                if minval == -1 or tmpval < minval:
+                    minval = tmpval
+            min_vals[p.p0_full] = minval
+
+            # other pause beat
+            for idx in range(p.p0_full + 1, p.all_full):
+                orig_beat_i = p.p0 + (idx - p.p0_full)
+
+                # must have gotten here from another pause beat
+                minval = -1
+                for j in range(p.n_pauses):
+                    tmpval = tc[p.p0 + j, orig_beat_i] + pen_val[idx] + cost[p.p0_full + j]
+                    if minval == -1 or tmpval < minval:
+                        minval = tmpval
                 min_vals[idx] = minval
 
         cost[:] = min_vals
@@ -171,8 +219,8 @@ cdef void backward_space_efficient_cost_with_duration_constraint(
     double[:, :] tc, double[:, :] pen, int start_beat, int end_beat, int global_start_l, Params p,
     double[:] cost, double[:] pen_val, double[:] vals_col, double[:] min_vals) nogil:
     
-    cdef int l, idx, i
-    cdef double minval
+    cdef int l, idx, i, beat_seg_i, seg_start_beat, j, full_j, orig_beat_j
+    cdef double minval, tmpval
     
     # generate initial cost
     if end_beat != -1:
@@ -198,14 +246,90 @@ cdef void backward_space_efficient_cost_with_duration_constraint(
 
         else:
             get_pen_column(pen, l, pen_val, global_start_l + l, p)
-            for idx in xrange(p.all_full):
-                get_tc_column(tc, idx, vals_col, 1, p)
 
+            # categories of beats we could be at before this one
+
+            # beat segment before min_beat
+            for idx in range(p.n_beats * (p.min_beats - 1)):
+                beat_seg_i = idx / p.n_beats
+                orig_beat_i = idx % p.n_beats
+
+                # could only be going to beat_seg_i + 1
+                seg_start_beat = (beat_seg_i + 1) * p.n_beats
                 minval = -1
-                for i in range(cost.shape[0]):
-                    if minval == -1 or vals_col[i] + cost[i] + pen_val[idx] < minval:
-                        minval = vals_col[i] + cost[i] + pen_val[idx]
+                for j in range(p.n_beats):
+                    tmpval = tc[orig_beat_i, j] + pen_val[idx] + cost[seg_start_beat + j]
+                    if minval == -1 or tmpval < minval:
+                        minval = tmpval
+
                 min_vals[idx] = minval
+
+            # beat segment between min beat and max beat
+            for idx in range(p.n_beats * (p.min_beats - 1), p.n_beats * p.max_beats):
+                beat_seg_i = idx / p.n_beats
+                orig_beat_i = idx % p.n_beats
+
+                # could be going to beat_seg_i + 1
+                seg_start_beat = (beat_seg_i + 1) * p.n_beats
+                minval = -1
+                for j in range(p.n_beats):
+                    tmpval = tc[orig_beat_i, j] + pen_val[idx] + cost[seg_start_beat + j]
+                    if minval == -1 or tmpval < minval:
+                        minval = tmpval
+                # or could be going to first pause beat
+                tmpval = tc[orig_beat_i, p.p0] + pen_val[idx] + cost[p.p0_full]
+                if minval == -1 or tmpval < minval:
+                    minval = tmpval
+
+                min_vals[idx] = minval
+
+            if p.max_beats_with_padding > p.max_beats:
+                # padding doesn't mean anything with this current formulation                
+
+                # beat segment after max beat
+                for idx in range(p.n_beats * p.max_beats, p.p0_full - p.n_beats):
+                    # can't go anywhere. hard constraint.
+                    # this is going to disallow this at the end of the song.
+
+                    min_vals[idx] = 99999999.0
+
+                    # beat_seg_i = idx / p.n_beats
+                    # orig_beat_i = idx % p.n_beats
+
+                    # # could only be going to beat_seg_i + 1
+                    # seg_start_beat = (beat_seg_i + 1) * p.n_beats
+                    # minval = -1
+                    # for j in range(p.n_beats):
+                    #     tmpval = tc[orig_beat_i, j] + pen_val[idx] + cost[seg_start_beat + j]
+                    #     if minval == -1 or tmpval < minval:
+                    #         minval = tmpval
+
+                    # min_vals[idx] = minval
+
+                # absolute max beat segment
+                for idx in range(p.n_beats * (p.max_beats_with_padding - 1), p.p0_full):
+                    # can't go anywhere. hard constraint.
+                    min_vals[idx] = 99999999.0
+
+            # pause beats except the last one
+            for idx in range(p.p0_full, p.all_full - 1):
+                orig_beat_i = p.p0 + (idx - p.p0_full)
+
+                # could only be going to another pause beat
+                minval = -1
+                for j in range(p.n_pauses):
+                    tmpval = tc[orig_beat_i, p.p0 + j] + pen_val[idx] + cost[p.p0_full + j]
+                    if minval == -1 or tmpval < minval:
+                        minval = tmpval
+                min_vals[idx] = minval
+
+            # last pause beat
+            minval = -1
+            for j in range(p.n_beats):
+                tmpval = tc[p.p0 + p.n_pauses - 1, j] + pen_val[p.all_full - 1] + cost[j]
+                if minval == -1 or tmpval < minval:
+                    minval = tmpval
+            min_vals[p.all_full - 1] = minval
 
         cost[:] = min_vals
 
@@ -235,17 +359,17 @@ cdef void divide_and_conquer_cost_and_path(
     cdef int prange_i, stride
 
     # par stuff
-    cdef int oi1, oi2, oi3, oi4
-    cdef double min1, min2, min3, min4
-    cdef array dtemplate = array('d')
-    cdef array itemplate = array('i')
-    cdef ar1, ar2
-    cdef double[:] min_val_arr
-    cdef int[:] opt_i_arr
-    ar1 = clone(dtemplate, 4, False)
-    ar2 = clone(itemplate, 4, False)
-    min_val_arr = ar1
-    opt_i_arr = ar2
+    # cdef int oi1, oi2, oi3, oi4
+    # cdef double min1, min2, min3, min4
+    # cdef array dtemplate = array('d')
+    # cdef array itemplate = array('i')
+    # cdef ar1, ar2
+    # cdef double[:] min_val_arr
+    # cdef int[:] opt_i_arr
+    # ar1 = clone(dtemplate, 4, False)
+    # ar2 = clone(itemplate, 4, False)
+    # min_val_arr = ar1
+    # opt_i_arr = ar2
 
     if l == 0:
         pass
@@ -296,7 +420,7 @@ cdef void divide_and_conquer_cost_and_path(
         # global_path[offset:offset + pen.shape[1]] = opt_path
 
     else:
-        l_over_2 = int(float(l) / 2.0)
+        l_over_2 = l / 2
 
         # space_efficient_cost_with_duration_constraint(
         #     tc, pen[:, :l_over_2 + 1], start_beat, -1, offset, p, f, mv1, mv2, mv3)
@@ -311,45 +435,47 @@ cdef void divide_and_conquer_cost_and_path(
                 backward_space_efficient_cost_with_duration_constraint(
                     tc, pen[:, l_over_2:], -1, end_beat, offset + l_over_2, p, g, mv4, mv5, mv6)       
 
-        
+        print "done with par"
 
-        stride = int(float(f.shape[0]) / 4.0)
+        # stride = int(float(f.shape[0]) / 4.0)
 
-        for i in parallel.prange(4, nogil=True):
-            if i == 0:
-                opt_i_arr[i] = minimum(f[:stride], g[:stride])
-                min_val_arr[i] = f[opt_i_arr[i]] + g[opt_i_arr[i]]
-            if i == 1:
-                opt_i_arr[i] = stride + minimum(f[stride:2 * stride], g[stride:2 * stride])
-                min_val_arr[i] = f[opt_i_arr[i]] + g[opt_i_arr[i]]
-            if i == 2:
-                opt_i_arr[i] = 2 * stride + minimum(f[2 * stride:3 * stride], g[2 * stride:3 * stride])
-                min_val_arr[i] = f[opt_i_arr[i]] + g[opt_i_arr[i]]
-            if i == 3:
-                opt_i_arr[i] = 3 * stride + minimum(f[3 * stride:], g[3 * stride:])
-                min_val_arr[i] = f[opt_i_arr[i]] + g[opt_i_arr[i]]
+        # for i in parallel.prange(4, nogil=True):
+        #     if i == 0:
+        #         opt_i_arr[i] = minimum(f[:stride], g[:stride])
+        #         min_val_arr[i] = f[opt_i_arr[i]] + g[opt_i_arr[i]]
+        #     if i == 1:
+        #         opt_i_arr[i] = stride + minimum(f[stride:2 * stride], g[stride:2 * stride])
+        #         min_val_arr[i] = f[opt_i_arr[i]] + g[opt_i_arr[i]]
+        #     if i == 2:
+        #         opt_i_arr[i] = 2 * stride + minimum(f[2 * stride:3 * stride], g[2 * stride:3 * stride])
+        #         min_val_arr[i] = f[opt_i_arr[i]] + g[opt_i_arr[i]]
+        #     if i == 3:
+        #         opt_i_arr[i] = 3 * stride + minimum(f[3 * stride:], g[3 * stride:])
+        #         min_val_arr[i] = f[opt_i_arr[i]] + g[opt_i_arr[i]]
 
-        opt_i = 0
-        minval = min_val_arr[0]
-        if min_val_arr[1] < minval:
-            opt_i = 1
-            minval = min_val_arr[1]
-        if min_val_arr[2] < minval:
-            opt_i = 2
-            minval = min_val_arr[2]
-        if min_val_arr[3] < minval:
-            opt_i = 3
-            minval = min_val_arr[3]
+        # opt_i = 0
+        # minval = min_val_arr[0]
+        # if min_val_arr[1] < minval:
+        #     opt_i = 1
+        #     minval = min_val_arr[1]
+        # if min_val_arr[2] < minval:
+        #     opt_i = 2
+        #     minval = min_val_arr[2]
+        # if min_val_arr[3] < minval:
+        #     opt_i = 3
+        #     minval = min_val_arr[3]
 
-        opt_i = opt_i_arr[opt_i]
+        # opt_i = opt_i_arr[opt_i]
 
         # ## -- OLD WAY -- ##
-        # minval = -1.0
-        # opt_i = 0
-        # for i in range(f.shape[0]):
-        #     if minval == -1.0 or f[i] + g[i] < minval:
-        #         minval = f[i] + g[i]
-        #         opt_i = i
+        minval = -1.0
+        opt_i = 0
+        for i in range(f.shape[0]):
+            if minval == -1.0 or f[i] + g[i] < minval:
+                minval = f[i] + g[i]
+                opt_i = i
+
+        print "here"
 
         # print "setting time %d to %d" % (l_over_2 + offset, opt_i)
         global_path[l_over_2 + offset] = opt_i
@@ -374,10 +500,11 @@ cpdef int[:] build_table(double[:, :] trans_cost, double[:, :] penalty,
     cdef int max_beats_with_padding, i
 
     if max_beats != -1 and min_beats != -1:
-        max_beats_with_padding = min_beats + max_beats
+        # max_beats_with_padding = min_beats + max_beats
+        max_beats_with_padding = max_beats
     elif max_beats != -1:
-        # 8? Two measures of padding? Just a thought
-        max_beats_with_padding = max_beats + 8
+        # 4? One measures of padding? Just a thought
+        max_beats_with_padding = max_beats
     elif min_beats != -1:
         max_beats = -1
         max_beats_with_padding = min_beats
@@ -387,7 +514,7 @@ cpdef int[:] build_table(double[:, :] trans_cost, double[:, :] penalty,
         min_beats = 0
 
     cdef Params p
-    p.pen_val = 1.0
+    p.pen_val = 99999999.0
     p.p0 = first_pause
     p.n_beats = p.p0
     p.n_pauses = trans_cost.shape[0] - p.p0
@@ -397,18 +524,28 @@ cpdef int[:] build_table(double[:, :] trans_cost, double[:, :] penalty,
     p.p0_full = p.n_beats * p.max_beats_with_padding
     p.all_full = p.p0_full + p.n_pauses
 
+    print "build table all_full:", p.all_full
+
     # double arrays for use throughout the computation
     cdef array dtemplate = array('d')
     cdef array array1, array2, array3, array4, array5, array6, array7, array8
     cdef double[:] mv1, mv2, mv3, mv4, mv5, mv6, f, g
     array1 = clone(dtemplate, p.all_full, False)
+    print "a1"
     array2 = clone(dtemplate, p.all_full, False)
+    print "a2"
     array3 = clone(dtemplate, p.all_full, False)
+    print "a3"
     array4 = clone(dtemplate, p.all_full, False)
+    print "a4"
     array5 = clone(dtemplate, p.all_full, False)
+    print "a5"
     array6 = clone(dtemplate, p.all_full, False)
+    print "a6"
     array7 = clone(dtemplate, p.all_full, False)
+    print "a7"
     array8 = clone(dtemplate, p.all_full, False)
+    print "a8"
     f = array1
     g = array2
     mv1 = array3
@@ -420,6 +557,7 @@ cpdef int[:] build_table(double[:, :] trans_cost, double[:, :] penalty,
 
     cdef array ar, template = array('i')
     ar = clone(template, penalty.shape[1], False)
+    print "ar"
     cdef int[:] global_path = ar
 
     divide_and_conquer_cost_and_path(trans_cost, penalty, -1, -1, 0, global_path, p,

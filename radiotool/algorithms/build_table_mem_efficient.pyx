@@ -1,7 +1,6 @@
 #cython: infer_types=True
 #cython: boundscheck=False
 #cython: wraparound=False
-#cython: profile=True
 #cython: cdivision=True
 import cython
 from cpython.array cimport array, clone
@@ -71,7 +70,7 @@ cdef void get_tc_column(double[:, :] tc, int column, double[:] tc_column, int ba
         for i in range(p.p0_full):
             tc_column[i] += p.pen_val
 
-        beat_seg_i = int(column / float(p.n_beats))
+        beat_seg_i = column / p.n_beats
 
         if (beat_seg_i > 0) and (not backward):
             for i in range((beat_seg_i - 1) * p.n_beats, beat_seg_i * p.n_beats):
@@ -280,25 +279,33 @@ cdef void backward_space_efficient_cost_with_duration_constraint(
 
                 min_vals[idx] = minval
 
-            # beat segment after max beat
-            for idx in range(p.n_beats * p.max_beats, p.p0_full - p.n_beats):
-                beat_seg_i = idx / p.n_beats
-                orig_beat_i = idx % p.n_beats
+            if p.max_beats_with_padding > p.max_beats:
+                # padding doesn't mean anything
 
-                # could only be going to beat_seg_i + 1
-                seg_start_beat = (beat_seg_i + 1) * p.n_beats
-                minval = -1
-                for j in range(p.n_beats):
-                    tmpval = tc[orig_beat_i, j] + pen_val[idx] + cost[seg_start_beat + j]
-                    if minval == -1 or tmpval < minval:
-                        minval = tmpval
+                # beat segment after max beat
+                for idx in range(p.n_beats * p.max_beats, p.p0_full - p.n_beats):
+                    # can't go anywhere. hard constraint.
+                    # this is going to disallow this at the end of the song.
 
-                min_vals[idx] = minval
+                    min_vals[idx] = 99999999.0
 
-            # absolute max beat segment
-            for idx in range(p.n_beats * (p.max_beats_with_padding - 1), p.p0_full):
-                # can't go anywhere. hard constraint.
-                min_vals[idx] = 99999999.0
+                    # beat_seg_i = idx / p.n_beats
+                    # orig_beat_i = idx % p.n_beats
+
+                    # # could only be going to beat_seg_i + 1
+                    # seg_start_beat = (beat_seg_i + 1) * p.n_beats
+                    # minval = -1
+                    # for j in range(p.n_beats):
+                    #     tmpval = tc[orig_beat_i, j] + pen_val[idx] + cost[seg_start_beat + j]
+                    #     if minval == -1 or tmpval < minval:
+                    #         minval = tmpval
+
+                    # min_vals[idx] = minval
+
+                # absolute max beat segment
+                for idx in range(p.n_beats * (p.max_beats_with_padding - 1), p.p0_full):
+                    # can't go anywhere. hard constraint.
+                    min_vals[idx] = 99999999.0
 
             # pause beats except the last one
             for idx in range(p.p0_full, p.all_full - 1):
@@ -383,18 +390,11 @@ cdef void divide_and_conquer_cost_and_path(
         # global_path[offset:offset + pen.shape[1]] = opt_path
 
     else:
-        l_over_2 = int(float(l) / 2.0)
+        l_over_2 = l / 2
 
         # not sure why we need 8 of these arrays instead of 4
         space_efficient_cost_with_duration_constraint(
             tc, pen[:, :l_over_2 + 1], start_beat, -1, offset, p, f, mv1, mv2, mv3)
-
-        minval = -1.0
-        opt_i = 0
-        for i in range(f.shape[0]):
-            if minval == -1.0 or f[i] < minval:
-                minval = f[i]
-                opt_i = i
 
         backward_space_efficient_cost_with_duration_constraint(
             tc, pen[:, l_over_2:], -1, end_beat, offset + l_over_2, p, g, mv4, mv5, mv6)
@@ -428,10 +428,11 @@ cpdef int[:] build_table(double[:, :] trans_cost, double[:, :] penalty,
     cdef int max_beats_with_padding, i
 
     if max_beats != -1 and min_beats != -1:
-        max_beats_with_padding = min_beats + max_beats
+        # max_beats_with_padding = min_beats + max_beats
+        max_beats_with_padding = max_beats
     elif max_beats != -1:
-        # 8? Two measures of padding? Just a thought
-        max_beats_with_padding = max_beats + 8
+        # 4? One measures of padding? Just a thought
+        max_beats_with_padding = max_beats
     elif min_beats != -1:
         max_beats = -1
         max_beats_with_padding = min_beats
