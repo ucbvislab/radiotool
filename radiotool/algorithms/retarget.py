@@ -238,7 +238,7 @@ def retarget(song, duration, music_labels=None, out_labels=None, out_penalty=Non
         constraints.MinimumJumpConstraint(8),
         constraints.LabelConstraint(start, target, pen),
         constraints.NoveltyConstraint(start, target, pen),
-        # constraints.MusicDurationConstraint(song.analysis["avg_beat_duration"]*4, song.analysis["avg_beat_duration"]*32)
+        # constraints.MusicDurationConstraint(song.analysis["avg_beat_duration"]*4, song.analysis["avg_beat_duration"]*8)
     ))
 
     trans_cost, penalty, beat_names = pipeline.apply(song, len(target))
@@ -278,9 +278,9 @@ def retarget(song, duration, music_labels=None, out_labels=None, out_penalty=Non
             first_pause = i
             break
 
-    max_beats = 200
-    min_beats = 40
-    max_beats = min(max_beats, penalty.shape[1])
+    max_beats = 8
+    min_beats = 4
+    # max_beats = min(max_beats, penalty.shape[1])
 
     # max_beats = None
     # min_beats = None

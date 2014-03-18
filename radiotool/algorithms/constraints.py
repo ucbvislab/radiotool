@@ -401,30 +401,28 @@ class MusicDurationConstraint(Constraint):
         beat_len = song.analysis["avg_beat_duration"]
         minlen = int(self.minlen / beat_len)
         maxlen = int(self.maxlen / beat_len)
-        maxlen_with_padding = maxlen + minlen
         beats = song.analysis["beats"]
         n_beats = len(beats)
         n_pause_beats = transition_cost.shape[0] - n_beats
 
-        pen_val = 1.0
-
-        print "max len with padding", maxlen_with_padding
+        # basically infinity.
+        pen_val = 99999999.0
 
         # Create new transition cost table
         # (beat * beat index in max span) x (beat * beat index in max span of music)
         # Is this too large?
-        new_tc_size = n_beats * maxlen_with_padding + n_pause_beats
-        p0 = n_beats * maxlen_with_padding
+        new_tc_size = n_beats * maxlen + n_pause_beats
+        p0 = n_beats * maxlen
         new_tc = np.empty((new_tc_size, new_tc_size))
 
         # tile the tc over this new table
         new_tc[:p0, :p0] = np.tile(transition_cost[:n_beats, :n_beats],
-            (maxlen_with_padding, maxlen_with_padding))
+            (maxlen, maxlen))
         # tile the pause information as well
         new_tc[:p0, p0:] = np.tile(transition_cost[:n_beats, n_beats:],
-            (maxlen_with_padding, 1))
+            (maxlen, 1))
         new_tc[p0:, :p0] = np.tile(transition_cost[n_beats:, :n_beats],
-            (1, maxlen_with_padding))
+            (1, maxlen))
         new_tc[p0:, p0:] = transition_cost[n_beats:, n_beats:]
 
         # Create new penalty table
@@ -433,19 +431,19 @@ class MusicDurationConstraint(Constraint):
 
         # tile the tc over this new table
         new_pen[:p0, :] = np.tile(penalty[:n_beats, :],
-            (maxlen_with_padding, 1))
+            (maxlen, 1))
         new_pen[p0:, :] = penalty[n_beats:, :]
 
 
         #--- CONSTRAINTS ---#
         # * don't start song in segment beat other than first
-        new_pen[n_beats:(n_beats * maxlen_with_padding), 0] += pen_val
+        new_pen[n_beats:(n_beats * maxlen), 0] += pen_val
 
         # * don't go to pause before minimum length music segment
         new_tc[:(n_beats * minlen), p0] += pen_val
 
-        # * don't go to pause after maximum length music segment
-        new_tc[n_beats * (maxlen + 1):n_beats * (maxlen_with_padding + 1), p0] += pen_val
+        # * must go to pause if we're at the maxlen-th beat
+        new_tc[n_beats * (maxlen - 1):n_beats * maxlen, :p0] += pen_val
 
         # * after pause, don't go to non-first segment beat
         new_tc[p0:, n_beats:p0] += pen_val
@@ -453,14 +451,14 @@ class MusicDurationConstraint(Constraint):
         # * don't move between beats that don't follow 
         #   the segment index
         new_tc[:p0, :p0] += pen_val
-        for i in xrange(1, maxlen_with_padding):
+        for i in xrange(1, maxlen):
             new_tc[(i - 1) * n_beats:i * n_beats,
                    i * n_beats:(i + 1) * n_beats] -= pen_val
 
         # update beat_names
         pause_names = beat_names[n_beats:]
         new_beat_names = []
-        for rep in xrange(maxlen_with_padding):
+        for rep in xrange(maxlen):
             new_beat_names.extend(beat_names[:n_beats])
         new_beat_names.extend(pause_names)
 

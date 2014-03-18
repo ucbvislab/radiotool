@@ -338,17 +338,17 @@ cdef void divide_and_conquer_cost_and_path(
     cdef int prange_i, stride
 
     # par stuff
-    # cdef int oi1, oi2, oi3, oi4
-    # cdef double min1, min2, min3, min4
-    # cdef array dtemplate = array('d')
-    # cdef array itemplate = array('i')
-    # cdef ar1, ar2
-    # cdef double[:] min_val_arr
-    # cdef int[:] opt_i_arr
-    # ar1 = clone(dtemplate, 4, False)
-    # ar2 = clone(itemplate, 4, False)
-    # min_val_arr = ar1
-    # opt_i_arr = ar2
+    cdef int oi1, oi2, oi3, oi4
+    cdef double min1, min2, min3, min4
+    cdef array dtemplate = array('d')
+    cdef array itemplate = array('i')
+    cdef ar1, ar2
+    cdef double[:] min_val_arr
+    cdef int[:] opt_i_arr
+    ar1 = clone(dtemplate, 4, False)
+    ar2 = clone(itemplate, 4, False)
+    min_val_arr = ar1
+    opt_i_arr = ar2
 
     if l == 0:
         pass
@@ -414,43 +414,43 @@ cdef void divide_and_conquer_cost_and_path(
                 backward_space_efficient_cost_with_duration_constraint(
                     tc, pen[:, l_over_2:], -1, end_beat, offset + l_over_2, p, g, mv4, mv5, mv6)       
 
-        # stride = int(float(f.shape[0]) / 4.0)
+        stride = f.shape[0] / 4
 
-        # for i in parallel.prange(4, nogil=True):
-        #     if i == 0:
-        #         opt_i_arr[i] = minimum(f[:stride], g[:stride])
-        #         min_val_arr[i] = f[opt_i_arr[i]] + g[opt_i_arr[i]]
-        #     if i == 1:
-        #         opt_i_arr[i] = stride + minimum(f[stride:2 * stride], g[stride:2 * stride])
-        #         min_val_arr[i] = f[opt_i_arr[i]] + g[opt_i_arr[i]]
-        #     if i == 2:
-        #         opt_i_arr[i] = 2 * stride + minimum(f[2 * stride:3 * stride], g[2 * stride:3 * stride])
-        #         min_val_arr[i] = f[opt_i_arr[i]] + g[opt_i_arr[i]]
-        #     if i == 3:
-        #         opt_i_arr[i] = 3 * stride + minimum(f[3 * stride:], g[3 * stride:])
-        #         min_val_arr[i] = f[opt_i_arr[i]] + g[opt_i_arr[i]]
+        for i in parallel.prange(4, nogil=True):
+            if i == 0:
+                opt_i_arr[i] = minimum(f[:stride], g[:stride])
+                min_val_arr[i] = f[opt_i_arr[i]] + g[opt_i_arr[i]]
+            if i == 1:
+                opt_i_arr[i] = stride + minimum(f[stride:2 * stride], g[stride:2 * stride])
+                min_val_arr[i] = f[opt_i_arr[i]] + g[opt_i_arr[i]]
+            if i == 2:
+                opt_i_arr[i] = 2 * stride + minimum(f[2 * stride:3 * stride], g[2 * stride:3 * stride])
+                min_val_arr[i] = f[opt_i_arr[i]] + g[opt_i_arr[i]]
+            if i == 3:
+                opt_i_arr[i] = 3 * stride + minimum(f[3 * stride:], g[3 * stride:])
+                min_val_arr[i] = f[opt_i_arr[i]] + g[opt_i_arr[i]]
 
-        # opt_i = 0
-        # minval = min_val_arr[0]
-        # if min_val_arr[1] < minval:
-        #     opt_i = 1
-        #     minval = min_val_arr[1]
-        # if min_val_arr[2] < minval:
-        #     opt_i = 2
-        #     minval = min_val_arr[2]
-        # if min_val_arr[3] < minval:
-        #     opt_i = 3
-        #     minval = min_val_arr[3]
+        opt_i = 0
+        minval = min_val_arr[0]
+        if min_val_arr[1] < minval:
+            opt_i = 1
+            minval = min_val_arr[1]
+        if min_val_arr[2] < minval:
+            opt_i = 2
+            minval = min_val_arr[2]
+        if min_val_arr[3] < minval:
+            opt_i = 3
+            minval = min_val_arr[3]
 
-        # opt_i = opt_i_arr[opt_i]
+        opt_i = opt_i_arr[opt_i]
 
         # ## -- OLD WAY -- ##
-        minval = -1.0
-        opt_i = 0
-        for i in range(f.shape[0]):
-            if minval == -1.0 or f[i] + g[i] < minval:
-                minval = f[i] + g[i]
-                opt_i = i
+        # minval = -1.0
+        # opt_i = 0
+        # for i in range(f.shape[0]):
+        #     if minval == -1.0 or f[i] + g[i] < minval:
+        #         minval = f[i] + g[i]
+        #         opt_i = i
 
         # print "setting time %d to %d" % (l_over_2 + offset, opt_i)
         global_path[l_over_2 + offset] = opt_i
