@@ -329,6 +329,8 @@ def retarget(song, duration, music_labels=None, out_labels=None, out_penalty=Non
         volume_breakpoints=volume_breakpoints,
         springs=springs)
 
+    import pdb; pdb.set_trace()
+
     info = {
         "contracted": contracted,
         "cost": N.sum(path_cost) / len(path),
