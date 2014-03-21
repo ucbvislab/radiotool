@@ -265,6 +265,15 @@ def retarget(song, duration, music_labels=None, out_labels=None, out_penalty=Non
     tc2 = N.nan_to_num(trans_cost)
     pen2 = N.nan_to_num(penalty)
 
+    import pstats, cProfile
+
+    max_beats = 4
+    min_beats = 2
+    cProfile.runctx("path_i = build_table_full_backtrace(tc2, pen2, first_pause=first_pause, max_beats=max_beats, min_beats=min_beats)", globals(), locals())
+
+    s = pstats.Stats("Profile.prof")
+    s.strip_dirs().sort_stats("time").print_stats()
+
     if max_beats is not None and min_beats is not None:
         print "Running optimization (parallel, memory efficient) with min_beats(%d) and max_beats(%d)" %\
             (min_beats, max_beats)

@@ -20,6 +20,9 @@ build_table_mem_efficient = Extension('radiotool.algorithms.build_table_mem_effi
 par_build_table = Extension('radiotool.algorithms.par_build_table',
                             ['radiotool/algorithms/par_build_table.pyx'],
                             extra_compile_args=['-fopenmp', '-O3'], extra_link_args=['-fopenmp'])
+build_table_full_backtrace = Extension('radiotool.algorithms.build_table_full_backtrace',
+                                      ['radiotool/algorithms/build_table_full_backtrace.pyx'],
+                                      extra_compile_args=['-O3'])
 
 setup(name='radiotool',
       version='0.3.3',
