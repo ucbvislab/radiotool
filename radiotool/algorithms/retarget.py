@@ -233,7 +233,7 @@ def retarget(song, duration, music_labels=None, out_labels=None, out_penalty=Non
         constraints.PauseConstraint(6, 25),
         constraints.PauseEntryLabelChangeConstraint(target, .005),
         constraints.PauseExitLabelChangeConstraint(target, .005),
-        constraints.TimbrePitchConstraint(context=2),
+        constraints.TimbrePitchConstraint(context=1),
         constraints.EnergyConstraint(),
         # constraints.RhythmConstraint(3, 5.0),  # get time signature?
         constraints.MinimumJumpConstraint(8),
