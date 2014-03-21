@@ -9,6 +9,7 @@ from novelty import novelty
 from . import build_table
 from . import build_table_mem_efficient
 from . import par_build_table
+from . import build_table_full_backtrace
 import constraints
 
 Spring = namedtuple('Spring', ['time', 'duration'])
@@ -244,7 +245,7 @@ def retarget(song, duration, music_labels=None, out_labels=None, out_penalty=Non
     ))
 
     trans_cost, penalty, beat_names = pipeline.apply(song, len(target))
-    # trans_cost2, penalty2, beat_names2 = pipeline2.apply(song, len(target))
+
 
     print "Building cost table"
 
@@ -265,26 +266,16 @@ def retarget(song, duration, music_labels=None, out_labels=None, out_penalty=Non
     tc2 = N.nan_to_num(trans_cost)
     pen2 = N.nan_to_num(penalty)
 
-    import pstats, cProfile
-
-    max_beats = 4
-    min_beats = 2
-    cProfile.runctx("path_i = build_table_full_backtrace(tc2, pen2, first_pause=first_pause, max_beats=max_beats, min_beats=min_beats)", globals(), locals())
-
-    s = pstats.Stats("Profile.prof")
-    s.strip_dirs().sort_stats("time").print_stats()
-
     if max_beats is not None and min_beats is not None:
         print "Running optimization (parallel, memory efficient) with min_beats(%d) and max_beats(%d)" %\
             (min_beats, max_beats)
 
         t1 = time.clock()
-        path_i = par_build_table(tc2, pen2,
-            first_pause=first_pause, max_beats=max_beats, min_beats=min_beats)
-        path_i = [x for x in path_i]
+        path_i, path_cost = build_table_full_backtrace(
+            tc2, pen2, first_pause=first_pause,
+            max_beats=max_beats, min_beats=min_beats)
         t2 = time.clock()
-
-        print "Built table in %f seconds" % (t2 - t1)
+        print "Built table (full backtrace) in %f seconds" % (t2 - t1)
 
         path = []
         if max_beats == -1:
@@ -297,10 +288,6 @@ def retarget(song, duration, music_labels=None, out_labels=None, out_penalty=Non
                 path.append('p' + str(i - first_pause_full))
             else:
                 path.append(float(beat_names[i % n_beats]))
-
-        # need to compute path cost in the forward/backward method
-        # because of changing duration constraints
-        path_cost = N.zeros(len(path_i))
 
     else:
         print "Running optimization (fast, full table)"

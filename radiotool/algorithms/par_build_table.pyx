@@ -230,7 +230,7 @@ cdef void backward_space_efficient_cost_with_duration_constraint(
         get_pen_column(pen, pen.shape[1] - 1, cost, global_start_l + pen.shape[1] - 1, p)
 
     # optimize
-    for l in xrange(pen.shape[1] - 1, 0, -1):
+    for l in xrange(pen.shape[1] - 2, -1, -1):
         if l == 0 and start_beat != -1:
             # handle start beat set
             start_pen = get_pen_value(pen, start_beat, l, global_start_l + l, p)
@@ -372,7 +372,7 @@ cdef void divide_and_conquer_cost_and_path(
                 minval = tc_column[i] + new_pen[i]
                 opt_i = i
 
-        print "$ setting time %d to %d" % (offset + 1, opt_i)
+        # print "$ setting time %d to %d" % (offset + 1, opt_i)
         global_path[offset + 1] = opt_i
 
         # global_path_cost[offset + 1] = N.min(tc_column + new_pen)
@@ -390,7 +390,7 @@ cdef void divide_and_conquer_cost_and_path(
                 minval = tc_column[i] + new_pen[i]
                 opt_i = i
 
-        print "* setting time %d to %d" % (offset, opt_i)
+        # print "* setting time %d to %d" % (offset, opt_i)
         global_path[offset] = opt_i
         global_path[offset + 1] = end_beat
 
@@ -403,8 +403,8 @@ cdef void divide_and_conquer_cost_and_path(
     else:
         l_over_2 = l / 2
 
-        print "forward. start beat:", start_beat, "offset:", offset, "length:", pen[:, :l_over_2 + 1].shape[1]
-        print "backwrd. end   beat:", end_beat, "offset:", offset + l_over_2, "length:", pen[:, l_over_2:].shape[1]
+        # print "forward. start beat:", start_beat, "offset:", offset, "length:", pen[:, :l_over_2 + 1].shape[1]
+        # print "backwrd. end   beat:", end_beat, "offset:", offset + l_over_2, "length:", pen[:, l_over_2:].shape[1]
 
         for prange_i in parallel.prange(2, nogil=True):
             if prange_i == 0:
@@ -414,7 +414,7 @@ cdef void divide_and_conquer_cost_and_path(
                 backward_space_efficient_cost_with_duration_constraint(
                     tc, pen[:, l_over_2:], -1, end_beat, offset + l_over_2, p, g, mv4, mv5, mv6)       
 
-        print "finding minimum"
+        # print "finding minimum"
 
         # stride = f.shape[0] / 4
 
@@ -454,7 +454,7 @@ cdef void divide_and_conquer_cost_and_path(
                 minval = f[i] + g[i]
                 opt_i = i
 
-        print "setting time %d to %d" % (l_over_2 + offset, opt_i)
+        # print "setting time %d to %d" % (l_over_2 + offset, opt_i)
         # print "cost", f[opt_i] + g[opt_i]
 
         # for i in range(f.shape[0]):

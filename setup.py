@@ -36,7 +36,7 @@ setup(name='radiotool',
             'radiotool.composer',
             'radiotool.algorithms'
       ],
-      ext_modules = [build_table_mem_efficient, par_build_table],
+      ext_modules = [build_table_mem_efficient, par_build_table, build_table_full_backtrace],
       cmdclass = {'build_ext': build_ext},
       script_args = ['build_ext', '--inplace'],
       license='GPL v3',
