@@ -64,21 +64,18 @@ class TimbrePitchConstraint(Constraint):
         timbre_dist = librosa_analysis.structure(np.array(song.analysis['timbres']).T)
         chroma_dist = librosa_analysis.structure(np.array(song.analysis['chroma']).T)
 
-        dists = self.tw * timbre_dist + self.cw * chroma_dist
+        dists = 1.5 * (self.tw * timbre_dist + self.cw * chroma_dist)
 
         if self.m > 1:
-            new_dists = np.zeros(dists.shape)
+            new_dists = np.copy(dists)
             coefs = [binom(self.m * 2, i) for i in range(self.m * 2 + 1)]
             coefs = np.array(coefs) / np.sum(coefs)
-            for beat_i in xrange(dists.shape[0]):
-                for beat_j in xrange(dists.shape[1]):
-                    entry = 0.0
+            for beat_i in xrange(self.m, dists.shape[0] - self.m):
+                for beat_j in xrange(self.m, dists.shape[1] - self.m):
+                    new_dists[beat_i, beat_j] = 0.0
                     for i, c in enumerate(coefs):
                         t = i - self.m
-                        if beat_i + t >= 0 and beat_i + t < dists.shape[0] and\
-                            beat_j + t >= 0 and beat_j + t < dists.shape[1]:
-                            entry += c * dists[beat_i + t, beat_j + t]
-                    new_dists[beat_i, beat_j] = entry
+                        new_dists[beat_i, beat_j] += c * dists[beat_i + t, beat_j + t]
 
             dists = new_dists
 
@@ -95,7 +92,7 @@ class TimbrePitchConstraint(Constraint):
         return transition_cost, penalty, beat_names
 
     def __repr__(self):
-        return "TimbrePitchConstraint: %f(timbre) + %f(chroma)" % (self.tw, self.cw)
+        return "TimbrePitchConstraint: %f(timbre) + %f(chroma), %f(context)" % (self.tw, self.cw, self.m)
 
 
 class RhythmConstraint(Constraint):
