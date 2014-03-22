@@ -55,16 +55,17 @@ class RandomJitterConstraint(Constraint):
 
 
 class TimbrePitchConstraint(Constraint):
-    def __init__(self, timbre_weight=1, chroma_weight=1, context=1):
+    def __init__(self, timbre_weight=1, chroma_weight=1, context=1, total_weight=1.5):
         self.tw = float(timbre_weight) / (float(chroma_weight) + float(timbre_weight))
         self.cw = 1 - self.tw
         self.m = context
+        self.w = total_weight
 
     def apply(self, transition_cost, penalty, song, beat_names):
         timbre_dist = librosa_analysis.structure(np.array(song.analysis['timbres']).T)
         chroma_dist = librosa_analysis.structure(np.array(song.analysis['chroma']).T)
 
-        dists = 1.5 * (self.tw * timbre_dist + self.cw * chroma_dist)
+        dists = self.w * (self.tw * timbre_dist + self.cw * chroma_dist)
 
         if self.m > 1:
             new_dists = np.copy(dists)
