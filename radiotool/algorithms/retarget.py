@@ -155,7 +155,7 @@ def retarget_with_change_points(song, cp_times, duration):
 
 
 def retarget(song, duration, music_labels=None, out_labels=None, out_penalty=None,
-             volume=None, volume_breakpoints=None, springs=None):
+             volume=None, volume_breakpoints=None, springs=None, **kwargs):
     """Retarget a song to a duration given input and output labels on
     the music.
 
@@ -230,19 +230,41 @@ def retarget(song, duration, music_labels=None, out_labels=None, out_penalty=Non
     else:
         pen = N.array([1 for i in N.arange(0, duration, beat_length)])
     
-    pipeline = constraints.ConstraintPipeline(constraints=(
-        constraints.PauseConstraint(6, 25),
-        constraints.PauseEntryLabelChangeConstraint(target, .005),
-        constraints.PauseExitLabelChangeConstraint(target, .005),
-        constraints.TimbrePitchConstraint(context=1),
-        constraints.EnergyConstraint(),
-        # constraints.RhythmConstraint(3, 5.0),  # get time signature?
-        constraints.MinimumJumpConstraint(8),
-        constraints.LabelConstraint(start, target, pen),
-        constraints.NoveltyConstraint(start, target, pen),
-        # constraints.RandomJitterConstraint(),
-        # constraints.MusicDurationConstraint(song.analysis["avg_beat_duration"]*2, song.analysis["avg_beat_duration"]*4)
-    ))
+    # we're using a valence/arousal constraint, so we need these
+    in_va = kwargs.pop('music_va', None)
+    if callable(in_va):
+        in_va = N.array([in_va(i) for i in N.arange(0, duration, beat_length)])
+
+    target_va = kwargs.pop('out_va', None)
+    if callable(target_va):
+        target_va = N.array([target_va(i) for i in N.arange(0, duration, beat_length)])
+
+    if in_va is None or target_va is None:
+        pipeline = constraints.ConstraintPipeline(constraints=(
+            constraints.PauseConstraint(6, 25),
+            constraints.PauseEntryLabelChangeConstraint(target, .005),
+            constraints.PauseExitLabelChangeConstraint(target, .005),
+            constraints.TimbrePitchConstraint(context=1),
+            constraints.EnergyConstraint(),
+            # constraints.RhythmConstraint(3, 5.0),  # get time signature?
+            constraints.MinimumJumpConstraint(8),
+            constraints.LabelConstraint(start, target, pen),
+            constraints.NoveltyConstraint(start, target, pen),
+            # constraints.RandomJitterConstraint(),
+            # constraints.MusicDurationConstraint(song.analysis["avg_beat_duration"]*2, song.analysis["avg_beat_duration"]*4)
+        ))
+
+    else:
+        pipeline = constraints.ConstraintPipeline(constraints=(
+            constraints.PauseConstraint(6, 25),
+            constraints.PauseEntryLabelChangeConstraint(target, .005),
+            constraints.PauseExitLabelChangeConstraint(target, .005),
+            constraints.TimbrePitchConstraint(context=1),
+            constraints.EnergyConstraint(),
+            constraints.MinimumJumpConstraint(8),
+            constraints.ValenceArousalConstraint(in_va, target_va, pen * .125),
+            constraints.NoveltyConstraint(start, target, pen),
+        ))
 
     trans_cost, penalty, beat_names = pipeline.apply(song, len(target))
 

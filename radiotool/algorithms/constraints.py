@@ -181,6 +181,41 @@ class LabelConstraint(Constraint):
         return "LabelConstraint"  
 
 
+class ValenceArousalConstraint(Constraint):
+    def __init__(self, in_va, target_va, penalty, penalty_window=0):
+        self.in_va = np.copy(in_va)
+        self.target_va = np.copy(target_va)
+        self.penalty = penalty
+        self.window = penalty_window
+
+    def apply(self, transition_cost, penalty, song, beat_names):
+        n_beats = len(song.analysis["beats"])
+
+        # extend in_va to work with pauses that have been added
+        if n_beats < transition_cost.shape[0]:
+            n_pauses = transition_cost.shape[0] - n_beats
+            extra_va = np.zeros((n_pauses, 2))
+            self.in_va = np.r_[self.in_va, extra_va]
+
+        new_pen = np.ones(penalty.shape) * np.array(self.penalty)
+        n_target = penalty.shape[1]
+        for n_i in xrange(transition_cost.shape[0]):
+            node_va = self.in_va[n_i]
+            for l in xrange(n_target):
+                if n_i < n_beats:
+                    new_pen[n_i, l] *= np.linalg.norm(self.target_va[l] - node_va)
+                else:
+                    # pauses have no penalty here
+                    new_pen[n_i, l] *= 0
+
+        penalty += new_pen
+
+        return transition_cost, penalty, beat_names
+
+    def __repr__(self):
+        return "ValenceArousalConstraint"
+
+
 class GenericTimeSensitivePenalty(Constraint):
     def __init__(self, penalty):
         self.penalty = penalty
@@ -232,7 +267,8 @@ class PauseConstraint(Constraint):
         self.max_len = max_length
         # perhaps these costs should be based on the cost of a 
         # "bad" transition in the music.
-        self.to_cost = 1.4
+        self.to_cost = 2.0
+        # self.to_cost = 1.4
         # self.to_cost = 0.7
         # self.to_cost = 0.075
         self.bw_cost = 0.05

@@ -58,5 +58,3 @@ class Song(Track):
         self._checksum = hasher.hexdigest()
         return self._checksum
 
-
-
