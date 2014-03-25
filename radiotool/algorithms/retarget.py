@@ -245,7 +245,7 @@ def retarget(song, duration, music_labels=None, out_labels=None, out_penalty=Non
             constraints.PauseEntryLabelChangeConstraint(target, .005),
             constraints.PauseExitLabelChangeConstraint(target, .005),
             constraints.TimbrePitchConstraint(context=1),
-            constraints.EnergyConstraint(),
+            constraints.EnergyConstraint(penalty=0.5),
             # constraints.RhythmConstraint(3, 5.0),  # get time signature?
             constraints.MinimumJumpConstraint(8),
             constraints.LabelConstraint(start, target, pen),
@@ -260,7 +260,7 @@ def retarget(song, duration, music_labels=None, out_labels=None, out_penalty=Non
             constraints.PauseEntryVAChangeConstraint(target_va, .005),
             constraints.PauseExitVAChangeConstraint(target_va, .005),
             constraints.TimbrePitchConstraint(context=1),
-            constraints.EnergyConstraint(),
+            constraints.EnergyConstraint(penalty=0.5),
             constraints.MinimumJumpConstraint(8),
             constraints.ValenceArousalConstraint(in_va, target_va, pen * .125),
             constraints.NoveltyVAConstraint(in_va, target_va, pen),

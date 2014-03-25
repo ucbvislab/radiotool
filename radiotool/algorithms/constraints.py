@@ -25,7 +25,7 @@ class ConstraintPipeline(object):
     def apply(self, song, target_n_length):
         n_beats = len(song.analysis["beats"])
         beat_names = copy.copy(song.analysis["beats"])
-        transition_cost = np.ones((n_beats, n_beats))
+        transition_cost = np.zeros((n_beats, n_beats))
         penalty = np.zeros((n_beats, target_n_length))
         for constraint in self.constraints:
             print constraint
@@ -88,7 +88,7 @@ class TimbrePitchConstraint(Constraint):
         # don't use the final beat
         dists[:, -1] = np.inf
         
-        transition_cost[:dists.shape[0], :dists.shape[1]] *= dists
+        transition_cost[:dists.shape[0], :dists.shape[1]] += dists
 
         return transition_cost, penalty, beat_names
 
@@ -97,15 +97,15 @@ class TimbrePitchConstraint(Constraint):
 
 
 class RhythmConstraint(Constraint):
-    def __init__(self, beats_per_measure, multiplier):
-        self.m = multiplier
+    def __init__(self, beats_per_measure, penalty):
+        self.p = penalty
         self.time = beats_per_measure
 
     def apply(self, transition_cost, penalty, song, beat_names):
         n_beats = len(song.analysis["beats"])
         for i in range(self.time):
             for j in set(range(self.time)) - set([(i + 1) % self.time]):
-                transition_cost[i:n_beats:self.time][j:n_beats:self.time] *= self.m
+                transition_cost[i:n_beats:self.time][j:n_beats:self.time] += self.p
         return transition_cost, penalty, beat_names
 
 
@@ -118,7 +118,7 @@ class MinimumJumpConstraint(Constraint):
         for i in range(n_beats):
             for j in range(-(self.min_jump - 1), self.min_jump):
                 if 0 < i + j < n_beats and j != 1:
-                    transition_cost[i, i + j] = np.inf
+                    transition_cost[i, i + j] += np.inf
         return transition_cost, penalty, beat_names
 
     def __repr__(self):
@@ -227,7 +227,7 @@ class GenericTimeSensitivePenalty(Constraint):
 
 class EnergyConstraint(Constraint):
     # does not work with music duration constraint yet
-    def __init__(self, penalty=3.0):
+    def __init__(self, penalty=0.5):
         self.penalty = penalty
 
     def apply(self, transition_cost, penalty, song, beat_names):
@@ -253,7 +253,7 @@ class EnergyConstraint(Constraint):
         dist_matrix[:-1, :] = dist_matrix[1:, :]
         dist_matrix[-1, :] = np.inf
 
-        transition_cost[:n_beats, :n_beats] *= (dist_matrix * self.penalty + 1)
+        transition_cost[:n_beats, :n_beats] += (dist_matrix * self.penalty)
 
         return transition_cost, penalty, beat_names
 
