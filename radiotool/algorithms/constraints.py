@@ -267,11 +267,11 @@ class PauseConstraint(Constraint):
         self.max_len = max_length
         # perhaps these costs should be based on the cost of a 
         # "bad" transition in the music.
-        self.to_cost = 2.0
+        self.to_cost = 10.0
         # self.to_cost = 1.4
         # self.to_cost = 0.7
         # self.to_cost = 0.075
-        self.bw_cost = 0.05
+        self.bw_cost = 0.15
 
 
     def apply(self, transition_cost, penalty, song, beat_names):
@@ -362,6 +362,36 @@ class PauseEntryLabelChangeConstraint(Constraint):
         return "PauseEntryLabelChangeConstraint: penalty(%f)" % self.p
 
 
+class PauseEntryVAChangeConstraint(Constraint):
+    def __init__(self, target_va, penalty_value):
+        self.out_va = target_va
+        self.p = penalty_value
+
+    def apply(self, transition_cost, penalty, song, beat_names):
+        n_beats = len(song.analysis["beats"])
+        n_pauses = transition_cost.shape[0] - n_beats
+        p0 = n_beats
+
+        if n_pauses > 0:
+            target_changes = [0]
+            for l in xrange(1, len(self.out_va)):
+                target = self.out_va[l]
+                prev_target = self.out_va[l - 1]
+                if np.linalg.norm(target - prev_target) > 0:
+                    target_changes.append(l)
+                    # target_changes.append(max(l - 4, 0))
+
+            target_changes = np.array(target_changes)            
+
+            penalty[p0, :] += self.p
+            penalty[p0, target_changes] -= self.p
+
+        return transition_cost, penalty, beat_names
+
+    def __repr__(self):
+        return "PauseEntryVAChangeConstraint: penalty(%f)" % self.p
+
+
 class PauseExitLabelChangeConstraint(Constraint):
     def __init__(self, target_labels, penalty_value):
         self.out_labels = target_labels
@@ -378,7 +408,6 @@ class PauseExitLabelChangeConstraint(Constraint):
                 if target != prev_target:
                     target_changes.append(l)
 
-
             target_changes = np.array(target_changes)
 
             penalty[p_n, :] += self.p
@@ -388,6 +417,33 @@ class PauseExitLabelChangeConstraint(Constraint):
 
     def __repr__(self):
         return "PauseExitLabelChangeConstraint: penalty(%f)" % self.p
+
+
+class PauseExitVAChangeConstraint(Constraint):
+    def __init__(self, target_va, penalty_value):
+        self.out_va = target_va
+        self.p = penalty_value
+
+    def apply(self, transition_cost, penalty, song, beat_names):
+        n_beats = len(song.analysis["beats"])
+        if transition_cost.shape[0] > n_beats:
+            p_n = transition_cost.shape[0] - 1
+            target_changes = [0]
+            for l in xrange(1, len(self.out_va)):
+                target = self.out_va[l]
+                prev_target = self.out_va[l - 1]
+                if np.linalg.norm(target - prev_target) > 0:
+                    target_changes.append(l)
+
+            target_changes = np.array(target_changes)
+
+            penalty[p_n, :] += self.p
+            penalty[p_n, target_changes] -= self.p
+
+        return transition_cost, penalty, beat_names
+
+    def __repr__(self):
+        return "PauseExitVAChangeConstraint: penalty(%f)" % self.p
 
 
 class NoveltyConstraint(Constraint):
@@ -429,6 +485,71 @@ class NoveltyConstraint(Constraint):
                 for change in changes:
                     if prev_target == change[1] and target == change[2]:
                         print "setting change:\t" + change[1] + " -> " + change[2] 
+                        print "\tat beat " + str(l) + " " + str(l * song.analysis["avg_beat_duration"])
+
+                        # give huge preference to hitting the changepoint here
+                        beat_i = change[0]
+                        penalty[:n_beats, l] += 1.0
+                        n_prev = min(2, beat_i)
+                        n_next = min(2, n_beats - beat_i)
+                        penalty[beat_i - n_prev:beat_i + n_next, l] -= 1.0
+
+        return transition_cost, penalty, beat_names
+
+    def __repr__(self):
+        return "NoveltyConstraint"
+
+
+class NoveltyVAConstraint(Constraint):
+    def __init__(self, in_va, target_va, penalty):
+        self.in_va = in_va
+        self.out_va = target_va
+        self.penalty = penalty
+
+    def apply(self, transition_cost, penalty, song, beat_names):
+        changepoints = np.array(novelty.novelty(song))
+        beats = song.analysis["beats"]
+        n_beats = len(beats)
+        n_target = penalty.shape[1]
+        cp_beats_i = [np.argmin(np.abs(beats - cp)) for cp in changepoints]
+        cp_beats = [beats[i] for i in cp_beats_i]
+
+        far_threshold = .2
+        close_threshold = .1
+
+        # find emotional changes at each changepoint
+        changes = []
+        for i in cp_beats_i:
+            # check the previous and next 4 beats
+            n_prev = min(4, i)
+            n_next = min(4, n_beats - i)
+            vas = [self.in_va[j]
+                   for j in range(i - n_prev, i + n_next + 1)]
+            # check first and last beat in this range... assuming a sort of
+            # coarse-grained emotional labeling
+
+            before_va = np.mean(vas[:3], axis=0)
+            after_va = np.mean(vas[-3:], axis=0)
+
+            if np.linalg.norm(before_va - after_va) > far_threshold:
+                # there is an emotional change at this point in the music
+                changes.append((i, before_va, after_va))
+
+        for change in changes:
+            print "Found emotional change near changepoint:", change[1], "->", change[2]
+
+        # find those emotional changes in the target output
+        for l in xrange(1, n_target):
+            target = self.out_va[l]
+            prev_target = self.out_va[l - 1]
+
+            if np.linalg.norm(target - prev_target) > far_threshold:
+                for change in changes:
+                    print np.linalg.norm(prev_target - change[1]), np.linalg.norm(target - change[2])
+                    if np.linalg.norm(prev_target - change[1]) < close_threshold and\
+                        np.linalg.norm(target - change[2]) < close_threshold:
+
+                        print "setting change:\t", change[1], "->", change[2] 
                         print "\tat beat " + str(l) + " " + str(l * song.analysis["avg_beat_duration"])
 
                         # give huge preference to hitting the changepoint here

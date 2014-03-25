@@ -257,13 +257,13 @@ def retarget(song, duration, music_labels=None, out_labels=None, out_penalty=Non
     else:
         pipeline = constraints.ConstraintPipeline(constraints=(
             constraints.PauseConstraint(6, 25),
-            constraints.PauseEntryLabelChangeConstraint(target, .005),
-            constraints.PauseExitLabelChangeConstraint(target, .005),
+            constraints.PauseEntryVAChangeConstraint(target_va, .005),
+            constraints.PauseExitVAChangeConstraint(target_va, .005),
             constraints.TimbrePitchConstraint(context=1),
             constraints.EnergyConstraint(),
             constraints.MinimumJumpConstraint(8),
             constraints.ValenceArousalConstraint(in_va, target_va, pen * .125),
-            constraints.NoveltyConstraint(start, target, pen),
+            constraints.NoveltyVAConstraint(in_va, target_va, pen),
         ))
 
     trans_cost, penalty, beat_names = pipeline.apply(song, len(target))
@@ -624,6 +624,14 @@ def _generate_audio(song, beats, new_beats, new_beats_cost, music_labels,
         # segments.append(last_seg)
 
         comp.add_segments(segments)
+
+        if segments[-1].comp_location + segments[-1].duration > len(volume_array):
+            diff = len(volume_array) -\
+                (segments[-1].comp_location + segments[-1].duration)
+            new_volume_array =\
+                N.ones(segments[-1].comp_location + segments[-1].duration) * volume_array[-1]
+            new_volume_array[:len(volume_array)] = volume_array
+            volume_array = new_volume_array
 
         for i, seg in enumerate(segments[:-1]):
             print cf_durations[i], seg.duration_in_seconds, segments[i + 1].duration_in_seconds
