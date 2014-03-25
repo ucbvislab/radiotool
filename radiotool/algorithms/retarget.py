@@ -241,7 +241,7 @@ def retarget(song, duration, music_labels=None, out_labels=None, out_penalty=Non
 
     if in_va is None or target_va is None:
         pipeline = constraints.ConstraintPipeline(constraints=(
-            constraints.PauseConstraint(6, 25),
+            constraints.PauseConstraint(6, 25, to_penalty=1.4, between_penalty=.05),
             constraints.PauseEntryLabelChangeConstraint(target, .005),
             constraints.PauseExitLabelChangeConstraint(target, .005),
             constraints.TimbrePitchConstraint(context=1),
@@ -256,7 +256,7 @@ def retarget(song, duration, music_labels=None, out_labels=None, out_penalty=Non
 
     else:
         pipeline = constraints.ConstraintPipeline(constraints=(
-            constraints.PauseConstraint(6, 25),
+            constraints.PauseConstraint(6, 25, to_penalty=10.0, between_penalty=0.15),
             constraints.PauseEntryVAChangeConstraint(target_va, .005),
             constraints.PauseExitVAChangeConstraint(target_va, .005),
             constraints.TimbrePitchConstraint(context=1),

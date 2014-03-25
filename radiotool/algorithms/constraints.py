@@ -262,16 +262,16 @@ class EnergyConstraint(Constraint):
 
 
 class PauseConstraint(Constraint):
-    def __init__(self, min_length, max_length):
+    def __init__(self, min_length, max_length, to_penalty=1.4, between_penalty=0.05):
         self.min_len = min_length
         self.max_len = max_length
         # perhaps these costs should be based on the cost of a 
         # "bad" transition in the music.
-        self.to_cost = 10.0
+        self.to_cost = to_penalty
         # self.to_cost = 1.4
         # self.to_cost = 0.7
         # self.to_cost = 0.075
-        self.bw_cost = 0.15
+        self.bw_cost = between_penalty
 
 
     def apply(self, transition_cost, penalty, song, beat_names):
