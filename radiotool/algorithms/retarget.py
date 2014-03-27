@@ -14,6 +14,7 @@ import constraints
 
 Spring = namedtuple('Spring', ['time', 'duration'])
 
+
 def retarget_to_length(song, duration, start=True, end=True, slack=5):
     """Create a composition of a song that changes its length
     to a given duration.
@@ -22,11 +23,13 @@ def retarget_to_length(song, duration, start=True, end=True, slack=5):
     :type song: :py:class:`radiotool.composer.Song`
     :param duration: Duration of retargeted song (in seconds)
     :type duration: float
-    :param start: Start the retargeted song at the beginning of the original song
+    :param start: Start the retargeted song at the
+                  beginning of the original song
     :type start: boolean
     :param end: End the retargeted song at the end of the original song
     :type end: boolean
-    :param slack: Track will be within slack seconds of the target duration (more slack allows for better-sounding music)
+    :param slack: Track will be within slack seconds of the target
+                  duration (more slack allows for better-sounding music)
     :type slack: float
     :returns: Composition of retargeted song
     :rtype: :py:class:`radiotool.composer.Composition`
@@ -50,6 +53,7 @@ def retarget_to_length(song, duration, start=True, end=True, slack=5):
                 return "end"
             else:
                 return ""
+
         def out_labels(t):
             if t == 0 and start:
                 return "start"
@@ -57,6 +61,7 @@ def retarget_to_length(song, duration, start=True, end=True, slack=5):
                 return "end"
             else:
                 return ""
+
         def out_penalty(t):
             if t == 0 and start:
                 return N.inf
@@ -65,7 +70,8 @@ def retarget_to_length(song, duration, start=True, end=True, slack=5):
             else:
                 return 0
 
-        comp, info = retarget(song, new_duration, music_labels, out_labels, out_penalty)
+        comp, info = retarget(
+            song, new_duration, music_labels, out_labels, out_penalty)
 
         labels = []
         for transition in info["transitions"]:
@@ -73,13 +79,15 @@ def retarget_to_length(song, duration, start=True, end=True, slack=5):
         comp.add_labels(labels)
 
         # and the beatless ending to the composition
-        last_seg = sorted(comp.segments, key=lambda k: k.comp_location + k.duration)[-1]
+        last_seg = sorted(
+            comp.segments, key=lambda k: k.comp_location + k.duration)[-1]
 
-        seg = Segment(song, comp.duration_in_seconds,
+        seg = Segment(
+            song, comp.duration_in_seconds,
             last_seg.start_in_seconds + last_seg.duration_in_seconds,
-            song.duration_in_seconds - last_seg.start_in_seconds - last_seg.duration_in_seconds)
+            song.duration_in_seconds - last_seg.start_in_seconds -
+            last_seg.duration_in_seconds)
         comp.add_segment(seg)
-
 
     for transition in info["transitions"]:
         comp.add_label(Label("crossfade", transition))
@@ -96,7 +104,8 @@ def retarget_with_change_points(song, cp_times, duration):
     hit a change point at the 10 and 30 second marks::
 
         song = Song("instrumental_music.wav")
-        composition, change_points = retarget.retarget_with_change_points(song, [10, 30], 40)
+        composition, change_points =\
+            retarget.retarget_with_change_points(song, [10, 30], 40)
         composition.export(filename="retargeted_instrumental_music.")
 
     :param song: Song to retarget
@@ -124,7 +133,7 @@ def retarget_with_change_points(song, cp_times, duration):
         closest_beat_idx = N.argmin(N.abs(beats - t))
         closest_beat = beats[closest_beat_idx]
         closest_cp = cps[N.argmin(N.abs(cps - closest_beat))]
-        
+
         if N.argmin(N.abs(beats - closest_cp)) == closest_beat_idx:
             return "cp"
         else:
@@ -145,7 +154,8 @@ def retarget_with_change_points(song, cp_times, duration):
             return .25
         return 1.0
 
-    comp, info = retarget(song, duration, music_labels, out_labels, out_penalty)
+    comp, info = retarget(
+        song, duration, music_labels, out_labels, out_penalty)
 
     final_cp_locations = [beat_length * i
                           for i, label in enumerate(info['result_labels'])
@@ -154,8 +164,9 @@ def retarget_with_change_points(song, cp_times, duration):
     return comp, final_cp_locations
 
 
-def retarget(song, duration, music_labels=None, out_labels=None, out_penalty=None,
-             volume=None, volume_breakpoints=None, springs=None, **kwargs):
+def retarget(song, duration, music_labels=None, out_labels=None,
+             out_penalty=None, volume=None, volume_breakpoints=None,
+             springs=None, **kwargs):
     """Retarget a song to a duration given input and output labels on
     the music.
 
@@ -226,10 +237,11 @@ def retarget(song, duration, music_labels=None, out_labels=None, out_penalty=Non
         start = ["" for i in beats]
 
     if out_penalty is not None:
-        pen = N.array([out_penalty(i) for i in N.arange(0, duration, beat_length)])
+        pen = N.array([out_penalty(i) for i in N.arange(
+            0, duration, beat_length)])
     else:
         pen = N.array([1 for i in N.arange(0, duration, beat_length)])
-    
+
     # we're using a valence/arousal constraint, so we need these
     in_va = kwargs.pop('music_va', None)
     if callable(in_va):
@@ -237,11 +249,13 @@ def retarget(song, duration, music_labels=None, out_labels=None, out_penalty=Non
 
     target_va = kwargs.pop('out_va', None)
     if callable(target_va):
-        target_va = N.array([target_va(i) for i in N.arange(0, duration, beat_length)])
+        target_va = N.array(
+            [target_va(i)for i in N.arange(0, duration, beat_length)])
 
     if in_va is None or target_va is None:
         pipeline = constraints.ConstraintPipeline(constraints=(
-            constraints.PauseConstraint(6, 25, to_penalty=1.4, between_penalty=.05),
+            constraints.PauseConstraint(
+                6, 25, to_penalty=1.4, between_penalty=.05),
             constraints.PauseEntryLabelChangeConstraint(target, .005),
             constraints.PauseExitLabelChangeConstraint(target, .005),
             constraints.TimbrePitchConstraint(context=1),
@@ -251,12 +265,12 @@ def retarget(song, duration, music_labels=None, out_labels=None, out_penalty=Non
             constraints.LabelConstraint(start, target, pen),
             constraints.NoveltyConstraint(start, target, pen),
             # constraints.RandomJitterConstraint(),
-            # constraints.MusicDurationConstraint(song.analysis["avg_beat_duration"]*2, song.analysis["avg_beat_duration"]*4)
         ))
 
     else:
         pipeline = constraints.ConstraintPipeline(constraints=(
-            constraints.PauseConstraint(6, 25, to_penalty=10.0, between_penalty=0.15),
+            constraints.PauseConstraint(
+                6, 25, to_penalty=1.4, between_penalty=.05),
             constraints.PauseEntryVAChangeConstraint(target_va, .005),
             constraints.PauseExitVAChangeConstraint(target_va, .005),
             constraints.TimbrePitchConstraint(context=1),
@@ -267,7 +281,6 @@ def retarget(song, duration, music_labels=None, out_labels=None, out_penalty=Non
         ))
 
     trans_cost, penalty, beat_names = pipeline.apply(song, len(target))
-
 
     print "Building cost table"
 
@@ -289,7 +302,8 @@ def retarget(song, duration, music_labels=None, out_labels=None, out_penalty=Non
     pen2 = N.nan_to_num(penalty)
 
     if max_beats is not None and min_beats is not None:
-        print "Running optimization (parallel, memory efficient) with min_beats(%d) and max_beats(%d)" %\
+        print "Running optimization (parallel, memory efficient)"
+        print "\twith min_beats(%d) and max_beats(%d)" %\
             (min_beats, max_beats)
 
         t1 = time.clock()
@@ -330,7 +344,8 @@ def retarget(song, duration, music_labels=None, out_labels=None, out_penalty=Non
             if i == 0:
                 path_cost.append(0)
             else:
-                path_cost.append(trans_cost[path_i[i - 1], node] + penalty[node, i])
+                path_cost.append(
+                    trans_cost[path_i[i - 1], node] + penalty[node, i])
         path_cost = N.array(path_cost)
 
     # how did we do?
@@ -342,14 +357,14 @@ def retarget(song, duration, music_labels=None, out_labels=None, out_penalty=Non
             result_labels.append(start[N.where(N.array(beats) == i)[0][0]])
     # result_labels = [start[N.where(N.array(beats) == i)[0][0]] for i in path]
 
-
     # return a radiotool Composition
     print "Generating audio"
-    comp, cf_locations, result_full_labels, cost_labels, contracted = _generate_audio(
-        song, beats, path, path_cost, start,
-        volume=volume,
-        volume_breakpoints=volume_breakpoints,
-        springs=springs)
+    comp, cf_locations, result_full_labels, cost_labels, contracted =\
+        _generate_audio(
+            song, beats, path, path_cost, start,
+            volume=volume,
+            volume_breakpoints=volume_breakpoints,
+            springs=springs)
 
     info = {
         "contracted": contracted,
@@ -364,6 +379,7 @@ def retarget(song, duration, music_labels=None, out_labels=None, out_penalty=Non
     }
 
     return comp, info
+
 
 def _reconstruct_path(prev_node, cost_table, beat_names, end, length):
     path = []
@@ -440,7 +456,6 @@ def _build_table(analysis, duration, start, target, out_penalty):
                 if 0 < idx + diag_idx < total_len and diag_idx != 1:
                     trans_cost[idx, idx + diag_idx] = N.inf
 
-
     # create label penalty table
     penalty = N.ones((len(beats), len(target))) * N.array(out_penalty)
 
@@ -463,7 +478,8 @@ def _build_table(analysis, duration, start, target, out_penalty):
             # if target_label != next_target:
             #     # reduce penalty for beats later
             #     span = min(penalty_window, len(target) - l - 1)
-            #     penalty[n_i, l + 1:l + span + 1] = N.linspace(0.0, 1.0, num=span)
+            #     penalty[n_i, l + 1:l + span + 1] =\
+            #         N.linspace(0.0, 1.0, num=span)
 
         # set penalty for the first and last targets
         for l in [0, len(target) - 1]:
@@ -480,7 +496,8 @@ def _build_table(analysis, duration, start, target, out_penalty):
         prev_node[:, l] = min_nodes
 
         # for n_i in xrange(len(beats)):
-        #     total_cost = penalty[n_i, l] + trans_cost[:, n_i] + cost[:, l - 1]
+        #     total_cost =\
+        #        penalty[n_i, l] + trans_cost[:, n_i] + cost[:, l - 1]
         #     min_node = N.argmin(total_cost)
         #     cost[n_i, l] = total_cost[min_node]
         #     prev_node[n_i, l] = min_node
@@ -488,8 +505,10 @@ def _build_table(analysis, duration, start, target, out_penalty):
     # result:
     return cost, prev_node
 
+
 def __fast_argmin_axis_0(a):
-    # http://stackoverflow.com/questions/17840661/is-there-a-way-to-make-numpy-argmin-as-fast-as-min
+    # http://stackoverflow.com/questions/17840661/
+    #    is-there-a-way-to-make-numpy-argmin-as-fast-as-min
     matches = N.nonzero((a == N.min(a, axis=0)).ravel())[0]
     rows, cols = N.unravel_index(matches, a.shape)
     argmin_array = N.empty(a.shape[1], dtype=N.intp)
@@ -557,9 +576,10 @@ def _generate_audio(song, beats, new_beats, new_beats_cost, music_labels,
                 durs[i] = beats[bis[i] + 1] - beats[bis[i]]
 
         # add pause duration to current location
-        current_loc += (aseg[0] - last_segment_beat) * song.analysis["avg_beat_duration"]
+        current_loc +=\
+            (aseg[0] - last_segment_beat) * song.analysis["avg_beat_duration"]
         last_segment_beat = aseg[1] + 1
-        
+
         cf_durations = []
         seg_start = starts[0]
         seg_start_loc = current_loc
@@ -588,8 +608,7 @@ def _generate_audio(song, beats, new_beats, new_beats_cost, music_labels,
             seg_music_location = starts[s_i]
 
             seg = Segment(song, current_loc, seg_music_location, seg_duration)
-            # print "seg at", current_loc, "(music", seg_music_location, ") for", seg_duration
-            # print "\twith beats", starts[s_i:next_s_i]
+
             segments.append(seg)
 
             # update location for next segment
@@ -625,16 +644,20 @@ def _generate_audio(song, beats, new_beats, new_beats_cost, music_labels,
 
         comp.add_segments(segments)
 
-        if segments[-1].comp_location + segments[-1].duration > len(volume_array):
+        if segments[-1].comp_location + segments[-1].duration >\
+                len(volume_array):
+
             diff = len(volume_array) -\
                 (segments[-1].comp_location + segments[-1].duration)
             new_volume_array =\
-                N.ones(segments[-1].comp_location + segments[-1].duration) * volume_array[-1]
+                N.ones(segments[-1].comp_location + segments[-1].duration) *\
+                volume_array[-1]
             new_volume_array[:len(volume_array)] = volume_array
             volume_array = new_volume_array
 
         for i, seg in enumerate(segments[:-1]):
-            print cf_durations[i], seg.duration_in_seconds, segments[i + 1].duration_in_seconds
+            print cf_durations[i], seg.duration_in_seconds,\
+                segments[i + 1].duration_in_seconds
             rawseg = comp.cross_fade(seg, segments[i + 1], cf_durations[i])
 
             # decrease volume along crossfades
@@ -649,13 +672,15 @@ def _generate_audio(song, beats, new_beats, new_beats_cost, music_labels,
         prev_end = 0.0
 
         for seg in segments:
-            volume_frames = volume_array[seg.comp_location:seg.comp_location + seg.duration]
+            volume_frames = volume_array[
+                seg.comp_location:seg.comp_location + seg.duration]
 
             # this can happen on the final segment:
             if len(volume_frames) == 0:
                 volume_frames = N.array([prev_end] * seg.duration)
             elif len(volume_frames) < seg.duration:
-                delta = [volume_frames[-1]] * (seg.duration - len(volume_frames))
+                delta = [volume_frames[-1]] *\
+                    (seg.duration - len(volume_frames))
                 volume_frames = N.r_[volume_frames, delta]
             raw_vol = RawVolume(seg, volume_frames)
             comp.add_dynamic(raw_vol)
@@ -665,7 +690,6 @@ def _generate_audio(song, beats, new_beats, new_beats_cost, music_labels,
 
             # vol = Volume.from_segment(seg, volume)
             # comp.add_dynamic(vol)
-            # print seg.comp_location_in_seconds, vol.comp_location_in_seconds, seg.duration == vol.duration
 
         all_cf_locations.extend(cf_locations)
 
@@ -723,7 +747,8 @@ def _generate_audio(song, beats, new_beats, new_beats_cost, music_labels,
     if springs is not None:
         offset = 0.0
         for spring in springs:
-            contracted_time, contracted_dur = comp.contract(spring.time - offset, spring.duration,
+            contracted_time, contracted_dur = comp.contract(
+                spring.time - offset, spring.duration,
                 min_contraction=min_contraction)
             if contracted_dur > 0:
                 new_cf = []
@@ -762,11 +787,11 @@ def _generate_audio(song, beats, new_beats, new_beats_cost, music_labels,
                 #         contracted_time + contracted_dur:
                 #         # remove cost labels in this range
                 #         if cost_lab.name > 0:
-                #             print "DELETING nonzero cost label", cost_lab.name, cost_lab.time
+                #             print "DELETING nonzero cost label",\
+                #                 cost_lab.name, cost_lab.time
                 #     else:
                 #         cost_lab.time -= contracted_dur
                 #         new_result_cost.append(cost_lab)
-
 
                 new_result_cost = []
                 first_label = True
@@ -775,12 +800,13 @@ def _generate_audio(song, beats, new_beats, new_beats_cost, music_labels,
                     if cost_lab.time < contracted_time:
                         new_result_cost.append(cost_lab)
                     elif cost_lab.time > contracted_time and\
-                        cost_lab.time <= contracted_time + contracted_dur:
+                            cost_lab.time <= contracted_time + contracted_dur:
                         if first_label:
                             cost_lab.time = contracted_time
                             new_result_cost.append(cost_lab)
                         elif cost_lab.name > 0:
-                            print "DELETING nonzero cost label:", cost_lab.name, cost_lab.time
+                            print "DELETING nonzero cost label:",\
+                                cost_lab.name, cost_lab.time
                         first_label = False
                     elif cost_lab.time > contracted_time + contracted_dur:
                         cost_lab.time -= contracted_dur
@@ -788,7 +814,8 @@ def _generate_audio(song, beats, new_beats, new_beats_cost, music_labels,
                         first_label = False
                 result_cost = new_result_cost
 
-                contracted.append(Spring(contracted_time + offset, contracted_dur))
+                contracted.append(
+                    Spring(contracted_time + offset, contracted_dur))
                 offset += contracted_dur
 
     # for seg in comp.segments:
@@ -813,7 +840,8 @@ def _generate_audio(song, beats, new_beats, new_beats_cost, music_labels,
 
     # add dynamic for music
     # vol = Volume(song, 0.0,
-    #     (last_seg.comp_location + last_seg.duration) / float(song.samplerate),
+    #     (last_seg.comp_location + last_seg.duration) /
+    #        float(song.samplerate),
     #     volume)
     # comp.add_dynamic(vol)
 

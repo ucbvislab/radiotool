@@ -12,6 +12,7 @@ import scipy.spatial.distance
 import librosa_analysis
 import novelty
 
+
 class ConstraintPipeline(object):
     def __init__(self, constraints=None):
         if constraints is None:
@@ -35,7 +36,8 @@ class ConstraintPipeline(object):
 
 
 class Constraint(object):
-    def __init__(self): pass
+    def __init__(self):
+        pass
 
     def apply(self, transition_cost, penalty, song, beat_names):
         return transition_cost, penalty, beat_names
@@ -55,15 +57,19 @@ class RandomJitterConstraint(Constraint):
 
 
 class TimbrePitchConstraint(Constraint):
-    def __init__(self, timbre_weight=1, chroma_weight=1, context=1, total_weight=1.5):
-        self.tw = float(timbre_weight) / (float(chroma_weight) + float(timbre_weight))
+    def __init__(self, timbre_weight=1, chroma_weight=1,
+                 context=1, total_weight=1.5):
+        self.tw = float(timbre_weight) /\
+            (float(chroma_weight) + float(timbre_weight))
         self.cw = 1 - self.tw
         self.m = context
         self.w = total_weight
 
     def apply(self, transition_cost, penalty, song, beat_names):
-        timbre_dist = librosa_analysis.structure(np.array(song.analysis['timbres']).T)
-        chroma_dist = librosa_analysis.structure(np.array(song.analysis['chroma']).T)
+        timbre_dist = librosa_analysis.structure(
+            np.array(song.analysis['timbres']).T)
+        chroma_dist = librosa_analysis.structure(
+            np.array(song.analysis['chroma']).T)
 
         dists = self.w * (self.tw * timbre_dist + self.cw * chroma_dist)
 
@@ -76,7 +82,8 @@ class TimbrePitchConstraint(Constraint):
                     new_dists[beat_i, beat_j] = 0.0
                     for i, c in enumerate(coefs):
                         t = i - self.m
-                        new_dists[beat_i, beat_j] += c * dists[beat_i + t, beat_j + t]
+                        new_dists[beat_i, beat_j] +=\
+                            c * dists[beat_i + t, beat_j + t]
 
             dists = new_dists
 
@@ -87,13 +94,14 @@ class TimbrePitchConstraint(Constraint):
 
         # don't use the final beat
         dists[:, -1] = np.inf
-        
+
         transition_cost[:dists.shape[0], :dists.shape[1]] += dists
 
         return transition_cost, penalty, beat_names
 
     def __repr__(self):
-        return "TimbrePitchConstraint: %f(timbre) + %f(chroma), %f(context)" % (self.tw, self.cw, self.m)
+        return "TimbrePitchConstraint:" +\
+            "%f(timbre) + %f(chroma), %f(context)" % (self.tw, self.cw, self.m)
 
 
 class RhythmConstraint(Constraint):
@@ -105,7 +113,8 @@ class RhythmConstraint(Constraint):
         n_beats = len(song.analysis["beats"])
         for i in range(self.time):
             for j in set(range(self.time)) - set([(i + 1) % self.time]):
-                transition_cost[i:n_beats:self.time][j:n_beats:self.time] += self.p
+                transition_cost[i:n_beats:self.time][j:n_beats:self.time] +=\
+                    self.p
         return transition_cost, penalty, beat_names
 
 
@@ -137,10 +146,12 @@ class LabelConstraint(Constraint):
 
         # extend in_labels to work with pauses that we may have added
         if n_beats < transition_cost.shape[0]:
-            self.in_labels.extend([None] * (transition_cost.shape[0] - n_beats))
+            self.in_labels.extend(
+                [None] * (transition_cost.shape[0] - n_beats))
 
         new_pen = np.ones(penalty.shape) * np.array(self.penalty)
-        # new_pen = np.ones((n_beats, len(self.penalty))) * np.array(self.penalty)
+        # new_pen = np.ones((n_beats, len(self.penalty))) *\
+        #       np.array(self.penalty)
         n_target = penalty.shape[1]
         for n_i in xrange(transition_cost.shape[0]):
             node_label = self.in_labels[n_i]
@@ -159,12 +170,14 @@ class LabelConstraint(Constraint):
                     if target_label != prev_target:
                         # reduce penalty for beats prior
                         span = min(self.window, l)
-                        new_pen[n_i, l - span:l] = np.linspace(1.0, 0.01, num=span)
+                        new_pen[n_i, l - span:l] =\
+                            np.linspace(1.0, 0.01, num=span)
 
                     if target_label != next_target:
                         # reduce penalty for beats later
                         span = min(self.window, len(self.out_labels) - l - 1)
-                        new_pen[n_i, l + 1:l + span + 1] = np.linspace(0.01, 1.0, num=span)
+                        new_pen[n_i, l + 1:l + span + 1] =\
+                            np.linspace(0.01, 1.0, num=span)
 
             for l in [0, n_target - 1]:
                 target_label = self.out_labels[l]
@@ -172,13 +185,13 @@ class LabelConstraint(Constraint):
                     new_pen[n_i, l] = 0.0
                 elif node_label is None:
                     new_pen[n_i, l] = 0.0
-        
+
         penalty += new_pen
 
         return transition_cost, penalty, beat_names
 
     def __repr__(self):
-        return "LabelConstraint"  
+        return "LabelConstraint"
 
 
 class ValenceArousalConstraint(Constraint):
@@ -203,7 +216,8 @@ class ValenceArousalConstraint(Constraint):
             node_va = self.in_va[n_i]
             for l in xrange(n_target):
                 if n_i < n_beats:
-                    new_pen[n_i, l] *= np.linalg.norm(self.target_va[l] - node_va)
+                    new_pen[n_i, l] *=\
+                        np.linalg.norm(self.target_va[l] - node_va)
                 else:
                     # pauses have no penalty here
                     new_pen[n_i, l] *= 0
@@ -262,17 +276,17 @@ class EnergyConstraint(Constraint):
 
 
 class PauseConstraint(Constraint):
-    def __init__(self, min_length, max_length, to_penalty=1.4, between_penalty=0.05):
+    def __init__(self, min_length, max_length, to_penalty=1.4,
+                 between_penalty=0.05):
         self.min_len = min_length
         self.max_len = max_length
-        # perhaps these costs should be based on the cost of a 
+        # perhaps these costs should be based on the cost of a
         # "bad" transition in the music.
         self.to_cost = to_penalty
         # self.to_cost = 1.4
         # self.to_cost = 0.7
         # self.to_cost = 0.075
         self.bw_cost = between_penalty
-
 
     def apply(self, transition_cost, penalty, song, beat_names):
         # we have to manage the pauses...
@@ -287,7 +301,7 @@ class PauseConstraint(Constraint):
 
         new_trans = np.zeros((n_beats + max_beats, n_beats + max_beats))
         new_trans[:n_beats, :n_beats] = transition_cost
-        
+
         new_pen = np.zeros((n_beats + max_beats, penalty.shape[1]))
         new_pen[:n_beats, :] = penalty
 
@@ -295,7 +309,7 @@ class PauseConstraint(Constraint):
         p0 = n_beats
         p_n = p0 + max_beats - 1
         new_trans[:n_beats, p0] = tc
-        
+
         # beat to other pauses
         new_trans[:n_beats, p0 + 1:] = np.inf
 
@@ -304,12 +318,12 @@ class PauseConstraint(Constraint):
 
         # pause to beat default
         new_trans[p0:, :p0] = np.inf
-        
+
         # must stay in pauses until min pause
         for i in range(p0, p0 + min_beats):
             new_trans[i, :n_beats] = np.inf
             new_trans[i, i + 1] = 0.
-        
+
         # after that, pause-to-pause costs something
         for i in range(p0 + min_beats, p0 + max_beats - 2):
             new_trans[i, :n_beats] = np.inf
@@ -329,7 +343,8 @@ class PauseConstraint(Constraint):
         return new_trans, new_pen, beat_names
 
     def __repr__(self):
-        return "PauseConstraint: min(%f), max(%f)" % (self.min_len, self.max_len)
+        return "PauseConstraint: min(%f), max(%f)" %\
+            (self.min_len, self.max_len)
 
 
 class PauseEntryLabelChangeConstraint(Constraint):
@@ -341,7 +356,7 @@ class PauseEntryLabelChangeConstraint(Constraint):
         n_beats = len(song.analysis["beats"])
         n_pauses = transition_cost.shape[0] - n_beats
         p0 = n_beats
-        
+
         if n_pauses > 0:
             target_changes = [0]
             for l in xrange(1, len(self.out_labels)):
@@ -351,7 +366,7 @@ class PauseEntryLabelChangeConstraint(Constraint):
                     target_changes.append(l)
                     # target_changes.append(max(l - 4, 0))
 
-            target_changes = np.array(target_changes)            
+            target_changes = np.array(target_changes)
 
             penalty[p0, :] += self.p
             penalty[p0, target_changes] -= self.p
@@ -381,7 +396,7 @@ class PauseEntryVAChangeConstraint(Constraint):
                     target_changes.append(l)
                     # target_changes.append(max(l - 4, 0))
 
-            target_changes = np.array(target_changes)            
+            target_changes = np.array(target_changes)
 
             penalty[p0, :] += self.p
             penalty[p0, target_changes] -= self.p
@@ -475,7 +490,8 @@ class NoveltyConstraint(Constraint):
                 changes.append((i, labs[0], labs[-1]))
 
         for change in changes:
-            print "Found emotional change near changepoint: " + change[1] + " -> " + change[2]
+            print "Found emotional change near changepoint: " +\
+                change[1] + " -> " + change[2]
 
         # find those emotional changes in the target output
         for l in xrange(1, n_target):
@@ -484,8 +500,10 @@ class NoveltyConstraint(Constraint):
             if target != prev_target:
                 for change in changes:
                     if prev_target == change[1] and target == change[2]:
-                        print "setting change:\t" + change[1] + " -> " + change[2] 
-                        print "\tat beat " + str(l) + " " + str(l * song.analysis["avg_beat_duration"])
+                        print "setting change:\t" +\
+                            change[1] + " -> " + change[2]
+                        print "\tat beat " + str(l) + " " +\
+                            str(l * song.analysis["avg_beat_duration"])
 
                         # give huge preference to hitting the changepoint here
                         beat_i = change[0]
@@ -528,15 +546,18 @@ class NoveltyVAConstraint(Constraint):
             # check first and last beat in this range... assuming a sort of
             # coarse-grained emotional labeling
 
-            before_va = np.mean(vas[:3], axis=0)
-            after_va = np.mean(vas[-3:], axis=0)
+            # before_va = np.mean(vas[:3], axis=0)
+            # after_va = np.mean(vas[-3:], axis=0)
+            before_va = vas[0]
+            after_va = vas[-1]
 
             if np.linalg.norm(before_va - after_va) > far_threshold:
                 # there is an emotional change at this point in the music
                 changes.append((i, before_va, after_va))
 
         for change in changes:
-            print "Found emotional change near changepoint:", change[1], "->", change[2]
+            print "Found emotional change near changepoint:",\
+                change[1], "->", change[2]
 
         # find those emotional changes in the target output
         for l in xrange(1, n_target):
@@ -545,12 +566,16 @@ class NoveltyVAConstraint(Constraint):
 
             if np.linalg.norm(target - prev_target) > far_threshold:
                 for change in changes:
-                    print np.linalg.norm(prev_target - change[1]), np.linalg.norm(target - change[2])
-                    if np.linalg.norm(prev_target - change[1]) < close_threshold and\
-                        np.linalg.norm(target - change[2]) < close_threshold:
+                    print np.linalg.norm(prev_target - change[1]),\
+                        np.linalg.norm(target - change[2])
+                    if np.linalg.norm(prev_target - change[1]) <\
+                            close_threshold and\
+                        np.linalg.norm(target - change[2]) <\
+                            close_threshold:
 
-                        print "setting change:\t", change[1], "->", change[2] 
-                        print "\tat beat " + str(l) + " " + str(l * song.analysis["avg_beat_duration"])
+                        print "setting change:\t", change[1], "->", change[2]
+                        print "\tat beat " + str(l) + " " +\
+                            str(l * song.analysis["avg_beat_duration"])
 
                         # give huge preference to hitting the changepoint here
                         beat_i = change[0]
@@ -582,7 +607,8 @@ class MusicDurationConstraint(Constraint):
         pen_val = 99999999.0
 
         # Create new transition cost table
-        # (beat * beat index in max span) x (beat * beat index in max span of music)
+        # (beat * beat index in max span) x
+        #    (beat * beat index in max span of music)
         # Is this too large?
         new_tc_size = n_beats * maxlen + n_pause_beats
         p0 = n_beats * maxlen
@@ -590,12 +616,12 @@ class MusicDurationConstraint(Constraint):
 
         # tile the tc over this new table
         new_tc[:p0, :p0] = np.tile(transition_cost[:n_beats, :n_beats],
-            (maxlen, maxlen))
+                                   (maxlen, maxlen))
         # tile the pause information as well
         new_tc[:p0, p0:] = np.tile(transition_cost[:n_beats, n_beats:],
-            (maxlen, 1))
+                                   (maxlen, 1))
         new_tc[p0:, :p0] = np.tile(transition_cost[n_beats:, :n_beats],
-            (1, maxlen))
+                                   (1, maxlen))
         new_tc[p0:, p0:] = transition_cost[n_beats:, n_beats:]
 
         # Create new penalty table
@@ -604,9 +630,8 @@ class MusicDurationConstraint(Constraint):
 
         # tile the tc over this new table
         new_pen[:p0, :] = np.tile(penalty[:n_beats, :],
-            (maxlen, 1))
+                                  (maxlen, 1))
         new_pen[p0:, :] = penalty[n_beats:, :]
-
 
         #--- CONSTRAINTS ---#
         # * don't start song in segment beat other than first
@@ -621,7 +646,7 @@ class MusicDurationConstraint(Constraint):
         # * after pause, don't go to non-first segment beat
         new_tc[p0:, n_beats:p0] += pen_val
 
-        # * don't move between beats that don't follow 
+        # * don't move between beats that don't follow
         #   the segment index
         new_tc[:p0, :p0] += pen_val
         for i in xrange(1, maxlen):
@@ -639,18 +664,3 @@ class MusicDurationConstraint(Constraint):
 
     def __repr__(self):
         return "MusicDurationConstraint"
-
-
-if __name__ == '__main__':
-    import sys
-    from radiotool.composer import Song
-    song = Song(sys.argv[1])
-
-    pipeline = ConstraintPipeline(constraints=[
-        TimbrePitchConstraint(),
-        RhythmConstraint(4),
-        MinimumJumpConstraint(4)
-    ])
-
-    tc, penalty = pipeline.apply(song, 102)
-
