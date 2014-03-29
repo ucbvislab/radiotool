@@ -1,10 +1,11 @@
 import numpy as N
 
+
 class Segment(object):
     """A slice of a :py:class:`radiotool.composer.Track`
     """
 
-    def __init__(self, track, comp_location, start, duration):
+    def __init__(self, track, comp_location, start, duration, effects=None):
         """Create a segment from a track.
 
         The segment represents part of a track (from ``start``, for
@@ -23,6 +24,10 @@ class Segment(object):
         self.comp_location_in_seconds = comp_location
         self.start_in_seconds = start
         self.duration_in_seconds = duration
+        if effects is None:
+            self.effects = []
+        else:
+            self.effects = effects
 
     @property
     def duration_in_seconds(self):
@@ -48,6 +53,12 @@ class Segment(object):
     def comp_location_in_seconds(self, comp_location_in_seconds):
         self.comp_location = int(comp_location_in_seconds * self.samplerate)
 
+    def add_effect(self, effect):
+        self.effects.append(effect)
+
+    def add_effects(self, effects):
+        self.effects.extend(effects)
+
     def get_frames(self, channels=2):
         """Get numpy array of frames corresponding to the segment.
 
@@ -60,5 +71,8 @@ class Segment(object):
         self.track.current_frame = self.start
         frames = self.track.read_frames(self.duration, channels=channels)
         self.track.current_frame = tmp_frame
+
+        for effect in self.effects:
+            frames = effect.apply_to(frames, self.samplerate)
 
         return frames.copy()

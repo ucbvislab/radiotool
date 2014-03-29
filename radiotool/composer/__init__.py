@@ -19,3 +19,4 @@ from .rawvolume import RawVolume
 from .label import Label
 from .song import Song
 from .volumebreakpoint import VolumeBreakpoint, VolumeBreakpoints
+from .effect import NotchFilter

@@ -566,8 +566,8 @@ class NoveltyVAConstraint(Constraint):
 
             if np.linalg.norm(target - prev_target) > far_threshold:
                 for change in changes:
-                    print np.linalg.norm(prev_target - change[1]),\
-                        np.linalg.norm(target - change[2])
+                    # print np.linalg.norm(prev_target - change[1]),\
+                    #     np.linalg.norm(target - change[2])
                     if np.linalg.norm(prev_target - change[1]) <\
                             close_threshold and\
                         np.linalg.norm(target - change[2]) <\

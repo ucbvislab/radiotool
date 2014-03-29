@@ -245,12 +245,12 @@ def retarget(song, duration, music_labels=None, out_labels=None,
     # we're using a valence/arousal constraint, so we need these
     in_va = kwargs.pop('music_va', None)
     if callable(in_va):
-        in_va = N.array([in_va(i) for i in N.arange(0, duration, beat_length)])
+        in_va = N.array([in_va(i) for i in beats])
 
     target_va = kwargs.pop('out_va', None)
     if callable(target_va):
         target_va = N.array(
-            [target_va(i)for i in N.arange(0, duration, beat_length)])
+            [target_va(i) for i in N.arange(0, duration, beat_length)])
 
     if in_va is None or target_va is None:
         pipeline = constraints.ConstraintPipeline(constraints=(
