@@ -771,47 +771,59 @@ def _generate_audio(song, beats, new_beats, new_beats_cost, music_labels,
                     #     if lab.time < contracted_time <= next_lab.time:
                     #         first_label = False
 
+                    # if lab.time > contracted_time:
+                    #     # TODO: fix this hack
+                    #     if lab.name == "pause" and first_label:
+                    #         pass
+                    #     else:
+                    #         lab.time -= contracted_dur
+                    #     first_label = False
+
+                    try:
+                        if lab.time == contracted_time and\
+                            result_full_labels[lab_i + 1].time -\
+                                contracted_dur == lab.time:
+
+                            print "LABEL HAS ZERO LENGTH", lab
+                    except:
+                        pass
+
                     if lab.time > contracted_time:
-                        # TODO: fix this hack
-                        if lab.name == "pause" and first_label:
-                            pass
-                        else:
-                            lab.time -= contracted_dur
-                        first_label = False
+                        lab.time -= contracted_dur
+
+                new_result_cost = []
+                for cost_lab in result_cost:
+                    if cost_lab.time <= contracted_time:
+                        new_result_cost.append(cost_lab)
+                    elif contracted_time < cost_lab.time <=\
+                            contracted_time + contracted_dur:
+                        # remove cost labels in this range
+                        if cost_lab.name > 0:
+                            print "DELETING nonzero cost label",\
+                                cost_lab.name, cost_lab.time
+                    else:
+                        cost_lab.time -= contracted_dur
+                        new_result_cost.append(cost_lab)
 
                 # new_result_cost = []
+                # first_label = True
+                # # TODO: also this hack. bleh.
                 # for cost_lab in result_cost:
                 #     if cost_lab.time < contracted_time:
                 #         new_result_cost.append(cost_lab)
-                #     elif contracted_time < cost_lab.time <=\
-                #         contracted_time + contracted_dur:
-                #         # remove cost labels in this range
-                #         if cost_lab.name > 0:
-                #             print "DELETING nonzero cost label",\
+                #     elif cost_lab.time > contracted_time and\
+                #             cost_lab.time <= contracted_time + contracted_dur:
+                #         if first_label:
+                #             cost_lab.time = contracted_time
+                #             new_result_cost.append(cost_lab)
+                #         elif cost_lab.name > 0:
+                #             print "DELETING nonzero cost label:",\
                 #                 cost_lab.name, cost_lab.time
-                #     else:
+                #         first_label = False
+                #     elif cost_lab.time > contracted_time + contracted_dur:
                 #         cost_lab.time -= contracted_dur
                 #         new_result_cost.append(cost_lab)
-
-                new_result_cost = []
-                first_label = True
-                # TODO: also this hack. bleh.
-                for cost_lab in result_cost:
-                    if cost_lab.time < contracted_time:
-                        new_result_cost.append(cost_lab)
-                    elif cost_lab.time > contracted_time and\
-                            cost_lab.time <= contracted_time + contracted_dur:
-                        if first_label:
-                            cost_lab.time = contracted_time
-                            new_result_cost.append(cost_lab)
-                        elif cost_lab.name > 0:
-                            print "DELETING nonzero cost label:",\
-                                cost_lab.name, cost_lab.time
-                        first_label = False
-                    elif cost_lab.time > contracted_time + contracted_dur:
-                        cost_lab.time -= contracted_dur
-                        new_result_cost.append(cost_lab)
-                        first_label = False
+                #         first_label = False
                 result_cost = new_result_cost
 
                 contracted.append(
