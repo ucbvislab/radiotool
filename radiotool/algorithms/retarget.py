@@ -270,7 +270,7 @@ def retarget(song, duration, music_labels=None, out_labels=None,
     else:
         pipeline = constraints.ConstraintPipeline(constraints=(
             constraints.PauseConstraint(
-                6, 25, to_penalty=1.4, between_penalty=.05),
+                10, 30, to_penalty=1.4, between_penalty=.05),
             constraints.PauseEntryVAChangeConstraint(target_va, .005),
             constraints.PauseExitVAChangeConstraint(target_va, .005),
             constraints.TimbrePitchConstraint(context=1),
@@ -570,14 +570,16 @@ def _generate_audio(song, beats, new_beats, new_beats_cost, music_labels,
             if bis[i] + 1 >= len(beats):
                 # use the average beat duration if we don't know
                 # how long the beat is supposed to be
-                print "USING AVG BEAT DURATION IN SYNTHESIS - POTENTIALLY NOT GOOD"
+                print "USING AVG BEAT DURATION IN SYNTHESIS -\
+                    POTENTIALLY NOT GOOD"
                 durs[i] = song.analysis["avg_beat_duration"]
             else:
                 durs[i] = beats[bis[i] + 1] - beats[bis[i]]
 
         # add pause duration to current location
         # current_loc +=\
-            # (aseg[0] - last_segment_beat) * song.analysis["avg_beat_duration"]
+            # (aseg[0] - last_segment_beat) *\
+            #      song.analysis["avg_beat_duration"]
 
         # catch up to the pause
         current_loc = max(
@@ -840,7 +842,8 @@ def _generate_audio(song, beats, new_beats, new_beats_cost, music_labels,
                 #     if cost_lab.time < contracted_time:
                 #         new_result_cost.append(cost_lab)
                 #     elif cost_lab.time > contracted_time and\
-                #             cost_lab.time <= contracted_time + contracted_dur:
+                #             cost_lab.time <= contracted_time +\
+                #                contracted_dur:
                 #         if first_label:
                 #             cost_lab.time = contracted_time
                 #             new_result_cost.append(cost_lab)
