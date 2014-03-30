@@ -302,7 +302,7 @@ def retarget(song, duration, music_labels=None, out_labels=None,
     pen2 = N.nan_to_num(penalty)
 
     if max_beats is not None and min_beats is not None:
-        print "Running optimization (parallel, memory efficient)"
+        print "Running optimization (full backtrace, memory efficient)"
         print "\twith min_beats(%d) and max_beats(%d)" %\
             (min_beats, max_beats)
 
@@ -570,14 +570,20 @@ def _generate_audio(song, beats, new_beats, new_beats_cost, music_labels,
             if bis[i] + 1 >= len(beats):
                 # use the average beat duration if we don't know
                 # how long the beat is supposed to be
-                print "USING BEAT DURATION IN SYNTHESIS - POTENTIALLY NOT GOOD"
+                print "USING AVG BEAT DURATION IN SYNTHESIS - POTENTIALLY NOT GOOD"
                 durs[i] = song.analysis["avg_beat_duration"]
             else:
                 durs[i] = beats[bis[i] + 1] - beats[bis[i]]
 
         # add pause duration to current location
-        current_loc +=\
-            (aseg[0] - last_segment_beat) * song.analysis["avg_beat_duration"]
+        # current_loc +=\
+            # (aseg[0] - last_segment_beat) * song.analysis["avg_beat_duration"]
+
+        # catch up to the pause
+        current_loc = max(
+            aseg[0] * song.analysis["avg_beat_duration"],
+            current_loc)
+
         last_segment_beat = aseg[1] + 1
 
         cf_durations = []
@@ -698,14 +704,18 @@ def _generate_audio(song, beats, new_beats, new_beats_cost, music_labels,
     pause_len = song.analysis["avg_beat_duration"]
     result_full_labels = []
     prev_label = -1
-    for beat in new_beats:
+    for beat_i, beat in enumerate(new_beats):
         if str(beat).startswith('p'):
             current_label = None
             if current_label != prev_label:
                 result_full_labels.append(Label("pause", label_time))
             prev_label = None
 
-            label_time += pause_len
+            # label_time += pause_len
+            # catch up
+            label_time = max(
+                (beat_i + 1) * pause_len,
+                label_time)
         else:
             beat_i = N.where(N.array(beats) == beat)[0][0]
             next_i = beat_i + 1
@@ -731,7 +741,11 @@ def _generate_audio(song, beats, new_beats, new_beats_cost, music_labels,
         result_cost.append(Label(new_beats_cost[i], cost_time))
 
         if str(b).startswith('p'):
-            cost_time += pause_len
+            # cost_time += pause_len
+            # catch up
+            cost_time = max(
+                (i + 1) * pause_len,
+                cost_time)
         else:
             beat_i = N.where(N.array(beats) == b)[0][0]
             next_i = beat_i + 1
@@ -751,10 +765,15 @@ def _generate_audio(song, beats, new_beats, new_beats_cost, music_labels,
                 spring.time - offset, spring.duration,
                 min_contraction=min_contraction)
             if contracted_dur > 0:
+                print "Contracted", contracted_time, "at", contracted_dur
+
+                # can't move anything EARLIER than contracted_time
+
                 new_cf = []
                 for cf in all_cf_locations:
                     if cf > contracted_time:
-                        new_cf.append(cf - contracted_dur)
+                        new_cf.append(
+                            max(cf - contracted_dur, contracted_time))
                     else:
                         new_cf.append(cf)
                 all_cf_locations = new_cf
@@ -789,20 +808,29 @@ def _generate_audio(song, beats, new_beats, new_beats_cost, music_labels,
                         pass
 
                     if lab.time > contracted_time:
-                        lab.time -= contracted_dur
+                        print "\tcontracting label", lab
+                        lab.time = max(
+                            lab.time - contracted_dur, contracted_time)
+                        # lab.time -= contracted_dur
+                        print "\t\tto", lab
 
                 new_result_cost = []
                 for cost_lab in result_cost:
                     if cost_lab.time <= contracted_time:
+                        # cost is before contracted time
                         new_result_cost.append(cost_lab)
                     elif contracted_time < cost_lab.time <=\
                             contracted_time + contracted_dur:
-                        # remove cost labels in this range
+                        # cost is during contracted time
+                        # remove these labels
                         if cost_lab.name > 0:
                             print "DELETING nonzero cost label",\
                                 cost_lab.name, cost_lab.time
                     else:
-                        cost_lab.time -= contracted_dur
+                        # cost is after contracted time
+                        cost_lab.time = max(
+                            cost_lab.time - contracted_dur, contracted_time)
+                        # cost_lab.time -= contracted_dur
                         new_result_cost.append(cost_lab)
 
                 # new_result_cost = []
