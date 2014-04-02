@@ -1,5 +1,7 @@
 import re
 import warnings
+import os.path
+import subprocess
 
 from scikits.audiolab import Sndfile, Format
 import numpy as N
@@ -13,31 +15,45 @@ except:
 from ..utils import zero_crossing_first, zero_crossing_last
 from label import Label
 
+
 class Track(object):
     """Represents a wrapped .wav file."""
 
     def __init__(self, fn, name="No name", labels=None, labels_in_file=False):
         """Create a Track object
 
-        :param str. fn: Path to wav file
+        :param str. fn: Path to audio file (wav preferred, mp3 ok)
         :param str. name: Name of track
         """
         self.filename = fn
         self.name = name
+
+        (base, extension) = os.path.splitext(self.filename)
+        if extension == ".mp3":
+            try:
+                print "Creating wav from {}".format(self.filename)
+                new_fn = base + '.wav'
+                subprocess.check_output("lame --decode \"{}\" \"{}\"".format(
+                    self.filename, new_fn), shell=True)
+                self.filename = new_fn
+            except:
+                print "Could not create wav from mp3"
+                raise
 
         self.sound = Sndfile(self.filename, 'r')
         self.current_frame = 0
         self.channels = self.sound.channels
 
         if labels is not None and labels_in_file:
-            raise Exception("Must only define one of labels and labels_in_file")
+            raise Exception(
+                "Must only define one of labels and labels_in_file")
         if labels_in_file and not LIBXMP:
-            raise Exception("Cannot use labels_in_file without python-xmp-toolkit")
+            raise Exception(
+                "Cannot use labels_in_file without python-xmp-toolkit")
         if labels_in_file and LIBXMP:
             self.labels = self._extract_labels(fn)
         else:
             self.labels = labels
-
 
     def read_frames(self, n, channels=None):
         """Read ``n`` frames from the track, starting
