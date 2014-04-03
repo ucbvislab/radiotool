@@ -43,12 +43,16 @@ class NotchFilter(Effect):
         b = N.poly(zeros)    # Get moving average filter coefficients
         a = N.poly(poles)    # Get autoregressive filter coefficients
 
-        if array.ndim == 1:
-            filtered = scipy.signal.filtfilt(b, a, array, padtype="even")
-        else:
-            filtered = N.empty(array.shape)
-            for i in range(array.shape[1]):
-                filtered[:, i] = scipy.signal.filtfilt(
-                    b, a, array[:, i], padtype="even")
+        try:
+            if array.ndim == 1:
+                filtered = scipy.signal.filtfilt(b, a, array, padtype="even")
+            else:
+                filtered = N.empty(array.shape)
+                for i in range(array.shape[1]):
+                    filtered[:, i] = scipy.signal.filtfilt(
+                        b, a, array[:, i], padtype="even")
 
-        return filtered * self.gain + array * (1 - self.gain)
+            return filtered * self.gain + array * (1 - self.gain)
+        except ValueError:
+            print "Could not apply filter"
+            return array
