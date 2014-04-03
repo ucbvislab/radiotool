@@ -372,8 +372,8 @@ def retarget(songs, duration, music_labels=None, out_labels=None,
     if max_pause_beats > 0:
         first_pause = total_music_beats
 
-    max_beats = int(120. / song.analysis["avg_beat_duration"])  # ~ 2 minutes
-    # max_beats = int(60. / song.analysis["avg_beat_duration"])
+    # max_beats = int(120. / song.analysis["avg_beat_duration"])  # ~ 2 minutes
+    max_beats = int(60. / song.analysis["avg_beat_duration"])
     min_beats = int(30. / song.analysis["avg_beat_duration"])   # ~ 30 seconds
     max_beats = min(max_beats, penalty.shape[1])
 
@@ -657,11 +657,7 @@ def _generate_audio(songs, beats, new_beats, new_beats_cost, music_labels,
     if current_seg != 'p':
         audio_segments.append(current_seg)
 
-    import pdb; pdb.set_trace()
-
     segment_song_indicies = [x for x in segment_song_indicies if x != 'p']
-
-    import pdb; pdb.set_trace()
 
     beats = [N.array(b) for b in beats]
     score_start = 0
@@ -677,7 +673,7 @@ def _generate_audio(songs, beats, new_beats, new_beats_cost, music_labels,
         segments = []
         # TODO: is this +1 correct?
         starts = N.array([x[1] for x in new_beats[aseg[0]:aseg[1] + 1]])
-        import pdb; pdb.set_trace()
+
         bis = [N.nonzero(beats[song_i] == b)[0][0] for b in starts]
         dists = N.zeros(len(starts))
         durs = N.zeros(len(starts))
