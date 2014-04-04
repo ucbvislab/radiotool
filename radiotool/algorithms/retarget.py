@@ -248,6 +248,8 @@ def retarget(songs, duration, music_labels=None, out_labels=None,
     if music_labels is not None:
         if not multi_songs:
             music_labels = [music_labels]
+            music_labels = [item for sublist in music_labels
+                            for item in sublist]
         if len(music_labels) != len(songs):
             raise ArgumentException("Did not specify {} sets of music labels".
                                     format(len(songs)))
@@ -266,6 +268,7 @@ def retarget(songs, duration, music_labels=None, out_labels=None,
     if in_vas is not None:
         if not multi_songs:
             in_vas = [in_vas]
+            in_vas = [item for sublist in in_vas for item in sublist]
         if len(in_vas) != len(songs):
             raise ArgumentException("Did not specify {} sets of v/a labels".
                                     format(len(songs)))
@@ -394,10 +397,16 @@ def retarget(songs, duration, music_labels=None, out_labels=None,
         print("\twith min_beats(%d) and max_beats(%d)" %
               (min_beats, max_beats))
 
+        song_starts = [0]
+        for song in songs:
+            song_starts.append(song_starts[-1] + len(song.analysis["beats"]))
+        song_ends = N.array(song_starts[1:], dtype=N.int32)
+        song_starts = N.array(song_starts[:-1], dtype=N.int32)
+
         t1 = time.clock()
         path_i, path_cost = build_table_full_backtrace(
-            tc2, pen2, first_pause=first_pause,
-            max_beats=max_beats, min_beats=min_beats)
+            tc2, pen2, song_starts, song_ends,
+            first_pause=first_pause, max_beats=max_beats, min_beats=min_beats)
         t2 = time.clock()
         print("Built table (full backtrace) in {} seconds"
               .format(t2 - t1))
