@@ -133,7 +133,7 @@ def segment_array(arr, length, overlap=.5):
 
     offset = float(overlap) * length
     total_segments = int((N.shape(arr)[0] - length) / offset) + 1
-    print "total segments", total_segments
+    # print "total segments", total_segments
 
     other_shape = N.shape(arr)[1:]
     out_shape = [total_segments, length]
