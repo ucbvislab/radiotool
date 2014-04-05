@@ -15,6 +15,7 @@ from . import build_table_full_backtrace
 from . import constraints
 
 Spring = namedtuple('Spring', ['time', 'duration'])
+BEAT_DUR_KEY = "med_beat_duration"
 
 
 class ArgumentException(Exception):
@@ -46,7 +47,7 @@ def retarget_to_length(song, duration, start=True, end=True, slack=5):
     else:
         analysis = song.analysis
         beats = analysis["beats"]
-        beat_length = analysis["avg_beat_duration"]
+        beat_length = analysis[BEAT_DUR_KEY]
 
         ending_length = song.duration_in_seconds - beats[-1]
         new_duration = duration - ending_length - slack
@@ -126,7 +127,7 @@ def retarget_with_change_points(song, cp_times, duration):
     """
     analysis = song.analysis
 
-    beat_length = analysis["avg_beat_duration"]
+    beat_length = analysis[BEAT_DUR_KEY]
     beats = N.array(analysis["beats"])
 
     # find change points
@@ -233,7 +234,7 @@ def retarget(songs, duration, music_labels=None, out_labels=None,
     analyses = [s.analysis for s in songs]
 
     # generate labels for every beat in the input and output
-    beat_lengths = [a["avg_beat_duration"] for a in analyses]
+    beat_lengths = [a[BEAT_DUR_KEY] for a in analyses]
     beats = [a["beats"] for a in analyses]
 
     beat_length = N.mean(beat_lengths)
@@ -314,7 +315,7 @@ def retarget(songs, duration, music_labels=None, out_labels=None,
                 constraints.PauseEntryVAChangeConstraint(target_va, .005),
                 constraints.PauseExitVAChangeConstraint(target_va, .005),
                 constraints.StartWithMusicConstraint(),
-                constraints.TimbrePitchConstraint(context=1),
+                constraints.TimbrePitchConstraint(context=1, timbre_weight=1.5, chroma_weight=1.5),
                 constraints.EnergyConstraint(penalty=0.5),
                 constraints.MinimumJumpConstraint(8),
                 constraints.ValenceArousalConstraint(
@@ -375,9 +376,9 @@ def retarget(songs, duration, music_labels=None, out_labels=None,
     if max_pause_beats > 0:
         first_pause = total_music_beats
 
-    # max_beats = int(120. / song.analysis["avg_beat_duration"])  # ~ 2 minutes
-    max_beats = int(60. / song.analysis["avg_beat_duration"])
-    min_beats = int(30. / song.analysis["avg_beat_duration"])   # ~ 30 seconds
+    # max_beats = int(120. / song.analysis[BEAT_DUR_KEY])  # ~ 2 minutes
+    max_beats = int(90. / beat_length)
+    min_beats = int(20. / beat_length)   # ~ 30 seconds
     max_beats = min(max_beats, penalty.shape[1])
 
     tc2 = N.nan_to_num(trans_cost)
@@ -643,7 +644,7 @@ def _generate_audio(songs, beats, new_beats, new_beats_cost, music_labels,
 
     # currently assuming no transitions between different songs
 
-    beat_length = N.mean([song.analysis["avg_beat_duration"]
+    beat_length = N.mean([song.analysis[BEAT_DUR_KEY]
                           for song in songs])
 
     audio_segments = []
@@ -696,14 +697,14 @@ def _generate_audio(songs, beats, new_beats, new_beats_cost, music_labels,
                 # how long the beat is supposed to be
                 print("USING AVG BEAT DURATION IN SYNTHESIS -\
                     POTENTIALLY NOT GOOD")
-                durs[i] = songs[song_i].analysis["avg_beat_duration"]
+                durs[i] = songs[song_i].analysis[BEAT_DUR_KEY]
             else:
                 durs[i] = beats[song_i][bis[i] + 1] - beats[song_i][bis[i]]
 
         # add pause duration to current location
         # current_loc +=\
             # (aseg[0] - last_segment_beat) *\
-            #      song.analysis["avg_beat_duration"]
+            #      song.analysis[BEAT_DUR_KEY]
 
         # catch up to the pause
         current_loc = max(
@@ -829,7 +830,7 @@ def _generate_audio(songs, beats, new_beats, new_beats_cost, music_labels,
     # result labels
     label_time = 0.0
     pause_len = beat_length
-    # pause_len = song.analysis["avg_beat_duration"]
+    # pause_len = song.analysis[BEAT_DUR_KEY]
     result_full_labels = []
     prev_label = -1
     for beat_i, (song_i, beat) in enumerate(new_beats):
@@ -857,7 +858,7 @@ def _generate_audio(songs, beats, new_beats, new_beats_cost, music_labels,
 
             if (next_i >= len(beats[song_i])):
                 print("USING AVG BEAT DURATION - POTENTIALLY NOT GOOD")
-                label_time += songs[song_i].analysis["avg_beat_duration"]
+                label_time += songs[song_i].analysis[BEAT_DUR_KEY]
             else:
                 label_time += beats[song_i][next_i] - beat
 
@@ -878,7 +879,7 @@ def _generate_audio(songs, beats, new_beats, new_beats_cost, music_labels,
             next_i = beat_i + 1
 
             if (next_i >= len(beats[song_i])):
-                cost_time += songs[song_i].analysis["avg_beat_duration"]
+                cost_time += songs[song_i].analysis[BEAT_DUR_KEY]
             else:
                 cost_time += beats[song_i][next_i] - b
 

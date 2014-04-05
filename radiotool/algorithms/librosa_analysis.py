@@ -1,14 +1,16 @@
 # from librosa examples, and modified by Steve Rubin - srubin@cs.berkeley.edu
 
 import numpy as N
-import scipy, scipy.signal
+import scipy
+import scipy.signal
 import librosa
 
 
 def structure(X):
     d, n = X.shape
     X = scipy.stats.zscore(X, axis=1)
-    D = scipy.spatial.distance.squareform(scipy.spatial.distance.pdist(X.T, metric="cosine"))
+    D = scipy.spatial.distance.squareform(
+        scipy.spatial.distance.pdist(X.T, metric="cosine"))
     return D[:-1, :-1]
 
 
@@ -19,7 +21,7 @@ def analyze_file(infile, debug=False):
 
 def analyze_frames(y, sr, debug=False):
     A = {}
-    
+
     hop_length = 128
 
     # First, get the track duration
@@ -31,15 +33,17 @@ def analyze_frames(y, sr, debug=False):
 
     # Push the last frame as a phantom beat
     A['tempo'] = tempo
-    A['beats'] = librosa.frames_to_time(beats, sr, hop_length=hop_length).tolist()
+    A['beats'] = librosa.frames_to_time(
+        beats, sr, hop_length=hop_length).tolist()
 
     if debug: print "beats count: ", len(A['beats'])
 
     if debug: print "> spectrogram"
-    S = librosa.feature.melspectrogram(y, sr,   n_fft=2048, 
-                                                hop_length=hop_length, 
-                                                n_mels=80, 
-                                                fmax=8000)
+    S = librosa.feature.melspectrogram(y, sr,
+                                       n_fft=2048,
+                                       hop_length=hop_length,
+                                       n_mels=80,
+                                       fmax=8000)
     S = S / S.max()
 
     # A['spectrogram'] = librosa.logamplitude(librosa.feature.sync(S, beats)**2).T.tolist()
@@ -73,5 +77,6 @@ def analyze_frames(y, sr, debug=False):
     edge_lens = [A["beats"][i] - A["beats"][i - 1]
                  for i in xrange(1, len(A["beats"]))]
     A["avg_beat_duration"] = N.mean(edge_lens)
+    A["med_beat_duration"] = N.median(edge_lens)
 
     return A
