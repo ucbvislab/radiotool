@@ -315,7 +315,8 @@ def retarget(songs, duration, music_labels=None, out_labels=None,
                 constraints.PauseEntryVAChangeConstraint(target_va, .005),
                 constraints.PauseExitVAChangeConstraint(target_va, .005),
                 constraints.StartWithMusicConstraint(),
-                constraints.TimbrePitchConstraint(context=1, timbre_weight=1.5, chroma_weight=1.5),
+                constraints.TimbrePitchConstraint(
+                    context=1, timbre_weight=1.5, chroma_weight=1.5),
                 constraints.EnergyConstraint(penalty=0.5),
                 constraints.MinimumJumpConstraint(8),
                 constraints.ValenceArousalConstraint(
