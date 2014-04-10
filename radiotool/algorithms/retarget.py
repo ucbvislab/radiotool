@@ -801,8 +801,8 @@ def _generate_audio(songs, beats, new_beats, new_beats_cost, music_labels,
             raw_vol = RawVolume(rawseg, volume_frames)
             comp.add_dynamic(raw_vol)
 
-        comp.fade_in(segments[0], min(3.0, segments[0].duration_in_seconds))
-        comp.fade_out(segments[-1], min(3.0, segments[-1].duration_in_seconds))
+        comp.fade_in(segments[0], min(5.0, segments[0].duration_in_seconds))
+        comp.fade_out(segments[-1], min(5.0, segments[-1].duration_in_seconds))
 
         prev_end = 0.0
 
