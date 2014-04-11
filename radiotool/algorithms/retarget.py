@@ -288,7 +288,7 @@ def retarget(songs, duration, music_labels=None, out_labels=None,
         # multi-song optimization
         pipeline = constraints.ConstraintPipeline(constraints=(
             constraints.PauseConstraint(
-                6, 25, to_penalty=1.4, between_penalty=.05),
+                10, 30, to_penalty=1.4, between_penalty=.05),
             constraints.PauseEntryLabelChangeConstraint(target, .005),
             constraints.PauseExitLabelChangeConstraint(target, .005),
             constraints.StartWithMusicConstraint(),
@@ -316,7 +316,7 @@ def retarget(songs, duration, music_labels=None, out_labels=None,
                 constraints.PauseExitVAChangeConstraint(target_va, .005),
                 constraints.StartWithMusicConstraint(),
                 constraints.TimbrePitchConstraint(
-                    context=1, timbre_weight=1.5, chroma_weight=1.5),
+                    context=1, timbre_weight=1.25, chroma_weight=1.25),
                 constraints.EnergyConstraint(penalty=0.5),
                 constraints.MinimumJumpConstraint(8),
                 constraints.ValenceArousalConstraint(
@@ -377,9 +377,8 @@ def retarget(songs, duration, music_labels=None, out_labels=None,
     if max_pause_beats > 0:
         first_pause = total_music_beats
 
-    # max_beats = int(120. / song.analysis[BEAT_DUR_KEY])  # ~ 2 minutes
-    max_beats = int(90. / beat_length)
-    min_beats = int(20. / beat_length)   # ~ 30 seconds
+    max_beats = int(90. / beat_length)   # ~ 90 seconds
+    min_beats = int(20. / beat_length)   # ~ 20 seconds
     max_beats = min(max_beats, penalty.shape[1])
 
     tc2 = N.nan_to_num(trans_cost)
@@ -469,7 +468,8 @@ def retarget(songs, duration, music_labels=None, out_labels=None,
 
     # return a radiotool Composition
     print("Generating audio")
-    comp, cf_locations, result_full_labels, cost_labels, contracted =\
+    (comp, cf_locations, result_full_labels,
+     cost_labels, contracted, result_volume) =\
         _generate_audio(
             songs, beats, path, path_cost, start,
             volume=volume,
@@ -484,6 +484,7 @@ def retarget(songs, duration, music_labels=None, out_labels=None,
         "target_labels": target,
         "result_labels": result_labels,
         "result_full_labels": result_full_labels,
+        "result_volume": result_volume,
         "transitions": [Label("crossfade", loc) for loc in cf_locations],
         "path_cost": cost_labels
     }
@@ -638,6 +639,8 @@ def _generate_audio(songs, beats, new_beats, new_beats_cost, music_labels,
         volume = 1.0
     if volume_breakpoints is not None:
         volume_array = volume_breakpoints.to_array(songs[0].samplerate)
+
+    result_volume = N.zeros(volume_array.shape)
 
     min_channels = min([x.channels for x in songs])
 
@@ -801,8 +804,20 @@ def _generate_audio(songs, beats, new_beats, new_beats_cost, music_labels,
             raw_vol = RawVolume(rawseg, volume_frames)
             comp.add_dynamic(raw_vol)
 
-        comp.fade_in(segments[0], min(5.0, segments[0].duration_in_seconds))
-        comp.fade_out(segments[-1], min(5.0, segments[-1].duration_in_seconds))
+            result_volume[rawseg.comp_location:
+                          rawseg.comp_location + rawseg.duration] =\
+                volume_frames
+
+        s0 = segments[0]
+        sn = segments[-1]
+
+        fade_in_len = min(5.0, s0.duration_in_seconds)
+        fade_in_len_samps = fade_in_len * s0.track.samplerate
+        fade_out_len = min(5.0, sn.duration_in_seconds)
+        fade_out_len_samps = fade_out_len * sn.track.samplerate
+
+        comp.fade_in(s0, fade_in_len)
+        comp.fade_out(sn, fade_out_len)
 
         prev_end = 0.0
 
@@ -820,11 +835,27 @@ def _generate_audio(songs, beats, new_beats, new_beats_cost, music_labels,
             raw_vol = RawVolume(seg, volume_frames)
             comp.add_dynamic(raw_vol)
 
+            try:
+                result_volume[seg.comp_location:
+                              seg.comp_location + seg.duration] = volume_frames
+            except ValueError:
+                diff = (seg.comp_location + seg.duration) - len(result_volume)
+                result_volume = N.r_[result_volume, N.zeros(diff)]
+                result_volume[seg.comp_location:
+                              seg.comp_location + seg.duration] = volume_frames
+
             if len(volume_frames) != 0:
                 prev_end = volume_frames[-1]
 
             # vol = Volume.from_segment(seg, volume)
             # comp.add_dynamic(vol)
+
+        result_volume[s0.comp_location:
+                      s0.comp_location + fade_in_len_samps] *=\
+            N.linspace(0.0, 1.0, num=fade_in_len_samps)
+        result_volume[sn.comp_location:
+                      sn.comp_location + fade_out_len_samps] *=\
+            N.linspace(1.0, 0.0, num=fade_out_len_samps)
 
         all_cf_locations.extend(cf_locations)
 
@@ -895,6 +926,12 @@ def _generate_audio(songs, beats, new_beats, new_beats_cost, music_labels,
                 min_contraction=min_contraction)
             if contracted_dur > 0:
                 print("Contracted", contracted_time, "at", contracted_dur)
+
+                # move all the volume frames back
+                c_time_samps = contracted_time * segments[0].track.samplerate
+                c_dur_samps = contracted_dur * segments[0].track.samplerate
+                result_volume = N.r_[
+                    result_volume[:c_time_samps], result_volume[c_dur_samps:]]
 
                 # can't move anything EARLIER than contracted_time
 
@@ -1018,4 +1055,5 @@ def _generate_audio(songs, beats, new_beats, new_beats_cost, music_labels,
     # cf durs?
     # durs
 
-    return comp, all_cf_locations, result_full_labels, result_cost, contracted
+    return (comp, all_cf_locations, result_full_labels,
+            result_cost, contracted, result_volume)

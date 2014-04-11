@@ -60,7 +60,7 @@ class RandomJitterConstraint(Constraint):
 
 class TimbrePitchConstraint(Constraint):
     def __init__(self, timbre_weight=1, chroma_weight=1,
-                 context=1):
+                 context=0):
         self.tw = timbre_weight
         self.cw = chroma_weight
         self.m = context
@@ -73,7 +73,7 @@ class TimbrePitchConstraint(Constraint):
 
         dists = self.tw * timbre_dist + self.cw * chroma_dist
 
-        if self.m > 1:
+        if self.m > 0:
             new_dists = np.copy(dists)
             coefs = [binom(self.m * 2, i) for i in range(self.m * 2 + 1)]
             coefs = np.array(coefs) / np.sum(coefs)

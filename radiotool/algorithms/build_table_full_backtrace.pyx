@@ -32,6 +32,10 @@ cdef double get_pen_value(double[:, :] pen, int i, int l, int global_start_l, Pa
     if global_start_l == 0 and (p.n_beats <= i < p.p0_full):
         new_pen += p.pen_val
 
+    # * don't end song in a segment beat other than beat past min_beats
+    if global_start_l == pen.shape[1] - 1 and (i < p.n_beats * p.min_beats):
+        new_pen += p.pen_val
+
     return new_pen
 
 
@@ -49,6 +53,11 @@ cdef void get_pen_column(double[:, :] pen, int column, double[:] new_pen, int gl
     # * don't start song in segment beat other than first
     if global_start_l == 0:
         for i in range(p.n_beats, p.p0_full):
+            new_pen[i] += p.pen_val
+
+    # * don't end song in a segment beat other than beat past min_beats
+    if global_start_l == pen.shape[1] - 1:
+        for i in range(p.n_beats * p.min_beats):
             new_pen[i] += p.pen_val
 
 
