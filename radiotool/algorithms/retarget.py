@@ -292,7 +292,7 @@ def retarget(songs, duration, music_labels=None, out_labels=None,
             constraints.PauseEntryLabelChangeConstraint(target, .005),
             constraints.PauseExitLabelChangeConstraint(target, .005),
             constraints.StartWithMusicConstraint(),
-            constraints.TimbrePitchConstraint(context=1),
+            constraints.TimbrePitchConstraint(context=0),
             constraints.EnergyConstraint(penalty=0.5),
             # constraints.RhythmConstraint(3, 5.0),  # get time signature?
             constraints.MinimumJumpConstraint(8),
@@ -314,11 +314,11 @@ def retarget(songs, duration, music_labels=None, out_labels=None,
                     to_penalty=1.4, between_penalty=.05, unit="beats"),
                 constraints.PauseEntryVAChangeConstraint(target_va, .005),
                 constraints.PauseExitVAChangeConstraint(target_va, .005),
-                constraints.StartWithMusicConstraint(),
+                # constraints.StartWithMusicConstraint(),
                 constraints.TimbrePitchConstraint(
-                    context=1, timbre_weight=1.25, chroma_weight=1.25),
+                    context=0, timbre_weight=1.5, chroma_weight=1.5),
                 constraints.EnergyConstraint(penalty=0.5),
-                constraints.MinimumJumpConstraint(8),
+                constraints.MinimumLoopConstraint(8),
                 constraints.ValenceArousalConstraint(
                     in_va, target_va, pen * .125),
                 constraints.NoveltyVAConstraint(in_va, target_va, pen),
@@ -931,7 +931,8 @@ def _generate_audio(songs, beats, new_beats, new_beats_cost, music_labels,
                 c_time_samps = contracted_time * segments[0].track.samplerate
                 c_dur_samps = contracted_dur * segments[0].track.samplerate
                 result_volume = N.r_[
-                    result_volume[:c_time_samps], result_volume[c_dur_samps:]]
+                    result_volume[:c_time_samps],
+                    result_volume[c_time_samps + c_dur_samps:]]
 
                 # can't move anything EARLIER than contracted_time
 

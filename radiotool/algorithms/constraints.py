@@ -118,20 +118,20 @@ class RhythmConstraint(Constraint):
         return transition_cost, penalty, beat_names
 
 
-class MinimumJumpConstraint(Constraint):
-    def __init__(self, min_jump):
-        self.min_jump = min_jump
+class MinimumLoopConstraint(Constraint):
+    def __init__(self, min_loop):
+        self.min_loop = min_loop
 
     def apply(self, transition_cost, penalty, song, beat_names):
         n_beats = len(song.analysis["beats"])
         for i in range(n_beats):
-            for j in range(-(self.min_jump - 1), self.min_jump):
-                if 0 < i + j < n_beats and j != 1:
+            for j in range(-(self.min_loop - 1), 1):
+                if 0 < i + j < n_beats:
                     transition_cost[i, i + j] += np.inf
         return transition_cost, penalty, beat_names
 
     def __repr__(self):
-        return "MinimumJumpConstraint: min_jump(%d)" % self.min_jump
+        return "MinimumLoopConstraint: min_loop(%d)" % self.min_loop
 
 
 class LabelConstraint(Constraint):
