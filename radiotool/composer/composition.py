@@ -126,7 +126,7 @@ class Composition(object):
     def add_labels(self, labels):
         self.labels.extend(labels)
 
-    def fade_in(self, segment, duration):
+    def fade_in(self, segment, duration, fade_type="linear"):
         """Adds a fade in to a segment in the composition
 
         :param segment: Segment to fade in to
@@ -137,11 +137,11 @@ class Composition(object):
         :rtype: :py:class:`Fade`
         """
         f = Fade(segment.track, segment.comp_location_in_seconds,
-                 duration, 0.0, 1.0)
+                 duration, 0.0, 1.0, fade_type=fade_type)
         self.add_dynamic(f)
         return f
 
-    def fade_out(self, segment, duration):
+    def fade_out(self, segment, duration, fade_type="linear"):
         """Adds a fade out to a segment in the composition
 
         :param segment: Segment to fade out
@@ -154,7 +154,8 @@ class Composition(object):
         score_loc_in_seconds = segment.comp_location_in_seconds +\
             segment.duration_in_seconds - duration
 
-        f = Fade(segment.track, score_loc_in_seconds, duration, 1.0, 0.0)
+        f = Fade(segment.track, score_loc_in_seconds, duration, 1.0, 0.0,
+                 fade_type=fade_type)
         # bug fixing... perhaps
         f.comp_location = segment.comp_location + segment.duration -\
             int(duration * segment.track.samplerate)

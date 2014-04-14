@@ -14,8 +14,8 @@ cdef struct Params:
     int n_pauses
     int min_beats
     int max_beats
-    int max_beats_with_padding
     int all_full
+    int no_max_beats
     int n_song_starts
 
 
@@ -42,7 +42,7 @@ cdef double get_pen_value(double[:, :] pen, int i, int l, int global_start_l, Pa
 cdef void get_pen_column(double[:, :] pen, int column, double[:] new_pen, int global_start_l, Params p) nogil:
     cdef int i, j
 
-    for i in range(p.max_beats_with_padding):
+    for i in range(p.max_beats):
         for j in range(p.p0):
             new_pen[i * p.n_beats + j] = pen[j, column]
 
@@ -137,6 +137,7 @@ cdef void backward_build_table(
 
             # could be going to beat_seg_i + 1
             seg_start_beat = (beat_seg_i + 1) * p.n_beats
+
             minval = -1
             for j in range(song_starts[song_i], song_ends[song_i]):
             # for j in range(p.n_beats):
@@ -226,21 +227,19 @@ def build_table(double[:, :] trans_cost, double[:, :] penalty,
     int[:] song_starts, int[:] song_ends,
     int min_beats=-1, int max_beats=-1, int first_pause=-1):
     
-    cdef int max_beats_with_padding, i
+    cdef int i
 
-    if max_beats != -1 and min_beats != -1:
-        # max_beats_with_padding = min_beats + max_beats
-        max_beats_with_padding = max_beats
-    elif max_beats != -1:
-        # 4? One measures of padding? Just a thought
-        max_beats_with_padding = max_beats
-    elif min_beats != -1:
-        max_beats = -1
-        max_beats_with_padding = min_beats
-    else:
-        max_beats_with_padding = 1
-        max_beats = 1
-        min_beats = 0
+    # if max_beats != -1 and min_beats != -1:
+    #     max_beats_with_padding = max_beats
+    # elif max_beats != -1:
+    #     max_beats_with_padding = max_beats
+    # elif min_beats != -1:
+    #     max_beats = -1
+    #     max_beats_with_padding = min_beats
+    # else:
+    #     max_beats_with_padding = -1
+    #     max_beats = -1
+    #     min_beats = 0
 
     cdef Params p
     p.pen_val = 99999999.0
@@ -249,9 +248,15 @@ def build_table(double[:, :] trans_cost, double[:, :] penalty,
     p.n_pauses = trans_cost.shape[0] - p.p0
     p.min_beats = min_beats
     p.max_beats = max_beats
-    p.max_beats_with_padding = max_beats_with_padding
-    p.p0_full = p.n_beats * p.max_beats_with_padding
+    p.p0_full = p.n_beats * p.max_beats
     p.all_full = p.p0_full + p.n_pauses
+
+    if p.max_beats == -1:
+        p.no_max_beats = 1
+        p.max_beats = p.min_beats + 1
+    else:
+        p.no_max_beats = 0
+
     p.n_song_starts = len(song_starts)
 
     # double arrays for use throughout the computation

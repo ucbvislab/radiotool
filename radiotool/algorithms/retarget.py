@@ -302,8 +302,8 @@ def retarget(songs, duration, music_labels=None, out_labels=None,
         ))
 
     else:
-        min_pause_len = 10.
-        max_pause_len = 30.
+        min_pause_len = 20.
+        max_pause_len = 35.
         min_pause_beats = int(N.ceil(min_pause_len / beat_length))
         max_pause_beats = int(N.floor(max_pause_len / beat_length))
 
@@ -438,7 +438,10 @@ def retarget(songs, duration, music_labels=None, out_labels=None,
         # with the multi-song approach
 
         # fortran method
-        cost, prev_node = build_table(trans_cost, penalty)
+        t1 = time.clock()
+        cost, prev_node = build_table(tc2, pen2)
+        t2 = time.clock()
+        print("Built table (fortran) in {} seconds".format(t2 - t1))
         res = cost[:, -1]
         best_idx = N.argmin(res)
         if N.isfinite(res[best_idx]):
@@ -459,12 +462,20 @@ def retarget(songs, duration, music_labels=None, out_labels=None,
         path_cost = N.array(path_cost)
 
         # how did we do?
+        path = []
         result_labels = []
-        for i in path:
-            if str(i).startswith('p'):
+        n_beats = first_pause
+        for i in path_i:
+            if i >= first_pause:
+                path.append(('p', i - first_pause))
                 result_labels.append(None)
             else:
-                result_labels.append(start[N.where(N.array(beats) == i)[0][0]])
+                path.append(beat_names[i % n_beats])
+                song_i = path[-1][0]
+                beat_name = path[-1][1]
+                result_labels.append(
+                    start[song_i][N.where(N.array(beats[song_i]) ==
+                                  beat_name)[0][0]])
 
     # return a radiotool Composition
     print("Generating audio")
@@ -477,6 +488,7 @@ def retarget(songs, duration, music_labels=None, out_labels=None,
             springs=springs)
 
     info = {
+        "beat_length": beat_length,
         "contracted": contracted,
         "cost": N.sum(path_cost) / len(path),
         "path": path,
@@ -811,13 +823,13 @@ def _generate_audio(songs, beats, new_beats, new_beats_cost, music_labels,
         s0 = segments[0]
         sn = segments[-1]
 
-        fade_in_len = min(5.0, s0.duration_in_seconds)
+        fade_in_len = min(3.0, s0.duration_in_seconds)
         fade_in_len_samps = fade_in_len * s0.track.samplerate
         fade_out_len = min(5.0, sn.duration_in_seconds)
         fade_out_len_samps = fade_out_len * sn.track.samplerate
 
-        comp.fade_in(s0, fade_in_len)
-        comp.fade_out(sn, fade_out_len)
+        fade_in = comp.fade_in(s0, fade_in_len, fade_type="linear")
+        fade_out = comp.fade_out(sn, fade_out_len, fade_type="exponential")
 
         prev_end = 0.0
 
@@ -852,10 +864,10 @@ def _generate_audio(songs, beats, new_beats, new_beats_cost, music_labels,
 
         result_volume[s0.comp_location:
                       s0.comp_location + fade_in_len_samps] *=\
-            N.linspace(0.0, 1.0, num=fade_in_len_samps)
-        result_volume[sn.comp_location:
-                      sn.comp_location + fade_out_len_samps] *=\
-            N.linspace(1.0, 0.0, num=fade_out_len_samps)
+            fade_in.to_array(channels=1).flatten()
+        result_volume[sn.comp_location + sn.duration - fade_out_len_samps:
+                      sn.comp_location + sn.duration] *=\
+            fade_out.to_array(channels=1).flatten()
 
         all_cf_locations.extend(cf_locations)
 

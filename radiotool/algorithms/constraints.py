@@ -126,7 +126,7 @@ class MinimumLoopConstraint(Constraint):
         n_beats = len(song.analysis["beats"])
         for i in range(n_beats):
             for j in range(-(self.min_loop - 1), 1):
-                if 0 < i + j < n_beats:
+                if 0 <= i + j < n_beats:
                     transition_cost[i, i + j] += np.inf
         return transition_cost, penalty, beat_names
 
