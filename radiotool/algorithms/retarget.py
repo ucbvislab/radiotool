@@ -314,7 +314,6 @@ def retarget(songs, duration, music_labels=None, out_labels=None,
                     to_penalty=1.4, between_penalty=.05, unit="beats"),
                 constraints.PauseEntryVAChangeConstraint(target_va, .005),
                 constraints.PauseExitVAChangeConstraint(target_va, .005),
-                # constraints.StartWithMusicConstraint(),
                 constraints.TimbrePitchConstraint(
                     context=0, timbre_weight=1.5, chroma_weight=1.5),
                 constraints.EnergyConstraint(penalty=0.5),
@@ -322,6 +321,8 @@ def retarget(songs, duration, music_labels=None, out_labels=None,
                 constraints.ValenceArousalConstraint(
                     in_va, target_va, pen * .125),
                 constraints.NoveltyVAConstraint(in_va, target_va, pen),
+                # constraints.StartWithMusicConstraint(),
+                # constraints.RandomJitterConstraint(),
             ))
             for in_va in in_vas]
 
@@ -379,6 +380,8 @@ def retarget(songs, duration, music_labels=None, out_labels=None,
 
     max_beats = int(90. / beat_length)   # ~ 90 seconds
     min_beats = int(20. / beat_length)   # ~ 20 seconds
+    # max_beats = int(180. / beat_length)   # ~ 90 seconds
+    # min_beats = int(40. / beat_length)   # ~ 20 seconds
     max_beats = min(max_beats, penalty.shape[1])
 
     tc2 = N.nan_to_num(trans_cost)
@@ -461,10 +464,13 @@ def retarget(songs, duration, music_labels=None, out_labels=None,
                     trans_cost[path_i[i - 1], node] + penalty[node, i])
         path_cost = N.array(path_cost)
 
-        # how did we do?
         path = []
         result_labels = []
-        n_beats = first_pause
+        if max_pause_beats == 0:
+            n_beats = total_music_beats
+            first_pause = n_beats
+        else:
+            n_beats = first_pause
         for i in path_i:
             if i >= first_pause:
                 path.append(('p', i - first_pause))
@@ -694,6 +700,8 @@ def _generate_audio(songs, beats, new_beats, new_beats_cost, music_labels,
 
     all_cf_locations = []
 
+    aseg_fade_ins = []
+
     print("Building audio")
     for (aseg, song_i) in zip(audio_segments, segment_song_indicies):
         segments = []
@@ -830,6 +838,8 @@ def _generate_audio(songs, beats, new_beats, new_beats_cost, music_labels,
 
         fade_in = comp.fade_in(s0, fade_in_len, fade_type="linear")
         fade_out = comp.fade_out(sn, fade_out_len, fade_type="exponential")
+
+        aseg_fade_ins.append(fade_in)
 
         prev_end = 0.0
 
@@ -1037,6 +1047,27 @@ def _generate_audio(songs, beats, new_beats, new_beats_cost, music_labels,
                 contracted.append(
                     Spring(contracted_time + offset, contracted_dur))
                 offset += contracted_dur
+
+    for fade in aseg_fade_ins:
+        for spring in contracted:
+            if (spring.time - 1 <
+                    fade.comp_location_in_seconds <
+                    spring.time + spring.duration + 1):
+
+                result_volume[
+                    fade.comp_location:
+                    fade.comp_location + fade.duration] /=\
+                    fade.to_array(channels=1).flatten()
+
+                fade.fade_type = "linear"
+                fade.duration_in_seconds = 2.0
+                result_volume[
+                    fade.comp_location:
+                    fade.comp_location + fade.duration] *=\
+                    fade.to_array(channels=1).flatten()
+
+                print("Changing fade at {}".format(
+                    fade.comp_location_in_seconds))
 
     # for seg in comp.segments:
     #     print seg.comp_location, seg.duration
