@@ -49,7 +49,8 @@ setup(name='radiotool',
 #      extras_require=[
 #            'python-xmp-toolkit'
 #      ],
-#      dependency_links=['https://github.com/bmcfee/librosa/tarball/master#egg=librosa-0.1'],
+      # dependency_links=['https://github.com/bmcfee/librosa/tarball/master#egg=librosa-0.1'],
+      dependency_links=[],
       zip_safe=False,
       test_suite='nose.collector',
       tests_require=['nose'])
