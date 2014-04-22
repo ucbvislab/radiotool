@@ -50,7 +50,7 @@ setup(
     #      extras_require=[
     #            'python-xmp-toolkit'
     #      ],
-    zip_safe=False,
+    # zip_safe=False,
     test_suite='nose.collector',
     tests_require=['nose'])
 
