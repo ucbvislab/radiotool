@@ -49,14 +49,17 @@ setup(name='radiotool',
 #      extras_require=[
 #            'python-xmp-toolkit'
 #      ],
-      dependency_links=['https://github.com/bmcfee/librosa/tarball/master#egg=librosa-0.1'],
+#      dependency_links=['https://github.com/bmcfee/librosa/tarball/master#egg=librosa-0.1'],
       zip_safe=False,
       test_suite='nose.collector',
       tests_require=['nose'])
 
-from numpy.distutils.core import setup, Extension
-build_table = Extension('radiotool.algorithms.build_table',
-                        ['radiotool/algorithms/build_table.f90'])
-setup(
-      ext_modules=[build_table]
-)
+
+# We don't need the fortran version. The other version is fast enough (probably)
+
+#from numpy.distutils.core import setup, Extension
+#build_table = Extension('radiotool.algorithms.build_table',
+#                        ['radiotool/algorithms/build_table.f90'])
+#setup(
+#      ext_modules=[build_table]
+#)

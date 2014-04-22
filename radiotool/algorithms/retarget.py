@@ -6,9 +6,9 @@ import numpy as N
 
 from ..composer import Composition, Segment, Volume, Label, RawVolume
 from novelty import novelty
-from . import build_table
-from . import build_table_mem_efficient
-from . import par_build_table
+# from . import build_table
+# from . import build_table_mem_efficient
+# from . import par_build_table
 from . import build_table_full_backtrace
 import constraints
 
@@ -303,52 +303,52 @@ def retarget(song, duration, music_labels=None, out_labels=None,
     tc2 = N.nan_to_num(trans_cost)
     pen2 = N.nan_to_num(penalty)
 
-    if max_beats is not None and min_beats is not None:
-        print "Running optimization (full backtrace, memory efficient)"
-        print "\twith min_beats(%d) and max_beats(%d)" %\
-            (min_beats, max_beats)
+    # if max_beats is not None and min_beats is not None:
+    print "Running optimization (full backtrace, memory efficient)"
+    print "\twith min_beats(%d) and max_beats(%d)" %\
+        (min_beats, max_beats)
 
-        t1 = time.clock()
-        path_i, path_cost = build_table_full_backtrace(
-            tc2, pen2, first_pause=first_pause,
-            max_beats=max_beats, min_beats=min_beats)
-        t2 = time.clock()
-        print "Built table (full backtrace) in %f seconds" % (t2 - t1)
+    t1 = time.clock()
+    path_i, path_cost = build_table_full_backtrace(
+        tc2, pen2, first_pause=first_pause,
+        max_beats=max_beats, min_beats=min_beats)
+    t2 = time.clock()
+    print "Built table (full backtrace) in %f seconds" % (t2 - t1)
 
-        path = []
-        if max_beats == -1:
-            max_beats = min_beats
+    path = []
+    if max_beats == -1:
+        max_beats = min_beats
 
-        first_pause_full = max_beats * first_pause
-        n_beats = first_pause
-        for i in path_i:
-            if i >= first_pause_full:
-                path.append('p' + str(i - first_pause_full))
-            else:
-                path.append(float(beat_names[i % n_beats]))
-
-    else:
-        print "Running optimization (fast, full table)"
-        # fortran method
-        cost, prev_node = build_table(trans_cost, penalty)
-        res = cost[:, -1]
-        best_idx = N.argmin(res)
-        if N.isfinite(res[best_idx]):
-            path, path_cost, path_i = _reconstruct_path(
-                prev_node, cost, beat_names, best_idx, N.shape(cost)[1] - 1)
-            # path_i = [beat_names.index(x) for x in path]
+    first_pause_full = max_beats * first_pause
+    n_beats = first_pause
+    for i in path_i:
+        if i >= first_pause_full:
+            path.append('p' + str(i - first_pause_full))
         else:
-            # throw an exception here?
-            return None
+            path.append(float(beat_names[i % n_beats]))
 
-        path_cost = []
-        for i, node in enumerate(path_i):
-            if i == 0:
-                path_cost.append(0)
-            else:
-                path_cost.append(
-                    trans_cost[path_i[i - 1], node] + penalty[node, i])
-        path_cost = N.array(path_cost)
+    # else:
+    #     print "Running optimization (fast, full table)"
+    #     # fortran method
+    #     cost, prev_node = build_table(trans_cost, penalty)
+    #     res = cost[:, -1]
+    #     best_idx = N.argmin(res)
+    #     if N.isfinite(res[best_idx]):
+    #         path, path_cost, path_i = _reconstruct_path(
+    #             prev_node, cost, beat_names, best_idx, N.shape(cost)[1] - 1)
+    #         # path_i = [beat_names.index(x) for x in path]
+    #     else:
+    #         # throw an exception here?
+    #         return None
+
+    #     path_cost = []
+    #     for i, node in enumerate(path_i):
+    #         if i == 0:
+    #             path_cost.append(0)
+    #         else:
+    #             path_cost.append(
+    #                 trans_cost[path_i[i - 1], node] + penalty[node, i])
+    #     path_cost = N.array(path_cost)
 
     # how did we do?
     result_labels = []
