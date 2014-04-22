@@ -15,6 +15,8 @@ from fade import Fade
 from segment import Segment
 from volume import Volume
 from ..utils import equal_power, RMS_energy, segment_array
+import radiotool.utils
+
 
 class Composition(object):
     """
@@ -69,13 +71,13 @@ class Composition(object):
 
     def add_track(self, track):
         """Add track to the composition
-        
+
         :param track: Track to add to composition
         :type track: :py:class:`radiotool.composer.Track`
 
         """
         self.tracks.add(track)
-    
+
     def add_tracks(self, tracks):
         """Add a list of tracks to the composition
 
@@ -83,7 +85,7 @@ class Composition(object):
         :type tracks: list of :py:class:`radiotool.composer.Track`
         """
         self.tracks.update(tracks)
-        
+
     def add_segment(self, segment):
         """Add a segment to the composition
 
@@ -109,7 +111,7 @@ class Composition(object):
         :type dyn: :py:class:`radiotool.composer.Dynamic`
         """
         self.dynamics.append(dyn)
-        
+
     def add_dynamics(self, dyns):
         """Add a list of dynamics to the composition
 
@@ -124,9 +126,9 @@ class Composition(object):
     def add_labels(self, labels):
         self.labels.extend(labels)
 
-    def fade_in(self, segment, duration):
+    def fade_in(self, segment, duration, fade_type="linear"):
         """Adds a fade in to a segment in the composition
-    
+
         :param segment: Segment to fade in to
         :type segment: :py:class:`radiotool.composer.Segment`
         :param duration: Duration of fade-in (in seconds)
@@ -134,13 +136,14 @@ class Composition(object):
         :returns: The fade that has been added to the composition
         :rtype: :py:class:`Fade`
         """
-        f = Fade(segment.track, segment.comp_location_in_seconds, duration, 0.0, 1.0)
+        f = Fade(segment.track, segment.comp_location_in_seconds,
+                 duration, 0.0, 1.0, fade_type=fade_type)
         self.add_dynamic(f)
         return f
 
-    def fade_out(self, segment, duration):
+    def fade_out(self, segment, duration, fade_type="linear"):
         """Adds a fade out to a segment in the composition
-    
+
         :param segment: Segment to fade out
         :type segment: :py:class:`radiotool.composer.Segment`
         :param duration: Duration of fade-out (in seconds)
@@ -151,7 +154,8 @@ class Composition(object):
         score_loc_in_seconds = segment.comp_location_in_seconds +\
             segment.duration_in_seconds - duration
 
-        f = Fade(segment.track, score_loc_in_seconds, duration, 1.0, 0.0)
+        f = Fade(segment.track, score_loc_in_seconds, duration, 1.0, 0.0,
+                 fade_type=fade_type)
         # bug fixing... perhaps
         f.comp_location = segment.comp_location + segment.duration -\
             int(duration * segment.track.samplerate)
@@ -173,7 +177,8 @@ class Composition(object):
             segment.start -= dur
         else:
             raise Exception(
-                "Cannot create fade-in that extends past the track's beginning")
+                "Cannot create fade-in that extends "
+                "past the track's beginning")
         if segment.comp_location - dur >= 0:
             segment.comp_location -= dur
         else:
@@ -181,8 +186,9 @@ class Composition(object):
                 "Cannot create fade-in the extends past the score's beginning")
 
         segment.duration += dur
-        
-        f = Fade(segment.track, segment.comp_location_in_seconds, duration, 0.0, 1.0)
+
+        f = Fade(segment.track, segment.comp_location_in_seconds,
+                 duration, 0.0, 1.0)
         self.add_dynamic(f)
         return f
 
@@ -198,7 +204,7 @@ class Composition(object):
         """
         dur = int(duration * segment.track.samplerate)
         if segment.start + segment.duration + dur <\
-            segment.track.duration:
+                segment.track.duration:
             segment.duration += dur
         else:
             raise Exception(
@@ -208,9 +214,9 @@ class Composition(object):
         f = Fade(segment.track, score_loc_in_seconds, duration, 1.0, 0.0)
         self.add_dynamic(f)
         return f
-    
+
     def cross_fade(self, seg1, seg2, duration):
-        """Add an equal-power crossfade to the composition between two
+        """Add a linear crossfade to the composition between two
         segments.
 
         :param seg1: First segment (fading out)
@@ -234,7 +240,7 @@ class Composition(object):
 
             # we're going to compute the crossfade and then create a RawTrack
             # for the resulting frames
-            
+
             if seg2.start - (dur / 2) < 0:
                 diff = seg2.start
                 seg2.start = 0
@@ -258,31 +264,34 @@ class Composition(object):
             # compute the crossfade
             in_frames = in_frames[:min(map(len, [in_frames, out_frames]))]
             out_frames = out_frames[:min(map(len, [in_frames, out_frames]))]
-            
-            cf_frames = equal_power(out_frames, in_frames)
-            
+
+            cf_frames = radiotool.utils.linear(out_frames, in_frames)
+            # cf_frames = equal_power(out_frames, in_frames)
+
             raw_track = RawTrack(cf_frames, name="crossfade",
-                samplerate=seg1.track.samplerate)
-            
+                                 samplerate=seg1.track.samplerate)
+
             rs_comp_location = (seg1.comp_location + seg1.duration) /\
                 float(seg1.track.samplerate)
-                
+
             rs_duration = raw_track.duration / float(raw_track.samplerate)
-            
+
             raw_seg = Segment(raw_track, rs_comp_location, 0.0, rs_duration)
             # will this fix a bug?
             raw_seg.duration = raw_track.duration
             raw_seg.comp_location = seg1.comp_location + seg1.duration
-            
+
             self.add_track(raw_track)
             self.add_segment(raw_seg)
-            
+
             return raw_seg
-            
+
         else:
             print seg1.comp_location + seg1.duration, seg2.comp_location
-            raise Exception("Segments must be adjacent to add a crossfade (%d, %d)" 
-                % (seg1.comp_location + seg1.duration, seg2.comp_location))
+            raise Exception("Segments must be adjacent"
+                            "to add a crossfade ({}, {})".format(
+                            seg1.comp_location + seg1.duration,
+                            seg2.comp_location))
 
     def cross_fade_linear(self, seg1, seg2, duration):
         if seg1.comp_location + seg1.duration - seg2.comp_location < 2:

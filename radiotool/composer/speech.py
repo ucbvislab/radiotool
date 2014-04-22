@@ -1,5 +1,7 @@
+import numpy as N
+
 from track import Track
-from ..utils import segment_array
+from ..utils import segment_array, RMS_energy
 
 class Speech(Track):
     """A :py:class:`radiotool.composer.Track` 
@@ -10,13 +12,17 @@ class Speech(Track):
                        labels_in_file=labels_in_file)
     
     def refine_cut(self, cut_point, window_size=1):
-        self.current_frame = int((cut_point - window_size / 2.0) * self.samplerate)
-        frames = self.read_frames(window_size * self.samplerate)
+        cut_point = max(.5 * window_size, cut_point)
+
+        cf = self.current_frame
+        self.current_frame = max(int((cut_point - window_size / 2.0) * self.samplerate), 0)
+        frames = self.read_frames(window_size * self.samplerate, channels=1)
         subwindow_n_frames = int((window_size / 16.0) * self.samplerate)
+        self.current_frame = cf
 
         segments = segment_array(frames, subwindow_n_frames, overlap=.5)
 
-        segments = segments.reshape((-1, subwindow_n_frames * 2))
+        # segments = segments.reshape((-1, subwindow_n_frames * 2))
 
         volumes = N.apply_along_axis(RMS_energy, 1, segments)
  
@@ -45,7 +51,10 @@ class Speech(Track):
         new_cut_point = (self.samplerate * (cut_point - window_size / 2.0) + 
                          (long_list[0] + 1) * 
                          int(subwindow_n_frames / 2.0))
-        print "first min subwindow", long_list[0], "total", len(volumes)
+        # print "first min subwindow", long_list[0], "total", len(volumes)
+
+        print "{} -> {}".format(cut_point, round(new_cut_point / self.samplerate, 2))
+
         return round(new_cut_point / self.samplerate, 2)
         # have to add the .5 elsewhere to get that effect!
         

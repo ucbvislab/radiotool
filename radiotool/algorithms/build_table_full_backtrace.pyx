@@ -14,8 +14,9 @@ cdef struct Params:
     int n_pauses
     int min_beats
     int max_beats
-    int max_beats_with_padding
     int all_full
+    int no_max_beats
+    int n_song_starts
 
 
 cdef double get_pen_value(double[:, :] pen, int i, int l, int global_start_l, Params p) nogil:
@@ -31,13 +32,17 @@ cdef double get_pen_value(double[:, :] pen, int i, int l, int global_start_l, Pa
     if global_start_l == 0 and (p.n_beats <= i < p.p0_full):
         new_pen += p.pen_val
 
+    # * don't end song in a segment beat other than beat past min_beats
+    if global_start_l == pen.shape[1] - 1 and (i < p.n_beats * p.min_beats):
+        new_pen += p.pen_val
+
     return new_pen
 
 
 cdef void get_pen_column(double[:, :] pen, int column, double[:] new_pen, int global_start_l, Params p) nogil:
     cdef int i, j
 
-    for i in range(p.max_beats_with_padding):
+    for i in range(p.max_beats):
         for j in range(p.p0):
             new_pen[i * p.n_beats + j] = pen[j, column]
 
@@ -50,13 +55,19 @@ cdef void get_pen_column(double[:, :] pen, int column, double[:] new_pen, int gl
         for i in range(p.n_beats, p.p0_full):
             new_pen[i] += p.pen_val
 
+    # * don't end song in a segment beat other than beat past min_beats
+    if global_start_l == pen.shape[1] - 1:
+        for i in range(p.n_beats * p.min_beats):
+            new_pen[i] += p.pen_val
+
 
 cdef void backward_build_table(
     double[:, :] tc, double[:, :] pen, int start_beat, int end_beat, int global_start_l, Params p,
+    int[:] song_starts, int[:] song_ends,
     double[:] cost, double[:] pen_val, double[:] vals_col, double[:] min_vals, int[:] global_path,
     double[:] global_path_cost) nogil:
     
-    cdef int l, idx, i, beat_seg_i, seg_start_beat, j, full_j, orig_beat_j, min_idx
+    cdef int l, idx, i, beat_seg_i, seg_start_beat, j, full_j, orig_beat_j, min_idx, song_i
     cdef double minval, tmpval
 
     cdef double *full_cost = <double *>malloc(p.all_full * pen.shape[1] * sizeof(double))
@@ -92,10 +103,17 @@ cdef void backward_build_table(
             beat_seg_i = idx / p.n_beats
             orig_beat_i = idx % p.n_beats
 
+            song_i = 0
+            for j in range(p.n_song_starts):
+                if song_starts[j] <= orig_beat_i < song_ends[j]:
+                    song_i = j
+                    break
+
             # could only be going to beat_seg_i + 1
             seg_start_beat = (beat_seg_i + 1) * p.n_beats
             minval = -1
-            for j in range(p.n_beats):
+            for j in range(song_starts[song_i], song_ends[song_i]):
+            # for j in range(p.n_beats):
                 tmpval = tc[orig_beat_i, j] + pen_val[idx] + full_cost[(seg_start_beat + j) * rowlen + (l + 1)]
                 if minval == -1 or tmpval < minval:
                     minval = tmpval
@@ -111,10 +129,18 @@ cdef void backward_build_table(
             beat_seg_i = idx / p.n_beats
             orig_beat_i = idx % p.n_beats
 
+            song_i = 0
+            for j in range(p.n_song_starts):
+                if song_starts[j] <= orig_beat_i < song_ends[j]:
+                    song_i = j
+                    break
+
             # could be going to beat_seg_i + 1
             seg_start_beat = (beat_seg_i + 1) * p.n_beats
+
             minval = -1
-            for j in range(p.n_beats):
+            for j in range(song_starts[song_i], song_ends[song_i]):
+            # for j in range(p.n_beats):
                 tmpval = tc[orig_beat_i, j] + pen_val[idx] + full_cost[(seg_start_beat + j) * rowlen + (l + 1)]
                 if minval == -1 or tmpval < minval:
                     minval = tmpval
@@ -198,23 +224,22 @@ cdef void backward_build_table(
 
 
 def build_table(double[:, :] trans_cost, double[:, :] penalty,
+    int[:] song_starts, int[:] song_ends,
     int min_beats=-1, int max_beats=-1, int first_pause=-1):
     
-    cdef int max_beats_with_padding, i
+    cdef int i
 
-    if max_beats != -1 and min_beats != -1:
-        # max_beats_with_padding = min_beats + max_beats
-        max_beats_with_padding = max_beats
-    elif max_beats != -1:
-        # 4? One measures of padding? Just a thought
-        max_beats_with_padding = max_beats
-    elif min_beats != -1:
-        max_beats = -1
-        max_beats_with_padding = min_beats
-    else:
-        max_beats_with_padding = 1
-        max_beats = 1
-        min_beats = 0
+    # if max_beats != -1 and min_beats != -1:
+    #     max_beats_with_padding = max_beats
+    # elif max_beats != -1:
+    #     max_beats_with_padding = max_beats
+    # elif min_beats != -1:
+    #     max_beats = -1
+    #     max_beats_with_padding = min_beats
+    # else:
+    #     max_beats_with_padding = -1
+    #     max_beats = -1
+    #     min_beats = 0
 
     cdef Params p
     p.pen_val = 99999999.0
@@ -223,9 +248,16 @@ def build_table(double[:, :] trans_cost, double[:, :] penalty,
     p.n_pauses = trans_cost.shape[0] - p.p0
     p.min_beats = min_beats
     p.max_beats = max_beats
-    p.max_beats_with_padding = max_beats_with_padding
-    p.p0_full = p.n_beats * p.max_beats_with_padding
+    p.p0_full = p.n_beats * p.max_beats
     p.all_full = p.p0_full + p.n_pauses
+
+    if p.max_beats == -1:
+        p.no_max_beats = 1
+        p.max_beats = p.min_beats + 1
+    else:
+        p.no_max_beats = 0
+
+    p.n_song_starts = len(song_starts)
 
     # double arrays for use throughout the computation
     cdef array dtemplate = array('d')
@@ -248,7 +280,7 @@ def build_table(double[:, :] trans_cost, double[:, :] penalty,
     cdef int[:] global_path = ar
 
     backward_build_table(
-        trans_cost, penalty, -1, -1, 0, p, mv1, mv2, mv3, mv4, global_path, global_path_cost)
+        trans_cost, penalty, -1, -1, 0, p, song_starts, song_ends, mv1, mv2, mv3, mv4, global_path, global_path_cost)
 
     # divide_and_conquer_cost_and_path(trans_cost, penalty, -1, -1, 0, global_path, p,
     #     f, g, mv1, mv2, mv3, mv4, mv5, mv6)
