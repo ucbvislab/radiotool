@@ -1,6 +1,11 @@
-# from setuptools import setup
-from distutils.core import setup
-from distutils.extension import Extension
+# from distutils.core import setup
+try:
+    from setuptools import setup
+    from setuptools import Extension
+except ImportError:
+    from distutils.core import setup
+    from distutils.extension import Extension
+
 from Cython.Distutils import build_ext
 
 import os
@@ -13,20 +18,22 @@ if platform.system() == "Darwin":
     os.environ["LDFLAGS"] = "-shared -lpython2.7 -I/usr/include/python2.7/"
 
 
-
-build_table_mem_efficient = Extension('radiotool.algorithms.build_table_mem_efficient',
-                                      ['radiotool/algorithms/build_table_mem_efficient.pyx'],
-                                      extra_compile_args=['-O3'])
-par_build_table = Extension('radiotool.algorithms.par_build_table',
-                            ['radiotool/algorithms/par_build_table.pyx'],
-                            extra_compile_args=['-fopenmp', '-O3'], extra_link_args=['-fopenmp'])
-build_table_full_backtrace = Extension('radiotool.algorithms.build_table_full_backtrace',
-                                      ['radiotool/algorithms/build_table_full_backtrace.pyx'],
-                                      extra_compile_args=['-O3'])
+build_table_mem_efficient = Extension(
+    'radiotool.algorithms.build_table_mem_efficient',
+    ['radiotool/algorithms/build_table_mem_efficient.pyx'],
+    extra_compile_args=['-O3'])
+par_build_table = Extension(
+    'radiotool.algorithms.par_build_table',
+    ['radiotool/algorithms/par_build_table.pyx'],
+    extra_compile_args=['-fopenmp', '-O3'], extra_link_args=['-fopenmp'])
+build_table_full_backtrace = Extension(
+    'radiotool.algorithms.build_table_full_backtrace',
+    ['radiotool/algorithms/build_table_full_backtrace.pyx'],
+    extra_compile_args=['-O3'])
 
 setup(
     name='radiotool',
-    version='0.3.3',
+    version='0.4.0',
     description='Tools for constructing and retargeting audio',
     long_description=open('README.rst').read(),
     url='https://github.com/ucbvislab/radiotool',
@@ -37,9 +44,13 @@ setup(
         'radiotool.composer',
         'radiotool.algorithms'
     ],
-    ext_modules = [build_table_mem_efficient, par_build_table, build_table_full_backtrace],
-    cmdclass = {'build_ext': build_ext},
-    script_args = ['build_ext', '--inplace'],
+    ext_modules=[
+        build_table_mem_efficient,
+        par_build_table,
+        build_table_full_backtrace
+    ],
+    cmdclass={'build_ext': build_ext},
+    script_args=['build_ext', '--inplace'],
     license='GPL v3',
     install_requires=[
         'numpy',
@@ -51,11 +62,12 @@ setup(
     #            'python-xmp-toolkit'
     #      ],
     # zip_safe=False,
-    test_suite='nose.collector',
-    tests_require=['nose'])
+    # test_suite='nose.collector',
+    # tests_require=['nose']
+)
 
-
-# We don't need the fortran version. The other version is fast enough (probably)
+# We don't need the fortran version.
+# The other version is fast enough (probably)
 
 #from numpy.distutils.core import setup, Extension
 #build_table = Extension('radiotool.algorithms.build_table',
