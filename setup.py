@@ -1,14 +1,8 @@
-# from distutils.core import setup
-try:
-    from setuptools import setup
-    from setuptools import Extension
-except ImportError:
-    from distutils.core import setup
-    from distutils.extension import Extension
-
+from setuptools import setup, Extension
 from Cython.Distutils import build_ext
 
 import os
+import sys
 import platform
 if platform.system() == "Darwin":
     # openmp doesn't work with clang, the default OSX C compiler
@@ -17,6 +11,8 @@ if platform.system() == "Darwin":
     os.environ["OMP_NUM_THREADS"] = "4"
     os.environ["LDFLAGS"] = "-shared -lpython2.7 -I/usr/include/python2.7/"
 
+script_args = ['build_ext', '--inplace']
+script_args.extend(sys.argv[1:])
 
 build_table_mem_efficient = Extension(
     'radiotool.algorithms.build_table_mem_efficient',
@@ -50,7 +46,7 @@ setup(
         build_table_full_backtrace
     ],
     cmdclass={'build_ext': build_ext},
-    script_args=['build_ext', '--inplace'],
+    script_args=script_args,
     license='GPL v3',
     install_requires=[
         'numpy',
@@ -65,13 +61,3 @@ setup(
     # test_suite='nose.collector',
     # tests_require=['nose']
 )
-
-# We don't need the fortran version.
-# The other version is fast enough (probably)
-
-#from numpy.distutils.core import setup, Extension
-#build_table = Extension('radiotool.algorithms.build_table',
-#                        ['radiotool/algorithms/build_table.f90'])
-#setup(
-#      ext_modules=[build_table]
-#)
