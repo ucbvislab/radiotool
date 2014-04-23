@@ -49,6 +49,7 @@ setup(
     script_args=script_args,
     license='GPL v3',
     install_requires=[
+        'Cython',
         'numpy',
         'scipy',
         'scikits.audiolab',
