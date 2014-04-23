@@ -12,7 +12,7 @@ from novelty import novelty
 # from . import build_table_mem_efficient
 # from . import par_build_table
 from . import build_table_full_backtrace
-from . import constraints
+from . import constraints as rt_constraints
 
 Spring = namedtuple('Spring', ['time', 'duration'])
 BEAT_DUR_KEY = "med_beat_duration"
@@ -173,7 +173,7 @@ def retarget_with_change_points(song, cp_times, duration):
 
 def retarget(songs, duration, music_labels=None, out_labels=None,
              out_penalty=None, volume=None, volume_breakpoints=None,
-             springs=None, **kwargs):
+             springs=None, constraints=None, **kwargs):
     """Retarget a song to a duration given input and output labels on
     the music.
 
@@ -283,48 +283,34 @@ def retarget(songs, duration, music_labels=None, out_labels=None,
         target_va = N.array(
             [target_va(i) for i in N.arange(0, duration, beat_length)])
 
-    if in_va is None or target_va is None:
-        # Ignoring this case for now as I build up the
-        # multi-song optimization
-        pipeline = constraints.ConstraintPipeline(constraints=(
-            constraints.PauseConstraint(
-                10, 30, to_penalty=1.4, between_penalty=.05),
-            constraints.PauseEntryLabelChangeConstraint(target, .005),
-            constraints.PauseExitLabelChangeConstraint(target, .005),
-            constraints.StartWithMusicConstraint(),
-            constraints.TimbrePitchConstraint(context=0),
-            constraints.EnergyConstraint(penalty=0.5),
-            # constraints.RhythmConstraint(3, 5.0),  # get time signature?
-            constraints.MinimumJumpConstraint(8),
-            constraints.LabelConstraint(start, target, pen),
-            constraints.NoveltyConstraint(start, target, pen),
-            # constraints.RandomJitterConstraint(),
-        ))
-
-    else:
+    # set constraints
+    if constraints is None:
         min_pause_len = 20.
         max_pause_len = 35.
         min_pause_beats = int(N.ceil(min_pause_len / beat_length))
         max_pause_beats = int(N.floor(max_pause_len / beat_length))
 
-        pipelines = [
-            constraints.ConstraintPipeline(constraints=(
-                constraints.PauseConstraint(
-                    min_pause_beats, max_pause_beats,
-                    to_penalty=1.4, between_penalty=.05, unit="beats"),
-                constraints.PauseEntryVAChangeConstraint(target_va, .005),
-                constraints.PauseExitVAChangeConstraint(target_va, .005),
-                constraints.TimbrePitchConstraint(
-                    context=0, timbre_weight=1.5, chroma_weight=1.5),
-                constraints.EnergyConstraint(penalty=0.5),
-                constraints.MinimumLoopConstraint(8),
-                constraints.ValenceArousalConstraint(
-                    in_va, target_va, pen * .125),
-                constraints.NoveltyVAConstraint(in_va, target_va, pen),
-                # constraints.StartWithMusicConstraint(),
-                # constraints.RandomJitterConstraint(),
-            ))
-            for in_va in in_vas]
+        constraints = [(
+            rt_constraints.PauseConstraint(
+                min_pause_beats, max_pause_beats,
+                to_penalty=1.4, between_penalty=.05, unit="beats"),
+            rt_constraints.PauseEntryVAChangeConstraint(target_va, .005),
+            rt_constraints.PauseExitVAChangeConstraint(target_va, .005),
+            rt_constraints.TimbrePitchConstraint(
+                context=0, timbre_weight=1.5, chroma_weight=1.5),
+            rt_constraints.EnergyConstraint(penalty=0.5),
+            rt_constraints.MinimumLoopConstraint(8),
+            rt_constraints.ValenceArousalConstraint(
+                in_va, target_va, pen * .125),
+            rt_constraints.NoveltyVAConstraint(in_va, target_va, pen),
+        ) for in_va in in_vas]
+    else:
+        if len(constraints) > 0:
+            if isinstance(constraints[0], rt_constraints.Constraint):
+                constraints = [constraints]
+
+    pipelines = [constraints.ConstraintPipeline(constraints=c_set)
+                 for c_set in constraints]
 
     trans_costs = []
     penalties = []
