@@ -384,6 +384,38 @@ class EndWithMusicConstraint(Constraint):
         return "EndWithMusicConstraint()"
 
 
+class StartAtStartConstraint(Constraint):
+    def __init__(self, padding=0):
+        self.padding = padding
+
+    def apply(self, transition_cost, penalty, song, beat_names):
+        penalty[self.padding + 1:, 0] += np.inf
+        return transition_cost, penalty, beat_names
+
+    def __str__(self):
+        return "StartAtStartConstraint"
+
+    def __repr__(self):
+        return "StartAtStartConstraint()"
+
+
+class EndAtEndConstraint(Constraint):
+    def __init__(self, padding=0):
+        self.padding = padding
+
+    def apply(self, transition_cost, penalty, song, beat_names):
+        last_beat = len(song.analysis["beats"])
+        penalty[last_beat:, -1] += np.inf
+        penatly[:last_beat - padding, -1] += np.inf
+        return transition_cost, penalty, beat_names
+
+    def __str__(self):
+        return "EndAtEndConstraint"
+
+    def __repr__(self):
+        return "EndAtEndConstraint()"
+
+
 class PauseEntryLabelChangeConstraint(Constraint):
     def __init__(self, target_labels, penalty_value):
         self.out_labels = target_labels
