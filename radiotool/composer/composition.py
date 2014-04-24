@@ -14,7 +14,7 @@ from rawtrack import RawTrack
 from fade import Fade
 from segment import Segment
 from volume import Volume
-from ..utils import equal_power, RMS_energy, segment_array
+from ..utils import equal_power, RMS_energy, segment_array, wav_to_mp3
 import radiotool.utils
 
 
@@ -622,9 +622,13 @@ class Composition(object):
             samplerate = N.min([track.samplerate for track in self.tracks])
 
         encoding = 'pcm16'
+        to_mp3 = False
         if filetype == 'ogg':
             encoding = 'vorbis'
-        
+        elif filetype == 'mp3':
+            filetype = 'wav'
+            to_mp3 = True
+
         if separate_tracks:
             # build the separate parts of the composition if desired
             for track in self.tracks:
@@ -681,5 +685,7 @@ class Composition(object):
                 xmpfile.put_xmp(xmp)
             xmpfile.close_file()
 
+        if to_mp3:
+            wav_to_mp3(out_filename, delete_wav=True)
 
         return out

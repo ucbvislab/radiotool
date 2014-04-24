@@ -1,7 +1,15 @@
 """A set of utility functions that are used elsewhere in radiotool
 """
+import sys
+from subprocess import check_output
 
+try:
+    import libxmp
+    LIBXMP = True
+except ImportError:
+    LIBXMP = False
 import numpy as N
+
 
 def log_magnitude_spectrum(frames):
     """Compute the log of the magnitude spectrum of frames"""
@@ -18,9 +26,11 @@ def RMS_energy(frames):
     f = frames.flatten()
     return N.sqrt(N.mean(f * f))
 
+
 def normalize_features(features):
     """Standardizes features array to fall between 0 and 1"""
     return (features - N.min(features)) / (N.max(features) - N.min(features))
+
 
 def zero_crossing_last(frames):
     """Finds the last zero crossing in frames"""
@@ -45,6 +55,7 @@ def zero_crossing_first(frames):
         return 0
     return crossings[0][0] + 1
 
+
 # Crossfading helper methods
 # borrowed from echonest remix
 
@@ -61,7 +72,7 @@ def limiter(arr):
     lim_range = dyn_range - lim_thresh
 
     new_arr = arr.copy()
-    
+
     inds = N.where(arr > lim_thresh)[0]
 
     new_arr[inds] = (new_arr[inds] - lim_thresh) / lim_range
@@ -76,43 +87,45 @@ def limiter(arr):
 
     return new_arr
 
+
 def linear(arr1, arr2):
     """
     Create a linear blend of arr1 (fading out) and arr2 (fading in)
     """
     n = N.shape(arr1)[0]
-    try: 
+    try:
         channels = N.shape(arr1)[1]
     except:
         channels = 1
-    
+
     f_in = N.arange(n) / float(n - 1)
     f_out = N.arange(n - 1, -1, -1) / float(n)
-    
+
     if channels > 1:
         f_in = N.tile(f_in, (channels, 1)).T
         f_out = N.tile(f_out, (channels, 1)).T
-    
+
     vals = f_out * arr1 + f_in * arr2
     return vals
+
 
 def equal_power(arr1, arr2):
     """
     Create an equal power blend of arr1 (fading out) and arr2 (fading in)
     """
     n = N.shape(arr1)[0]
-    try: 
+    try:
         channels = N.shape(arr1)[1]
     except:
         channels = 1
-    
+
     f_in = N.arange(n) / float(n - 1)
     f_out = N.arange(n - 1, -1, -1) / float(n)
-    
+
     if channels > 1:
         f_in = N.tile(f_in, (channels, 1)).T
         f_out = N.tile(f_out, (channels, 1)).T
-    
+
     vals = log_factor(f_out) * arr1 + log_factor(f_in) * arr2
 
     return limiter(vals)
@@ -147,5 +160,26 @@ def segment_array(arr, length, overlap=.5):
     return out
 
 
+def wav_to_mp3(wavfn, delete_wav=False, lame_quality="V 2"):
+    mp3fn = ".".join(wavfn.split('.')[:-1]) + '.mp3'
+    check_output('lame -{} "{}"'.format(lame_quality, wavfn), shell=True)
 
+    if LIBXMP:
+        xmpfile = libxmp.XMPFiles(file_path=wavfn)
+        xmpfile2 = libxmp.XMPFiles(file_path=mp3fn, open_forupdate=True)
 
+        xmp = xmpfile.get_xmp()
+
+        try:
+            if xmpfile2.can_put_xmp(xmp):
+                xmpfile2.put_xmp(xmp)
+            else:
+                print "Could not convert xmp from wav to mp3"
+        except:
+            print "File has no xmp data"
+
+        xmpfile.close_file()
+        xmpfile2.close_file()
+
+    if delete_wav:
+        check_output('rm "{}"'.format(wavfn), shell=True)
