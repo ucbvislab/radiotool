@@ -11,7 +11,7 @@ if platform.system() == "Darwin":
     os.environ["OMP_NUM_THREADS"] = "4"
     os.environ["LDFLAGS"] = "-shared -lpython2.7 -I/usr/include/python2.7/"
 
-script_args = ['build_ext', '--inplace']
+script_args = ['build_ext']
 script_args.extend(sys.argv[1:])
 
 build_table_mem_efficient = Extension(
