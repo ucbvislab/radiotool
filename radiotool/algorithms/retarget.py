@@ -633,7 +633,7 @@ def _generate_audio(songs, beats, new_beats, new_beats_cost, music_labels,
     if volume_breakpoints is None:
         if volume is None:
             volume = 1.0
-        volume_array = [volume]
+        volume_array = N.array([volume])
 
     if volume_breakpoints is not None:
         volume_array = volume_breakpoints.to_array(songs[0].samplerate)
