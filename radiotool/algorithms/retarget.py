@@ -309,7 +309,7 @@ def retarget(songs, duration, music_labels=None, out_labels=None,
             if isinstance(constraints[0], rt_constraints.Constraint):
                 constraints = [constraints]
 
-    pipelines = [constraints.ConstraintPipeline(constraints=c_set)
+    pipelines = [rt_constraints.ConstraintPipeline(constraints=c_set)
                  for c_set in constraints]
 
     trans_costs = []
