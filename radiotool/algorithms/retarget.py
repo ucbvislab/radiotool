@@ -630,8 +630,11 @@ def _generate_audio(songs, beats, new_beats, new_beats_cost, music_labels,
     print("Building volume")
     if volume is not None and volume_breakpoints is not None:
         raise Exception("volume and volume_breakpoints cannot both be defined")
-    if volume is None and volume_breakpoints is None:
-        volume = 1.0
+    if volume_breakpoints is None:
+        if volume is None:
+            volume = 1.0
+        volume_array = [volume]
+
     if volume_breakpoints is not None:
         volume_array = volume_breakpoints.to_array(songs[0].samplerate)
 
