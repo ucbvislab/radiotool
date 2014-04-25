@@ -406,7 +406,7 @@ class EndAtEndConstraint(Constraint):
     def apply(self, transition_cost, penalty, song, beat_names):
         last_beat = len(song.analysis["beats"])
         penalty[last_beat:, -1] += np.inf
-        penalty[:last_beat - padding, -1] += np.inf
+        penalty[:last_beat - self.padding, -1] += np.inf
         return transition_cost, penalty, beat_names
 
     def __str__(self):
