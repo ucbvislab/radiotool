@@ -305,6 +305,7 @@ def retarget(songs, duration, music_labels=None, out_labels=None,
             rt_constraints.NoveltyVAConstraint(in_va, target_va, pen),
         ) for in_va in in_vas]
     else:
+        max_pause_beats = 0
         if len(constraints) > 0:
             if isinstance(constraints[0], rt_constraints.Constraint):
                 constraints = [constraints]
