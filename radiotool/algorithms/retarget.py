@@ -173,7 +173,8 @@ def retarget_with_change_points(song, cp_times, duration):
 
 def retarget(songs, duration, music_labels=None, out_labels=None,
              out_penalty=None, volume=None, volume_breakpoints=None,
-             springs=None, constraints=None, **kwargs):
+             springs=None, constraints=None,
+             min_beats=None, max_beats=None, **kwargs):
     """Retarget a song to a duration given input and output labels on
     the music.
 
@@ -365,11 +366,16 @@ def retarget(songs, duration, music_labels=None, out_labels=None,
     if max_pause_beats > 0:
         first_pause = total_music_beats
 
-    max_beats = int(90. / beat_length)   # ~ 90 seconds
-    min_beats = int(20. / beat_length)   # ~ 20 seconds
-    # max_beats = int(180. / beat_length)   # ~ 90 seconds
-    # min_beats = int(40. / beat_length)   # ~ 20 seconds
-    max_beats = min(max_beats, penalty.shape[1])
+    if min_beats is None:
+        min_beats = 0
+    elif min_beats is 'default':
+        min_beats = int(20. / beat_length)
+
+    if max_beats is None:
+        max_beats = -1
+    elif max_beats is 'default':
+        max_beats = int(90. / beat_length)
+        max_beats = min(max_beats, penalty.shape[1])
 
     tc2 = N.nan_to_num(trans_cost)
     pen2 = N.nan_to_num(penalty)
