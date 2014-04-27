@@ -251,8 +251,8 @@ class EnergyConstraint(Constraint):
 
         energies = np.zeros(n_beats)
         for i, beat in enumerate(beat_names[:n_beats - 1]):
-            start_frame = sr * beat
-            end_frame = sr * beat_names[:n_beats][i + 1]
+            start_frame = int(sr * beat)
+            end_frame = int(sr * beat_names[:n_beats][i + 1])
             beat_frames = frames[start_frame:end_frame]
             beat_frames *= np.hamming(len(beat_frames))
             energies[i] = np.sqrt(np.mean(beat_frames * beat_frames))

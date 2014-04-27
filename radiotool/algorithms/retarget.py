@@ -362,9 +362,9 @@ def retarget(songs, duration, music_labels=None, out_labels=None,
     # compute the dynamic programming table (prev python method)
     # cost, prev_node = _build_table(analysis, duration, start, target, pen)
 
-    first_pause = 0
-    if max_pause_beats > 0:
-        first_pause = total_music_beats
+    # first_pause = 0
+    # if max_pause_beats > 0:
+    first_pause = total_music_beats
 
     if min_beats is None:
         min_beats = 0
@@ -390,8 +390,8 @@ def retarget(songs, duration, music_labels=None, out_labels=None,
     result_labels = []
 
     print("Running optimization (full backtrace, memory efficient)")
-    print("\twith min_beats(%d) and max_beats(%d)" %
-          (min_beats, max_beats))
+    print("\twith min_beats(%d) and max_beats(%d) and first_pause(%d)" %
+          (min_beats, max_beats, first_pause))
 
     song_starts = [0]
     for song in songs:
@@ -409,7 +409,7 @@ def retarget(songs, duration, music_labels=None, out_labels=None,
 
     path = []
     if max_beats == -1:
-        max_beats = min_beats
+        max_beats = min_beats + 1
 
     first_pause_full = max_beats * first_pause
     n_beats = first_pause
@@ -798,6 +798,7 @@ def _generate_audio(songs, beats, new_beats, new_beats_cost, music_labels,
                 volume_array[-1]
             new_volume_array[:len(volume_array)] = volume_array
             volume_array = new_volume_array
+            result_volume = N.zeros(new_volume_array.shape)
 
         for i, seg in enumerate(segments[:-1]):
             print(cf_durations[i], seg.duration_in_seconds,

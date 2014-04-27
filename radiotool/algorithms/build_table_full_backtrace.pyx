@@ -1,5 +1,5 @@
 #cython: infer_types=True
-#cython: boundscheck=False
+#cython: boundscheck=True
 #cython: wraparound=False
 #cython: cdivision=True
 import cython
@@ -18,8 +18,10 @@ cdef struct Params:
     int no_max_beats
     int n_song_starts
 
+cdef int MAX_BEATS = 0
+cdef int NO_MAX_BEATS = 1
 
-cdef double get_pen_value(double[:, :] pen, int i, int l, int global_start_l, Params p) nogil:
+cdef double get_pen_value(double[:, :] pen, int i, int l, int global_start_l, Params p):
     cdef int pen_index = 0
     if i >= p.p0_full:
         pen_index = p.n_beats + (i - p.p0_full)
@@ -27,19 +29,20 @@ cdef double get_pen_value(double[:, :] pen, int i, int l, int global_start_l, Pa
         pen_index = i % p.n_beats
     cdef double new_pen = pen[pen_index, l]
 
-    #--- CONSTRAINTS ---#
-    # * don't start song in segment beat other than first
-    if global_start_l == 0 and (p.n_beats <= i < p.p0_full):
-        new_pen += p.pen_val
+    if p.no_max_beats == MAX_BEATS:
+        #--- CONSTRAINTS ---#
+        # * don't start song in segment beat other than first
+        if global_start_l == 0 and (p.n_beats <= i < p.p0_full):
+            new_pen += p.pen_val
 
-    # * don't end song in a segment beat other than beat past min_beats
-    if global_start_l == pen.shape[1] - 1 and (i < p.n_beats * p.min_beats):
-        new_pen += p.pen_val
+        # * don't end song in a segment beat other than beat past min_beats
+        if global_start_l == pen.shape[1] - 1 and (i < p.n_beats * p.min_beats):
+            new_pen += p.pen_val
 
     return new_pen
 
 
-cdef void get_pen_column(double[:, :] pen, int column, double[:] new_pen, int global_start_l, Params p) nogil:
+cdef void get_pen_column(double[:, :] pen, int column, double[:] new_pen, int global_start_l, Params p):
     cdef int i, j
 
     for i in range(p.max_beats):
@@ -49,23 +52,24 @@ cdef void get_pen_column(double[:, :] pen, int column, double[:] new_pen, int gl
     for i in range(p.p0_full, p.all_full):
         new_pen[i] = pen[p.p0 + i - p.p0_full, column]
 
-    #--- CONSTRAINTS ---#
-    # * don't start song in segment beat other than first
-    if global_start_l == 0:
-        for i in range(p.n_beats, p.p0_full):
-            new_pen[i] += p.pen_val
+    if p.no_max_beats == MAX_BEATS:
+        #--- CONSTRAINTS ---#
+        # * don't start song in segment beat other than first
+        if global_start_l == 0:
+            for i in range(p.n_beats, p.p0_full):
+                new_pen[i] += p.pen_val
 
-    # * don't end song in a segment beat other than beat past min_beats
-    if global_start_l == pen.shape[1] - 1:
-        for i in range(p.n_beats * p.min_beats):
-            new_pen[i] += p.pen_val
+        # * don't end song in a segment beat other than beat past min_beats
+        if global_start_l == pen.shape[1] - 1:
+            for i in range(p.n_beats * p.min_beats):
+                new_pen[i] += p.pen_val
 
 
 cdef void backward_build_table(
     double[:, :] tc, double[:, :] pen, int start_beat, int end_beat, int global_start_l, Params p,
     int[:] song_starts, int[:] song_ends,
     double[:] cost, double[:] pen_val, double[:] vals_col, double[:] min_vals, int[:] global_path,
-    double[:] global_path_cost) nogil:
+    double[:] global_path_cost):
     
     cdef int l, idx, i, beat_seg_i, seg_start_beat, j, full_j, orig_beat_j, min_idx, song_i
     cdef double minval, tmpval
@@ -124,47 +128,85 @@ cdef void backward_build_table(
             full_cost[idx * rowlen + l] = minval
             prev_node[idx * rowlen + l] = min_idx
 
-        # beat segment between min beat and max beat
-        for idx in range(p.n_beats * (p.min_beats - 1), p.n_beats * (p.max_beats - 1)):
-            beat_seg_i = idx / p.n_beats
-            orig_beat_i = idx % p.n_beats
+        if p.no_max_beats == MAX_BEATS:
+            # beat segment between min beat and max beat
+            for idx in range(p.n_beats * (p.min_beats - 1), p.n_beats * (p.max_beats - 1)):
+                beat_seg_i = idx / p.n_beats
+                orig_beat_i = idx % p.n_beats
 
-            song_i = 0
-            for j in range(p.n_song_starts):
-                if song_starts[j] <= orig_beat_i < song_ends[j]:
-                    song_i = j
-                    break
+                song_i = 0
+                for j in range(p.n_song_starts):
+                    if song_starts[j] <= orig_beat_i < song_ends[j]:
+                        song_i = j
+                        break
 
-            # could be going to beat_seg_i + 1
-            seg_start_beat = (beat_seg_i + 1) * p.n_beats
+                # could be going to beat_seg_i + 1
+                seg_start_beat = (beat_seg_i + 1) * p.n_beats
 
-            minval = -1
-            for j in range(song_starts[song_i], song_ends[song_i]):
-            # for j in range(p.n_beats):
-                tmpval = tc[orig_beat_i, j] + pen_val[idx] + full_cost[(seg_start_beat + j) * rowlen + (l + 1)]
+                minval = -1
+                for j in range(song_starts[song_i], song_ends[song_i]):
+                # for j in range(p.n_beats):
+                    tmpval = tc[orig_beat_i, j] + pen_val[idx] + full_cost[(seg_start_beat + j) * rowlen + (l + 1)]
+                    if minval == -1 or tmpval < minval:
+                        minval = tmpval
+                        min_idx = seg_start_beat + j
+                # or could be going to first pause beat
+                tmpval = tc[orig_beat_i, p.p0] + pen_val[idx] + full_cost[p.p0_full * rowlen + (l + 1)]
                 if minval == -1 or tmpval < minval:
                     minval = tmpval
-                    min_idx = seg_start_beat + j
-            # or could be going to first pause beat
-            tmpval = tc[orig_beat_i, p.p0] + pen_val[idx] + full_cost[p.p0_full * rowlen + (l + 1)]
-            if minval == -1 or tmpval < minval:
-                minval = tmpval
-                min_idx = p.p0_full
+                    min_idx = p.p0_full
 
-            min_vals[idx] = minval
+                min_vals[idx] = minval
 
-            full_cost[idx * rowlen + l] = minval
-            prev_node[idx * rowlen + l] = min_idx
+                full_cost[idx * rowlen + l] = minval
+                prev_node[idx * rowlen + l] = min_idx
 
-        # max beat segment
-        for idx in range(p.n_beats * (p.max_beats - 1), p.n_beats * p.max_beats):
-            orig_beat_i = idx % p.n_beats
+            # max beat segment
+            for idx in range(p.n_beats * (p.max_beats - 1), p.n_beats * p.max_beats):
+                orig_beat_i = idx % p.n_beats
 
-            # must be going to first pause beat
-            min_vals[idx] = tc[orig_beat_i, p.p0] + pen_val[idx] + full_cost[p.p0_full * rowlen + (l + 1)]
+                # must be going to first pause beat
+                min_vals[idx] = tc[orig_beat_i, p.p0] + pen_val[idx] + full_cost[p.p0_full * rowlen + (l + 1)]
 
-            full_cost[idx * rowlen + l] = tc[orig_beat_i, p.p0] + pen_val[idx] + full_cost[p.p0_full * rowlen + (l + 1)]
-            prev_node[idx * rowlen + l] = p.p0_full
+                full_cost[idx * rowlen + l] = tc[orig_beat_i, p.p0] + pen_val[idx] + full_cost[p.p0_full * rowlen + (l + 1)]
+                prev_node[idx * rowlen + l] = p.p0_full
+
+        else:
+            # no maximum beat
+
+            # max beat segment
+            for idx in range(p.n_beats * (p.max_beats - 1), p.n_beats * p.max_beats):
+                beat_seg_i = idx / p.n_beats
+                orig_beat_i = idx % p.n_beats
+
+                song_i = 0
+                for j in range(p.n_song_starts):
+                    if song_starts[j] <= orig_beat_i < song_ends[j]:
+                        song_i = j
+                        break
+
+                # could be going to same beat
+                seg_start_beat = beat_seg_i
+
+                minval = -1
+                for j in range(song_starts[song_i], song_ends[song_i]):
+                # for j in range(p.n_beats):
+                    tmpval = tc[orig_beat_i, j] + pen_val[idx] + full_cost[(seg_start_beat + j) * rowlen + (l + 1)]
+                    if minval == -1 or tmpval < minval:
+                        minval = tmpval
+                        min_idx = seg_start_beat + j
+
+                if p.n_pauses > 0:
+                    # or could be going to first pause beat
+                    tmpval = tc[orig_beat_i, p.p0] + pen_val[idx] + full_cost[p.p0_full * rowlen + (l + 1)]
+                    if minval == -1 or tmpval < minval:
+                        minval = tmpval
+                        min_idx = p.p0_full
+
+                min_vals[idx] = minval
+
+                full_cost[idx * rowlen + l] = minval
+                prev_node[idx * rowlen + l] = min_idx
 
         # pause beats except the last one
         for idx in range(p.p0_full, p.all_full - 1):
@@ -182,14 +224,15 @@ cdef void backward_build_table(
             full_cost[idx * rowlen + l] = minval
             prev_node[idx * rowlen + l] = min_idx
 
-        # last pause beat
-        minval = -1
-        for j in range(p.n_beats):
-            tmpval = tc[p.p0 + p.n_pauses - 1, j] + pen_val[p.all_full - 1] + full_cost[j * rowlen + (l + 1)]
-            if minval == -1 or tmpval < minval:
-                minval = tmpval
-                min_idx = j
-        min_vals[p.all_full - 1] = minval
+        if p.n_pauses > 0:
+            # last pause beat
+            minval = -1
+            for j in range(p.n_beats):
+                tmpval = tc[p.p0 + p.n_pauses - 1, j] + pen_val[p.all_full - 1] + full_cost[j * rowlen + (l + 1)]
+                if minval == -1 or tmpval < minval:
+                    minval = tmpval
+                    min_idx = j
+            min_vals[p.all_full - 1] = minval
 
         full_cost[(p.all_full - 1) * rowlen + l] = minval
         prev_node[(p.all_full - 1) * rowlen + l] = min_idx
@@ -229,19 +272,14 @@ def build_table(double[:, :] trans_cost, double[:, :] penalty,
     
     cdef int i
 
-    # if max_beats != -1 and min_beats != -1:
-    #     max_beats_with_padding = max_beats
-    # elif max_beats != -1:
-    #     max_beats_with_padding = max_beats
-    # elif min_beats != -1:
-    #     max_beats = -1
-    #     max_beats_with_padding = min_beats
-    # else:
-    #     max_beats_with_padding = -1
-    #     max_beats = -1
-    #     min_beats = 0
-
     cdef Params p
+
+    if max_beats == -1:
+        p.no_max_beats = NO_MAX_BEATS
+        max_beats = min_beats + 1
+    else:
+        p.no_max_beats = MAX_BEATS
+
     p.pen_val = 99999999.0
     p.p0 = first_pause
     p.n_beats = p.p0
@@ -250,12 +288,6 @@ def build_table(double[:, :] trans_cost, double[:, :] penalty,
     p.max_beats = max_beats
     p.p0_full = p.n_beats * p.max_beats
     p.all_full = p.p0_full + p.n_pauses
-
-    if p.max_beats == -1:
-        p.no_max_beats = 1
-        p.max_beats = p.min_beats + 1
-    else:
-        p.no_max_beats = 0
 
     p.n_song_starts = len(song_starts)
 
@@ -281,10 +313,5 @@ def build_table(double[:, :] trans_cost, double[:, :] penalty,
 
     backward_build_table(
         trans_cost, penalty, -1, -1, 0, p, song_starts, song_ends, mv1, mv2, mv3, mv4, global_path, global_path_cost)
-
-    # divide_and_conquer_cost_and_path(trans_cost, penalty, -1, -1, 0, global_path, p,
-    #     f, g, mv1, mv2, mv3, mv4, mv5, mv6)
-
-    
 
     return [x for x in global_path], [x for x in global_path_cost]
