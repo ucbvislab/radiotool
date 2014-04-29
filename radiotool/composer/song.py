@@ -43,6 +43,17 @@ class Song(Track):
             self._analysis = librosa_analysis.analyze_frames(self.all_as_mono(), self.samplerate)
         return self._analysis
 
+    def features_cached():
+        if self.cache_dir is not None:
+            path = os.path.join(self.cache_dir, self.checksum)
+            try:
+                if self.refresh_cache: raise IOError
+                with open(path + '.pickle', 'rb') as pickle_file:
+                    return True
+            except IOError:
+                pass
+        return False
+
     @property
     def checksum(self):
         if self._checksum is not None:
