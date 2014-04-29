@@ -43,7 +43,7 @@ class Song(Track):
             self._analysis = librosa_analysis.analyze_frames(self.all_as_mono(), self.samplerate)
         return self._analysis
 
-    def features_cached():
+    def features_cached(self):
         if self.cache_dir is not None:
             path = os.path.join(self.cache_dir, self.checksum)
             try:
