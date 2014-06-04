@@ -174,7 +174,9 @@ def retarget_with_change_points(song, cp_times, duration):
 def retarget(songs, duration, music_labels=None, out_labels=None,
              out_penalty=None, volume=None, volume_breakpoints=None,
              springs=None, constraints=None,
-             min_beats=None, max_beats=None, **kwargs):
+             min_beats=None, max_beats=None,
+             fade_in_len=3.0, fade_out_len=5.0,
+             **kwargs):
     """Retarget a song to a duration given input and output labels on
     the music.
 
@@ -474,7 +476,8 @@ def retarget(songs, duration, music_labels=None, out_labels=None,
             songs, beats, path, path_cost, start,
             volume=volume,
             volume_breakpoints=volume_breakpoints,
-            springs=springs)
+            springs=springs,
+            fade_in_len=fade_in_len, fade_out_len=fade_out_len)
 
     info = {
         "beat_length": beat_length,
@@ -630,7 +633,7 @@ def __fast_argmin_axis_0(a):
 
 def _generate_audio(songs, beats, new_beats, new_beats_cost, music_labels,
                     volume=None, volume_breakpoints=None,
-                    springs=None):
+                    springs=None, fade_in_len=3.0, fade_out_len=5.0):
     # assuming same sample rate for all songs
 
     print("Building volume")
@@ -818,15 +821,20 @@ def _generate_audio(songs, beats, new_beats, new_beats_cost, music_labels,
         s0 = segments[0]
         sn = segments[-1]
 
-        fade_in_len = min(3.0, s0.duration_in_seconds)
-        fade_in_len_samps = fade_in_len * s0.track.samplerate
-        fade_out_len = min(5.0, sn.duration_in_seconds)
-        fade_out_len_samps = fade_out_len * sn.track.samplerate
+        if fade_in_len is not None:
+            fi_len = min(fade_in_len, s0.duration_in_seconds)
+            fade_in_len_samps = fi_len * s0.track.samplerate
+            fade_in = comp.fade_in(s0, fi_len, fade_type="linear")
+            aseg_fade_ins.append(fade_in)
+        else:
+            fade_in = None
 
-        fade_in = comp.fade_in(s0, fade_in_len, fade_type="linear")
-        fade_out = comp.fade_out(sn, fade_out_len, fade_type="exponential")
-
-        aseg_fade_ins.append(fade_in)
+        if fade_out_len is not None:
+            fo_len = min(5.0, sn.duration_in_seconds)
+            fade_out_len_samps = fo_len * sn.track.samplerate
+            fade_out = comp.fade_out(sn, fade_out_len, fade_type="exponential")
+        else:
+            fade_out = None
 
         prev_end = 0.0
 
@@ -859,12 +867,14 @@ def _generate_audio(songs, beats, new_beats, new_beats_cost, music_labels,
             # vol = Volume.from_segment(seg, volume)
             # comp.add_dynamic(vol)
 
-        result_volume[s0.comp_location:
-                      s0.comp_location + fade_in_len_samps] *=\
-            fade_in.to_array(channels=1).flatten()
-        result_volume[sn.comp_location + sn.duration - fade_out_len_samps:
-                      sn.comp_location + sn.duration] *=\
-            fade_out.to_array(channels=1).flatten()
+        if fade_in is not None:
+            result_volume[s0.comp_location:
+                          s0.comp_location + fade_in_len_samps] *=\
+                fade_in.to_array(channels=1).flatten()
+        if fade_out is not None:
+            result_volume[sn.comp_location + sn.duration - fade_out_len_samps:
+                          sn.comp_location + sn.duration] *=\
+                fade_out.to_array(channels=1).flatten()
 
         all_cf_locations.extend(cf_locations)
 
