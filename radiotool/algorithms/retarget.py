@@ -2,6 +2,9 @@ from __future__ import print_function
 import copy
 from collections import namedtuple
 import time
+import logging
+
+
 
 import numpy as N
 import scipy.linalg
@@ -16,7 +19,6 @@ from . import constraints as rt_constraints
 
 Spring = namedtuple('Spring', ['time', 'duration'])
 BEAT_DUR_KEY = "med_beat_duration"
-
 
 class ArgumentException(Exception):
     pass
@@ -241,7 +243,7 @@ def retarget(songs, duration, music_labels=None, out_labels=None,
     beats = [a["beats"] for a in analyses]
 
     beat_length = N.mean(beat_lengths)
-    print("Beat lengths of songs: {} (mean: {})".
+    logging.info("Beat lengths of songs: {} (mean: {})".
           format(beat_lengths, beat_length))
 
     if out_labels is not None:
@@ -326,7 +328,7 @@ def retarget(songs, duration, music_labels=None, out_labels=None,
         penalties.append(penalty)
         all_beat_names.append(bn)
 
-    print("Combining tables")
+    logging.info("Combining tables")
     total_music_beats = int(N.sum([len(b) for b in beats]))
     total_beats = total_music_beats + max_pause_beats
 
@@ -359,7 +361,7 @@ def retarget(songs, duration, music_labels=None, out_labels=None,
 
     penalty[total_music_beats:, :] = penalties[0][len(beats[0]):, :]
 
-    print("Building cost table")
+    logging.info("Building cost table")
 
     # compute the dynamic programming table (prev python method)
     # cost, prev_node = _build_table(analysis, duration, start, target, pen)
@@ -391,8 +393,8 @@ def retarget(songs, duration, music_labels=None, out_labels=None,
 
     result_labels = []
 
-    print("Running optimization (full backtrace, memory efficient)")
-    print("\twith min_beats(%d) and max_beats(%d) and first_pause(%d)" %
+    logging.info("Running optimization (full backtrace, memory efficient)")
+    logging.info("\twith min_beats(%d) and max_beats(%d) and first_pause(%d)" %
           (min_beats, max_beats, first_pause))
 
     song_starts = [0]
@@ -406,7 +408,7 @@ def retarget(songs, duration, music_labels=None, out_labels=None,
         tc2, pen2, song_starts, song_ends,
         first_pause=first_pause, max_beats=max_beats, min_beats=min_beats)
     t2 = time.clock()
-    print("Built table (full backtrace) in {} seconds"
+    logging.info("Built table (full backtrace) in {} seconds"
           .format(t2 - t1))
 
     path = []
@@ -469,7 +471,7 @@ def retarget(songs, duration, music_labels=None, out_labels=None,
     #                               beat_name)[0][0]])
 
     # return a radiotool Composition
-    print("Generating audio")
+    logging.info("Generating audio")
     (comp, cf_locations, result_full_labels,
      cost_labels, contracted, result_volume) =\
         _generate_audio(
@@ -636,7 +638,7 @@ def _generate_audio(songs, beats, new_beats, new_beats_cost, music_labels,
                     springs=None, fade_in_len=3.0, fade_out_len=5.0):
     # assuming same sample rate for all songs
 
-    print("Building volume")
+    logging.info("Building volume")
     if volume is not None and volume_breakpoints is not None:
         raise Exception("volume and volume_breakpoints cannot both be defined")
     if volume_breakpoints is None:
@@ -691,7 +693,7 @@ def _generate_audio(songs, beats, new_beats, new_beats_cost, music_labels,
 
     aseg_fade_ins = []
 
-    print("Building audio")
+    logging.info("Building audio")
     for (aseg, song_i) in zip(audio_segments, segment_song_indicies):
         segments = []
         # TODO: is this +1 correct?
@@ -708,7 +710,7 @@ def _generate_audio(songs, beats, new_beats, new_beats_cost, music_labels,
             if bis[i] + 1 >= len(beats[song_i]):
                 # use the average beat duration if we don't know
                 # how long the beat is supposed to be
-                print("USING AVG BEAT DURATION IN SYNTHESIS -\
+                logging.warning("USING AVG BEAT DURATION IN SYNTHESIS -\
                     POTENTIALLY NOT GOOD")
                 durs[i] = songs[song_i].analysis[BEAT_DUR_KEY]
             else:
@@ -804,7 +806,7 @@ def _generate_audio(songs, beats, new_beats, new_beats_cost, music_labels,
             result_volume = N.zeros(new_volume_array.shape)
 
         for i, seg in enumerate(segments[:-1]):
-            print(cf_durations[i], seg.duration_in_seconds,
+            logging.info(cf_durations[i], seg.duration_in_seconds,
                   segments[i + 1].duration_in_seconds)
             rawseg = comp.cross_fade(seg, segments[i + 1], cf_durations[i])
 
@@ -908,7 +910,7 @@ def _generate_audio(songs, beats, new_beats, new_beats_cost, music_labels,
             prev_label = current_label
 
             if (next_i >= len(beats[song_i])):
-                print("USING AVG BEAT DURATION - POTENTIALLY NOT GOOD")
+                logging.warning("USING AVG BEAT DURATION - POTENTIALLY NOT GOOD")
                 label_time += songs[song_i].analysis[BEAT_DUR_KEY]
             else:
                 label_time += beats[song_i][next_i] - beat
@@ -934,7 +936,7 @@ def _generate_audio(songs, beats, new_beats, new_beats_cost, music_labels,
             else:
                 cost_time += beats[song_i][next_i] - b
 
-    print("Contracting pause springs")
+    logging.info("Contracting pause springs")
     contracted = []
     min_contraction = 0.5
     if springs is not None:
@@ -944,7 +946,7 @@ def _generate_audio(songs, beats, new_beats, new_beats_cost, music_labels,
                 spring.time - offset, spring.duration,
                 min_contraction=min_contraction)
             if contracted_dur > 0:
-                print("Contracted", contracted_time, "at", contracted_dur)
+                logging.info("Contracted", contracted_time, "at", contracted_dur)
 
                 # move all the volume frames back
                 c_time_samps = contracted_time * segments[0].track.samplerate
@@ -989,16 +991,16 @@ def _generate_audio(songs, beats, new_beats, new_beats_cost, music_labels,
                             result_full_labels[lab_i + 1].time -\
                                 contracted_dur == lab.time:
 
-                            print("LABEL HAS ZERO LENGTH", lab)
+                            logging.warning("LABEL HAS ZERO LENGTH", lab)
                     except:
                         pass
 
                     if lab.time > contracted_time:
-                        print("\tcontracting label", lab)
+                        logging.info("\tcontracting label", lab)
                         lab.time = max(
                             lab.time - contracted_dur, contracted_time)
                         # lab.time -= contracted_dur
-                        print("\t\tto", lab)
+                        logging.info("\t\tto", lab)
 
                 new_result_cost = []
                 for cost_lab in result_cost:
@@ -1010,7 +1012,7 @@ def _generate_audio(songs, beats, new_beats, new_beats_cost, music_labels,
                         # cost is during contracted time
                         # remove these labels
                         if cost_lab.name > 0:
-                            print("DELETING nonzero cost label",
+                            logging.warning("DELETING nonzero cost label",
                                   cost_lab.name, cost_lab.time)
                     else:
                         # cost is after contracted time
@@ -1063,7 +1065,7 @@ def _generate_audio(songs, beats, new_beats, new_beats_cost, music_labels,
                     fade.comp_location + fade.duration] *=\
                     fade.to_array(channels=1).flatten()
 
-                print("Changing fade at {}".format(
+                logging.info("Changing fade at {}".format(
                     fade.comp_location_in_seconds))
 
     # for seg in comp.segments:

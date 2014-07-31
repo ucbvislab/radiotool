@@ -1,5 +1,4 @@
 # from librosa examples, and modified by Steve Rubin - srubin@cs.berkeley.edu
-
 import numpy as N
 import scipy
 import scipy.signal
@@ -61,6 +60,10 @@ def analyze_frames(y, sr, debug=False):
 
     # Grab the harmonic component
     H = librosa.decompose.hpss(S)[0]
+
+    # trying this without the HPSS for now because it's slow
+    # H = S
+
     # H = librosa.hpss.hpss_median(S, win_P=31, win_H=31, p=1.0)[0]
     A['chroma'] = librosa.feature.sync(librosa.feature.chromagram(S=H, sr=sr),
                                         beats,
@@ -80,3 +83,12 @@ def analyze_frames(y, sr, debug=False):
     A["med_beat_duration"] = N.median(edge_lens)
 
     return A
+
+
+if __name__ == '__main__':
+    import sys
+    from radiotool.composer import Song
+
+    song = Song(sys.argv[1], cache_dir=None)
+    frames = song.all_as_mono()
+    analyze_frames(frames, song.samplerate)

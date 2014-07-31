@@ -31,7 +31,7 @@ class ConstraintPipeline(object):
         transition_cost = np.zeros((n_beats, n_beats))
         penalty = np.zeros((n_beats, target_n_length))
         for constraint in self.constraints:
-            print constraint
+            # print constraint
             transition_cost, penalty, beat_names = constraint.apply(
                 transition_cost, penalty, song, beat_names)
         return transition_cost, penalty, beat_names
@@ -397,6 +397,66 @@ class StartAtStartConstraint(Constraint):
 
     def __repr__(self):
         return "StartAtStartConstraint()"
+
+
+class StartAtTimeConstraint(Constraint):
+    def __init__(self, time):
+        self.time = float(time)
+
+    def apply(self, transition_cost, penalty, song, beat_names):
+        deltas = []
+        deltas_i = []
+        for i, bn in enumerate(beat_names):
+            try:
+                deltas.append(abs(float(bn) - self.time))
+                deltas_i.append(i)
+            except:
+                pass
+
+        if len(deltas) == 0:
+            beat_i = 0
+        else:
+            beat_i = deltas_i[np.argmin(deltas)]
+
+        penalty[:beat_i, 0] += np.inf
+        penalty[beat_i + 1:, 0] += np.inf
+        return transition_cost, penalty, beat_names
+
+    def __str__(self):
+        return "StartAtTimeConstraint time({})".format(self.time)
+
+    def __repr__(self):
+        return "StartAtTimeConstraint({})".format(self.time)
+
+
+class EndAtTimeConstraint(Constraint):
+    def __init__(self, time):
+        self.time = float(time)
+
+    def apply(self, transition_cost, penalty, song, beat_names):
+        deltas = []
+        deltas_i = []
+        for i, bn in enumerate(beat_names):
+            try:
+                deltas.append(abs(float(bn) - self.time))
+                deltas_i.append(i)
+            except:
+                pass
+
+        if len(deltas) == 0:
+            beat_i = 0
+        else:
+            beat_i = deltas_i[np.argmin(deltas)]
+
+        penalty[:beat_i - 1, -1] += np.inf
+        penalty[beat_i:, -1] += np.inf
+        return transition_cost, penalty, beat_names
+
+    def __str__(self):
+        return "EndAtTimeConstraint time({})".format(self.time)
+
+    def __repr__(self):
+        return "EndAtTimeConstraint({})".format(self.time)
 
 
 class EndAtEndConstraint(Constraint):
