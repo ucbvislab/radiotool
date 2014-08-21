@@ -49,7 +49,7 @@ def analyze_frames(y, sr, debug=False):
 
     # Let's make some beat-synchronous mfccs
     if debug: print "> mfcc"
-    S = librosa.feature.mfcc(librosa.logamplitude(S), n_mfcc=40)
+    S = librosa.feature.mfcc(S=librosa.logamplitude(S), n_mfcc=40)
     A['timbres'] = librosa.feature.sync(S, beats).T.tolist()
 
     if debug: print "timbres count: ", len(A['timbres'])
