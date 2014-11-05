@@ -1,5 +1,5 @@
 # from librosa examples, and modified by Steve Rubin - srubin@cs.berkeley.edu
-import numpy as N
+import numpy as np
 import scipy
 import scipy.signal
 import librosa
@@ -56,7 +56,7 @@ def analyze_frames(y, sr, debug=False):
 
     # And some chroma
     if debug: print "> chroma"
-    S = N.abs(librosa.stft(y, hop_length=hop_length))
+    S = np.abs(librosa.stft(y, hop_length=hop_length))
 
     # Grab the harmonic component
     H = librosa.decompose.hpss(S)[0]
@@ -67,20 +67,20 @@ def analyze_frames(y, sr, debug=False):
     # H = librosa.hpss.hpss_median(S, win_P=31, win_H=31, p=1.0)[0]
     A['chroma'] = librosa.feature.sync(librosa.feature.chromagram(S=H, sr=sr),
                                         beats,
-                                        aggregate=N.median).T.tolist()
+                                        aggregate=np.median).T.tolist()
 
     # Relative loudness
     S = S / S.max()
     S = S**2
 
     if debug: print "> dists"
-    dists = structure(N.vstack([N.array(A['timbres']).T, N.array(A['chroma']).T]))
+    dists = structure(np.vstack([np.array(A['timbres']).T, np.array(A['chroma']).T]))
     A['dense_dist'] = dists
 
     edge_lens = [A["beats"][i] - A["beats"][i - 1]
                  for i in xrange(1, len(A["beats"]))]
-    A["avg_beat_duration"] = N.mean(edge_lens)
-    A["med_beat_duration"] = N.median(edge_lens)
+    A["avg_beat_duration"] = np.mean(edge_lens)
+    A["med_beat_duration"] = np.median(edge_lens)
 
     return A
 

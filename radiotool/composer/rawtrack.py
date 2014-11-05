@@ -1,4 +1,4 @@
-import numpy as N
+import numpy as np
 
 from track import Track
 
@@ -22,11 +22,11 @@ class RawTrack(Track):
         self.name = name
         self.filename = "RAW_" + name
         try:
-            self.channels = N.shape(frames)[1]
+            self.channels = np.shape(frames)[1]
         except:
             self.channels = 1
         self.current_frame = 0
-        self._total_frames = N.shape(frames)[0]
+        self._total_frames = np.shape(frames)[0]
     
     @property
     def samplerate(self):
@@ -55,9 +55,9 @@ class RawTrack(Track):
             channels = self.channels
 
         if channels == 1:
-            out = N.zeros(n)
+            out = np.zeros(n)
         elif channels == 2:
-            out = N.zeros((n, 2))
+            out = np.zeros((n, 2))
         else:
             print "Input needs to have 1 or 2 channels"
             return
@@ -75,7 +75,7 @@ class RawTrack(Track):
         elif self.channels == 2 and channels == 1:
             frames = self.frames[
                 self.current_frame:self.current_frame + n, :]
-            out = N.mean(frames, axis=1)
+            out = np.mean(frames, axis=1)
         elif self.channels == 2 and channels == 2:
             out[:n, :] = self.frames[
                 self.current_frame:self.current_frame + n, :]

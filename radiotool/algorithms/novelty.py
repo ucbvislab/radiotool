@@ -2,7 +2,7 @@
 
 import sys
 
-import numpy as N
+import numpy as np
 import scipy.spatial.distance as scidist
 import scipy.signal
 
@@ -45,9 +45,9 @@ def novelty(song, k=64, wlen_ms=100, start=0, duration=None, nchangepoints=5, fe
                  song.samplerate]
                  
         # Compute energies
-        hamming = N.hamming(wlen_samples)
+        hamming = np.hamming(wlen_samples)
         nwindows = int(2 * song.duration / wlen_samples - 1)
-        energies = N.empty(nwindows)
+        energies = np.empty(nwindows)
         for i in range(nwindows):
             energies[i] = RMS_energy(
                 hamming *
@@ -58,24 +58,24 @@ def novelty(song, k=64, wlen_ms=100, start=0, duration=None, nchangepoints=5, fe
         energies_list = [[x] for x in energies]
     elif feature == "mfcc":
         analysis = song.analysis
-        energies_list = N.array(analysis["timbres"])
+        energies_list = np.array(analysis["timbres"])
     
     # Compute similarities
     S_matrix = 1 - scidist.squareform(
                     scidist.pdist(energies_list, 'euclidean'))
                     
     # smooth the C matrix with a gaussian taper
-    C_matrix = N.kron(N.eye(2), N.ones((k,k))) -\
-               N.kron([[0, 1], [1, 0]], N.ones((k,k)))
+    C_matrix = np.kron(np.eye(2), np.ones((k,k))) -\
+               np.kron([[0, 1], [1, 0]], np.ones((k,k)))
     g = scipy.signal.gaussian(2*k, k)
-    C_matrix = N.multiply(C_matrix, N.multiply.outer(g.T, g))
+    C_matrix = np.multiply(C_matrix, np.multiply.outer(g.T, g))
     
     # Created checkerboard kernel
     
-    N_vec = N.zeros(N.shape(S_matrix)[0])
+    N_vec = np.zeros(np.shape(S_matrix)[0])
     for i in xrange(k, len(N_vec) - k):
         S_part = S_matrix[i - k:i + k, i - k:i + k]
-        N_vec[i] = N.sum(N.multiply(S_part, C_matrix))
+        N_vec[i] = np.sum(np.multiply(S_part, C_matrix))
         
     # Computed checkerboard response
 
@@ -118,9 +118,9 @@ def smooth_hanning(x, size=11):
     if size < 3:
         return x
 
-    s = N.r_[x[size - 1:0:-1], x, x[-1:-size:-1]]
-    w = N.hanning(size)
-    y = N.convolve(w / w.sum(), s, mode='valid')
+    s = np.r_[x[size - 1:0:-1], x, x[-1:-size:-1]]
+    w = np.hanning(size)
+    y = np.convolve(w / w.sum(), s, mode='valid')
     return y
 
 
@@ -136,15 +136,15 @@ def naive_peaks(vec, k=33):
     
     k2 = (k - 1) / 2
 
-    peaks = N.r_[True, a[1:] > a[:-1]] & N.r_[a[:-1] > a[1:], True]
+    peaks = np.r_[True, a[1:] > a[:-1]] & np.r_[a[:-1] > a[1:], True]
 
-    p = N.array(N.where(peaks)[0])
-    maxidx = N.zeros(N.shape(p))
-    maxvals = N.zeros(N.shape(p))
+    p = np.array(np.where(peaks)[0])
+    maxidx = np.zeros(np.shape(p))
+    maxvals = np.zeros(np.shape(p))
     for i, pk in enumerate(p):
-        maxidx[i] = N.argmax(vec[pk - k2:pk + k2]) + pk - k2
-        maxvals[i] = N.max(vec[pk - k2:pk + k2])
-    out = N.array([maxidx, maxvals]).T
+        maxidx[i] = np.argmax(vec[pk - k2:pk + k2]) + pk - k2
+        maxvals[i] = np.max(vec[pk - k2:pk + k2])
+    out = np.array([maxidx, maxvals]).T
     return out[(-out[:, 1]).argsort()]
 
 if __name__ == '__main__':

@@ -6,7 +6,7 @@ import logging
 
 
 
-import numpy as N
+import numpy as np
 import scipy.linalg
 
 from ..composer import Composition, Segment, Volume, Label, RawVolume, Track
@@ -66,16 +66,16 @@ def retarget_to_length(song, duration, start=True, end=True, slack=5):
         def out_labels(t):
             if t == 0 and start:
                 return "start"
-            elif t == N.arange(0, new_duration, beat_length)[-1] and end:
+            elif t == np.arange(0, new_duration, beat_length)[-1] and end:
                 return "end"
             else:
                 return ""
 
         def out_penalty(t):
             if t == 0 and start:
-                return N.inf
-            elif t == N.arange(0, new_duration, beat_length)[-1] and end:
-                return N.inf
+                return np.inf
+            elif t == np.arange(0, new_duration, beat_length)[-1] and end:
+                return np.inf
             else:
                 return 0
 
@@ -130,20 +130,20 @@ def retarget_with_change_points(song, cp_times, duration):
     analysis = song.analysis
 
     beat_length = analysis[BEAT_DUR_KEY]
-    beats = N.array(analysis["beats"])
+    beats = np.array(analysis["beats"])
 
     # find change points
-    cps = N.array(novelty(song, nchangepoints=4))
-    cp_times = N.array(cp_times)
+    cps = np.array(novelty(song, nchangepoints=4))
+    cp_times = np.array(cp_times)
 
     # mark change points in original music
     def music_labels(t):
         # find beat closest to t
-        closest_beat_idx = N.argmin(N.abs(beats - t))
+        closest_beat_idx = np.argmin(np.abs(beats - t))
         closest_beat = beats[closest_beat_idx]
-        closest_cp = cps[N.argmin(N.abs(cps - closest_beat))]
+        closest_cp = cps[np.argmin(np.abs(cps - closest_beat))]
 
-        if N.argmin(N.abs(beats - closest_cp)) == closest_beat_idx:
+        if np.argmin(np.abs(beats - closest_cp)) == closest_beat_idx:
             return "cp"
         else:
             return "noncp"
@@ -151,7 +151,7 @@ def retarget_with_change_points(song, cp_times, duration):
     # mark where we want change points in the output music
     # (a few beats of slack to improve the quality of the end result)
     def out_labels(t):
-        if N.min(N.abs(cp_times - t)) < 1.5 * beat_length:
+        if np.min(np.abs(cp_times - t)) < 1.5 * beat_length:
             return "cp"
         return "noncp"
 
@@ -159,7 +159,7 @@ def retarget_with_change_points(song, cp_times, duration):
     # because we don't actually want each of them to be change points-
     # we just want one of the 4 beats covered to be a change point.
     def out_penalty(t):
-        if N.min(N.abs(cp_times - t)) < 1.5 * beat_length:
+        if np.min(np.abs(cp_times - t)) < 1.5 * beat_length:
             return .25
         return 1.0
 
@@ -242,14 +242,14 @@ def retarget(songs, duration, music_labels=None, out_labels=None,
     beat_lengths = [a[BEAT_DUR_KEY] for a in analyses]
     beats = [a["beats"] for a in analyses]
 
-    beat_length = N.mean(beat_lengths)
+    beat_length = np.mean(beat_lengths)
     logging.info("Beat lengths of songs: {} (mean: {})".
           format(beat_lengths, beat_length))
 
     if out_labels is not None:
-        target = [out_labels(i) for i in N.arange(0, duration, beat_length)]
+        target = [out_labels(i) for i in np.arange(0, duration, beat_length)]
     else:
-        target = ["" for i in N.arange(0, duration, beat_length)]
+        target = ["" for i in np.arange(0, duration, beat_length)]
 
     if music_labels is not None:
         if not multi_songs:
@@ -264,10 +264,10 @@ def retarget(songs, duration, music_labels=None, out_labels=None,
         start = [["" for i in b] for b in beats]
 
     if out_penalty is not None:
-        pen = N.array([out_penalty(i) for i in N.arange(
+        pen = np.array([out_penalty(i) for i in np.arange(
             0, duration, beat_length)])
     else:
-        pen = N.array([1 for i in N.arange(0, duration, beat_length)])
+        pen = np.array([1 for i in np.arange(0, duration, beat_length)])
 
     # we're using a valence/arousal constraint, so we need these
     in_vas = kwargs.pop('music_va', None)
@@ -280,20 +280,20 @@ def retarget(songs, duration, music_labels=None, out_labels=None,
                                     format(len(songs)))
         for i, in_va in enumerate(in_vas):
             if callable(in_va):
-                in_va = N.array([in_va(j) for j in beats[i]])
+                in_va = np.array([in_va(j) for j in beats[i]])
             in_vas[i] = in_va
 
     target_va = kwargs.pop('out_va', None)
     if callable(target_va):
-        target_va = N.array(
-            [target_va(i) for i in N.arange(0, duration, beat_length)])
+        target_va = np.array(
+            [target_va(i) for i in np.arange(0, duration, beat_length)])
 
     # set constraints
     if constraints is None:
         min_pause_len = 20.
         max_pause_len = 35.
-        min_pause_beats = int(N.ceil(min_pause_len / beat_length))
-        max_pause_beats = int(N.floor(max_pause_len / beat_length))
+        min_pause_beats = int(np.ceil(min_pause_len / beat_length))
+        max_pause_beats = int(np.floor(max_pause_len / beat_length))
 
         constraints = [(
             rt_constraints.PauseConstraint(
@@ -329,12 +329,12 @@ def retarget(songs, duration, music_labels=None, out_labels=None,
         all_beat_names.append(bn)
 
     logging.info("Combining tables")
-    total_music_beats = int(N.sum([len(b) for b in beats]))
+    total_music_beats = int(np.sum([len(b) for b in beats]))
     total_beats = total_music_beats + max_pause_beats
 
     # combine transition cost tables
 
-    trans_cost = N.ones((total_beats, total_beats)) * N.inf
+    trans_cost = np.ones((total_beats, total_beats)) * np.inf
     sizes = [len(b) for b in beats]
     idx = 0
     for i, size in enumerate(sizes):
@@ -343,21 +343,21 @@ def retarget(songs, duration, music_labels=None, out_labels=None,
         idx += size
 
     trans_cost[:total_music_beats, total_music_beats:] =\
-        N.vstack([tc[:len(beats[i]), len(beats[i]):]
+        np.vstack([tc[:len(beats[i]), len(beats[i]):]
                  for i, tc in enumerate(trans_costs)])
 
     trans_cost[total_music_beats:, :total_music_beats] =\
-        N.hstack([tc[len(beats[i]):, :len(beats[i])]
+        np.hstack([tc[len(beats[i]):, :len(beats[i])]
                   for i, tc in enumerate(trans_costs)])
 
     trans_cost[total_music_beats:, total_music_beats:] =\
         trans_costs[0][len(beats[0]):, len(beats[0]):]
 
     # combine penalty tables
-    penalty = N.empty((total_beats, penalties[0].shape[1]))
+    penalty = np.empty((total_beats, penalties[0].shape[1]))
 
     penalty[:total_music_beats, :] =\
-        N.vstack([p[:len(beats[i]), :] for i, p in enumerate(penalties)])
+        np.vstack([p[:len(beats[i]), :] for i, p in enumerate(penalties)])
 
     penalty[total_music_beats:, :] = penalties[0][len(beats[0]):, :]
 
@@ -381,8 +381,8 @@ def retarget(songs, duration, music_labels=None, out_labels=None,
         max_beats = int(90. / beat_length)
         max_beats = min(max_beats, penalty.shape[1])
 
-    tc2 = N.nan_to_num(trans_cost)
-    pen2 = N.nan_to_num(penalty)
+    tc2 = np.nan_to_num(trans_cost)
+    pen2 = np.nan_to_num(penalty)
 
     beat_names = []
     for i, bn in enumerate(all_beat_names):
@@ -400,8 +400,8 @@ def retarget(songs, duration, music_labels=None, out_labels=None,
     song_starts = [0]
     for song in songs:
         song_starts.append(song_starts[-1] + len(song.analysis["beats"]))
-    song_ends = N.array(song_starts[1:], dtype=N.int32)
-    song_starts = N.array(song_starts[:-1], dtype=N.int32)
+    song_ends = np.array(song_starts[1:], dtype=np.int32)
+    song_starts = np.array(song_starts[:-1], dtype=np.int32)
 
     t1 = time.clock()
     path_i, path_cost = build_table_full_backtrace(
@@ -427,7 +427,7 @@ def retarget(songs, duration, music_labels=None, out_labels=None,
             song_i = path[-1][0]
             beat_name = path[-1][1]
             result_labels.append(
-                start[song_i][N.where(N.array(beats[song_i]) ==
+                start[song_i][np.where(np.array(beats[song_i]) ==
                               beat_name)[0][0]])
             # path.append(float(beat_names[i % n_beats]))
 
@@ -484,7 +484,7 @@ def retarget(songs, duration, music_labels=None, out_labels=None,
     info = {
         "beat_length": beat_length,
         "contracted": contracted,
-        "cost": N.sum(path_cost) / len(path),
+        "cost": np.sum(path_cost) / len(path),
         "path": path,
         "path_i": path_i,
         "target_labels": target,
@@ -523,15 +523,15 @@ def _reconstruct_path(prev_node, cost_table, beat_names, end, length):
 
 def _build_table_from_costs(trans_cost, penalty):
     # create cost matrix
-    cost = N.zeros(penalty.shape)
-    prev_node = N.zeros(penalty.shape)
+    cost = np.zeros(penalty.shape)
+    prev_node = np.zeros(penalty.shape)
 
     cost[:, 0] = penalty[:, 0]
 
     for l in xrange(1, penalty.shape[1]):
-        tc = penalty[:, l] + trans_cost + cost[:, l - 1][:, N.newaxis]
+        tc = penalty[:, l] + trans_cost + cost[:, l - 1][:, np.newaxis]
         min_nodes = __fast_argmin_axis_0(tc)
-        min_vals = N.amin(tc, axis=0)
+        min_vals = np.amin(tc, axis=0)
         cost[:, l] = min_vals
         prev_node[:, l] = min_nodes
 
@@ -540,15 +540,15 @@ def _build_table_from_costs(trans_cost, penalty):
 
 def _build_table(analysis, duration, start, target, out_penalty):
     beats = analysis["beats"]
-    trans_cost = N.copy(analysis["dense_dist"])
+    trans_cost = np.copy(analysis["dense_dist"])
 
     # shift it over
     trans_cost[:-1, :] = trans_cost[1:, :]
-    trans_cost[-1, :] = N.inf
+    trans_cost[-1, :] = np.inf
 
     # create cost matrix
-    cost = N.empty((len(beats), len(target)))
-    prev_node = N.empty((len(beats), len(target)))
+    cost = np.empty((len(beats), len(target)))
+    prev_node = np.empty((len(beats), len(target)))
 
     # set initial values for first row of the cost table
     first_target = target[0]
@@ -561,20 +561,20 @@ def _build_table(analysis, duration, start, target, out_penalty):
     cost[:, 0] = init
 
     # no self-jumps
-    N.fill_diagonal(trans_cost, N.inf)
+    np.fill_diagonal(trans_cost, np.inf)
 
     min_jump = 4
 
     # no jumps within min-jump
     if min_jump and min_jump > 0:
-        total_len = N.shape(trans_cost)[0]
+        total_len = np.shape(trans_cost)[0]
         for idx in range(total_len):
             for diag_idx in range(-(min_jump - 1), min_jump):
                 if 0 < idx + diag_idx < total_len and diag_idx != 1:
-                    trans_cost[idx, idx + diag_idx] = N.inf
+                    trans_cost[idx, idx + diag_idx] = np.inf
 
     # create label penalty table
-    penalty = N.ones((len(beats), len(target))) * N.array(out_penalty)
+    penalty = np.ones((len(beats), len(target))) * np.array(out_penalty)
 
     penalty_window = 4
     for n_i in xrange(len(beats)):
@@ -606,9 +606,9 @@ def _build_table(analysis, duration, start, target, out_penalty):
 
     # building the remainder of the table
     for l in xrange(1, len(target)):
-        tc = penalty[:, l] + trans_cost + cost[:, l - 1][:, N.newaxis]
+        tc = penalty[:, l] + trans_cost + cost[:, l - 1][:, np.newaxis]
         min_nodes = __fast_argmin_axis_0(tc)
-        min_vals = N.amin(tc, axis=0)
+        min_vals = np.amin(tc, axis=0)
         cost[:, l] = min_vals
         prev_node[:, l] = min_nodes
 
@@ -626,9 +626,9 @@ def _build_table(analysis, duration, start, target, out_penalty):
 def __fast_argmin_axis_0(a):
     # http://stackoverflow.com/questions/17840661/
     #    is-there-a-way-to-make-numpy-argmin-as-fast-as-min
-    matches = N.nonzero((a == N.min(a, axis=0)).ravel())[0]
-    rows, cols = N.unravel_index(matches, a.shape)
-    argmin_array = N.empty(a.shape[1], dtype=N.intp)
+    matches = np.nonzero((a == np.min(a, axis=0)).ravel())[0]
+    rows, cols = np.unravel_index(matches, a.shape)
+    argmin_array = np.empty(a.shape[1], dtype=np.intp)
     argmin_array[cols] = rows
     return argmin_array
 
@@ -644,12 +644,12 @@ def _generate_audio(songs, beats, new_beats, new_beats_cost, music_labels,
     if volume_breakpoints is None:
         if volume is None:
             volume = 1.0
-        volume_array = N.array([volume])
+        volume_array = np.array([volume])
 
     if volume_breakpoints is not None:
         volume_array = volume_breakpoints.to_array(songs[0].samplerate)
 
-    result_volume = N.zeros(volume_array.shape)
+    result_volume = np.zeros(volume_array.shape)
 
     min_channels = min([x.channels for x in songs])
 
@@ -657,7 +657,7 @@ def _generate_audio(songs, beats, new_beats, new_beats_cost, music_labels,
 
     # currently assuming no transitions between different songs
 
-    beat_length = N.mean([song.analysis[BEAT_DUR_KEY]
+    beat_length = np.mean([song.analysis[BEAT_DUR_KEY]
                           for song in songs])
 
     audio_segments = []
@@ -682,7 +682,7 @@ def _generate_audio(songs, beats, new_beats, new_beats_cost, music_labels,
 
     segment_song_indicies = [x for x in segment_song_indicies if x != 'p']
 
-    beats = [N.array(b) for b in beats]
+    beats = [np.array(b) for b in beats]
     score_start = 0
     current_loc = 0.0
     last_segment_beat = 0
@@ -697,11 +697,11 @@ def _generate_audio(songs, beats, new_beats, new_beats_cost, music_labels,
     for (aseg, song_i) in zip(audio_segments, segment_song_indicies):
         segments = []
         # TODO: is this +1 correct?
-        starts = N.array([x[1] for x in new_beats[aseg[0]:aseg[1] + 1]])
+        starts = np.array([x[1] for x in new_beats[aseg[0]:aseg[1] + 1]])
 
-        bis = [N.nonzero(beats[song_i] == b)[0][0] for b in starts]
-        dists = N.zeros(len(starts))
-        durs = N.zeros(len(starts))
+        bis = [np.nonzero(beats[song_i] == b)[0][0] for b in starts]
+        dists = np.zeros(len(starts))
+        durs = np.zeros(len(starts))
 
         for i, beat in enumerate(starts):
             if i < len(bis) - 1:
@@ -736,7 +736,7 @@ def _generate_audio(songs, beats, new_beats, new_beats_cost, music_labels,
 
         segment_starts = [0]
         try:
-            segment_starts.extend(N.where(dists == 1)[0])
+            segment_starts.extend(np.where(dists == 1)[0])
         except:
             pass
 
@@ -745,10 +745,10 @@ def _generate_audio(songs, beats, new_beats, new_beats_cost, music_labels,
         for i, s_i in enumerate(segment_starts):
             if i == len(segment_starts) - 1:
                 # last segment?
-                seg_duration = N.sum(durs[s_i:])
+                seg_duration = np.sum(durs[s_i:])
             else:
                 next_s_i = segment_starts[i + 1]
-                seg_duration = N.sum(durs[s_i:next_s_i])
+                seg_duration = np.sum(durs[s_i:next_s_i])
 
                 cf_durations.append(durs[next_s_i])
                 cf_locations.append(current_loc + seg_duration)
@@ -799,11 +799,11 @@ def _generate_audio(songs, beats, new_beats, new_beats_cost, music_labels,
             diff = len(volume_array) -\
                 (segments[-1].comp_location + segments[-1].duration)
             new_volume_array =\
-                N.ones(segments[-1].comp_location + segments[-1].duration) *\
+                np.ones(segments[-1].comp_location + segments[-1].duration) *\
                 volume_array[-1]
             new_volume_array[:len(volume_array)] = volume_array
             volume_array = new_volume_array
-            result_volume = N.zeros(new_volume_array.shape)
+            result_volume = np.zeros(new_volume_array.shape)
 
         for i, seg in enumerate(segments[:-1]):
             logging.info(cf_durations[i], seg.duration_in_seconds,
@@ -846,11 +846,11 @@ def _generate_audio(songs, beats, new_beats, new_beats_cost, music_labels,
 
             # this can happen on the final segment:
             if len(volume_frames) == 0:
-                volume_frames = N.array([prev_end] * seg.duration)
+                volume_frames = np.array([prev_end] * seg.duration)
             elif len(volume_frames) < seg.duration:
                 delta = [volume_frames[-1]] *\
                     (seg.duration - len(volume_frames))
-                volume_frames = N.r_[volume_frames, delta]
+                volume_frames = np.r_[volume_frames, delta]
             raw_vol = RawVolume(seg, volume_frames)
             comp.add_dynamic(raw_vol)
 
@@ -859,7 +859,7 @@ def _generate_audio(songs, beats, new_beats, new_beats_cost, music_labels,
                               seg.comp_location + seg.duration] = volume_frames
             except ValueError:
                 diff = (seg.comp_location + seg.duration) - len(result_volume)
-                result_volume = N.r_[result_volume, N.zeros(diff)]
+                result_volume = np.r_[result_volume, np.zeros(diff)]
                 result_volume[seg.comp_location:
                               seg.comp_location + seg.duration] = volume_frames
 
@@ -899,7 +899,7 @@ def _generate_audio(songs, beats, new_beats, new_beats_cost, music_labels,
                 (beat_i + 1) * pause_len,
                 label_time)
         else:
-            beat_i = N.where(N.array(beats[song_i]) == beat)[0][0]
+            beat_i = np.where(np.array(beats[song_i]) == beat)[0][0]
             next_i = beat_i + 1
             current_label = music_labels[song_i][beat_i]
             if current_label != prev_label:
@@ -928,7 +928,7 @@ def _generate_audio(songs, beats, new_beats, new_beats_cost, music_labels,
                 (i + 1) * pause_len,
                 cost_time)
         else:
-            beat_i = N.where(N.array(beats[song_i]) == b)[0][0]
+            beat_i = np.where(np.array(beats[song_i]) == b)[0][0]
             next_i = beat_i + 1
 
             if (next_i >= len(beats[song_i])):
@@ -951,7 +951,7 @@ def _generate_audio(songs, beats, new_beats, new_beats_cost, music_labels,
                 # move all the volume frames back
                 c_time_samps = contracted_time * segments[0].track.samplerate
                 c_dur_samps = contracted_dur * segments[0].track.samplerate
-                result_volume = N.r_[
+                result_volume = np.r_[
                     result_volume[:c_time_samps],
                     result_volume[c_time_samps + c_dur_samps:]]
 

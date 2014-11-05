@@ -1,4 +1,4 @@
-import numpy as N
+import numpy as np
 
 class Dynamic(object):
     """(Abstract) volume control for tracks"""
@@ -9,7 +9,7 @@ class Dynamic(object):
         self.duration_in_seconds = duration
         
     def to_array(self, channels=2):
-        return N.ones( (self.duration, channels) )
+        return np.ones( (self.duration, channels) )
         
     def __str__(self):
         return "Dynamic at %d with duration %d" % (self.comp_location,

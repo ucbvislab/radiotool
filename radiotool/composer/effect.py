@@ -1,4 +1,4 @@
-import numpy as N
+import numpy as np
 import scipy.signal
 
 
@@ -34,20 +34,20 @@ class NotchFilter(Effect):
         notchWidth = 0.01
 
         # Compute zeros
-        zeros = N.array([N.exp(1j * N.pi * freq_ratio),
-                         N.exp(-1j * N.pi * freq_ratio)])
+        zeros = np.array([np.exp(1j * np.pi * freq_ratio),
+                         np.exp(-1j * np.pi * freq_ratio)])
 
         # Compute poles
         poles = (1 - notchWidth) * zeros
 
-        b = N.poly(zeros)    # Get moving average filter coefficients
-        a = N.poly(poles)    # Get autoregressive filter coefficients
+        b = np.poly(zeros)    # Get moving average filter coefficients
+        a = np.poly(poles)    # Get autoregressive filter coefficients
 
         try:
             if array.ndim == 1:
                 filtered = scipy.signal.filtfilt(b, a, array, padtype="even")
             else:
-                filtered = N.empty(array.shape)
+                filtered = np.empty(array.shape)
                 for i in range(array.shape[1]):
                     filtered[:, i] = scipy.signal.filtfilt(
                         b, a, array[:, i], padtype="even")

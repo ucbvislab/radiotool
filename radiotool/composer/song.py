@@ -1,7 +1,6 @@
 import hashlib
 import pickle
 import os
-import re
 
 from ..algorithms import librosa_analysis
 from track import Track
@@ -24,7 +23,7 @@ class Song(Track):
 
     @property
     def analysis(self):
-        """Get musical anaylsis of the song using the librosa library
+        """Get musical analysis of the song using the librosa library
         """
         if self._analysis is not None:
             return self._analysis

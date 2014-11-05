@@ -1,4 +1,4 @@
-import numpy as N
+import numpy as np
 
 from track import Track
 from ..utils import segment_array, RMS_energy
@@ -24,12 +24,12 @@ class Speech(Track):
 
         # segments = segments.reshape((-1, subwindow_n_frames * 2))
 
-        volumes = N.apply_along_axis(RMS_energy, 1, segments)
+        volumes = np.apply_along_axis(RMS_energy, 1, segments)
  
-        min_subwindow_vol = min(N.sum(N.abs(segments), 1) / subwindow_n_frames)
+        min_subwindow_vol = min(np.sum(np.abs(segments), 1) / subwindow_n_frames)
         min_subwindow_vol = min(volumes)
 
-        min_subwindow_vol_index = N.where(volumes <= 1.1 * 
+        min_subwindow_vol_index = np.where(volumes <= 1.1 *
                                           min_subwindow_vol)
 
         

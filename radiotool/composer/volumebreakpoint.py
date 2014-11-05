@@ -1,7 +1,7 @@
 
 from collections import namedtuple
 
-import numpy as N
+import numpy as np
 
 
 class VolumeBreakpoint(
@@ -23,7 +23,7 @@ class VolumeBreakpoints(object):
 
     def to_array(self, samplerate):
         sorted_bps = sorted(self.breakpoints, key=lambda x: x.time)
-        arr = N.ones(int(sorted_bps[-1][0] * samplerate))
+        arr = np.ones(int(sorted_bps[-1][0] * samplerate))
         for i, bp in enumerate(sorted_bps[:-1]):
             t = int(bp.time * samplerate)
             v = bp.volume
@@ -32,14 +32,14 @@ class VolumeBreakpoints(object):
 
             if bp.fade_type == "exponential" and v != next_v:
                 if v < next_v:
-                    arr[t:next_t] = N.logspace(
+                    arr[t:next_t] = np.logspace(
                         8, 1, num=next_t - t, base=.5) *\
                         (next_v - v) / .5 + v
                 else:
-                    arr[t:next_t] = N.logspace(
+                    arr[t:next_t] = np.logspace(
                         1, 8, num=next_t - t, base=.5) *\
                         (v - next_v) / .5 + next_v
             else:
-                arr[t:next_t] = N.linspace(v, next_v, num=next_t - t)
+                arr[t:next_t] = np.linspace(v, next_v, num=next_t - t)
 
         return arr

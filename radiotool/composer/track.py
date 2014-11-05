@@ -1,10 +1,9 @@
 import re
-import warnings
 import os.path
 import subprocess
 
-from scikits.audiolab import Sndfile, Format
-import numpy as N
+from scikits.audiolab import Sndfile
+import numpy as np
 try:
     import libxmp
     import libxmp.utils
@@ -69,9 +68,9 @@ class Track(object):
             channels = self.channels
 
         if channels == 1:
-            out = N.zeros(n)
+            out = np.zeros(n)
         elif channels == 2:
-            out = N.zeros((n, 2))
+            out = np.zeros((n, 2))
         else:
             print "Input needs to be 1 or 2 channels"
             return
@@ -85,10 +84,10 @@ class Track(object):
             out = self.sound.read_frames(n)
         elif self.channels == 1 and channels == 2:
             frames = self.sound.read_frames(n)
-            out = N.vstack((frames.copy(), frames.copy())).T
+            out = np.vstack((frames.copy(), frames.copy())).T
         elif self.channels == 2 and channels == 1:
             frames = self.sound.read_frames(n)
-            out = N.mean(frames, axis=1)
+            out = np.mean(frames, axis=1)
         elif self.channels == 2 and channels == 2:
             out[:n, :] = self.sound.read_frames(n)
 
@@ -108,7 +107,7 @@ class Track(object):
         :param integer n: Frame to set to ``current_frame``
         """
         self.sound.seek(n)
-        self._current_frame = n 
+        self._current_frame = n
 
     def reset(self):
         """Sets current frame to 0
@@ -135,7 +134,7 @@ class Track(object):
         self.current_frame = start_sample
         tmp_frames = self.read_frames(end_sample - start_sample)
         if self.channels == 2:
-            frames = N.mean(tmp_frames, axis=1)
+            frames = np.mean(tmp_frames, axis=1)
         elif self.channels == 1:
             frames = tmp_frames
         else:
@@ -151,18 +150,18 @@ class Track(object):
     def remaining_frames(self):
         """Get the number of frames remaining in the track"""
         return self.sound.nframes - self.current_frame
-        
+
     @property
     def duration(self):
         """Get the duration of total frames in the track"""
         return self.sound.nframes
-    
+
     @property
     def duration_in_seconds(self):
         """Get the duration of the track in seconds"""
         "Should not set track length"
         return self.duration / float(self.samplerate)
-        
+
     def loudest_time(self, start=0, duration=0):
         """Find the loudest time in the window given by start and duration
         Returns frame number in context of entire track, not just the window.
@@ -179,12 +178,12 @@ class Track(object):
         # get the frame of the maximum amplitude
         # different names for the same thing...
         # max_amp_sample = a.argmax(axis=0)[a.max(axis=0).argmax()]
-        max_amp_sample = int(N.floor(arr.argmax()/2)) + start
+        max_amp_sample = int(np.floor(arr.argmax()/2)) + start
         return max_amp_sample
-    
+
     def refine_cut(self, cut_point, window_size=1):
         return cut_point
-        
+
     def zero_crossing_before(self, n):
         """Find nearest zero crossing in waveform before frame ``n``"""
         n_in_samples = int(n * self.samplerate)
@@ -228,21 +227,24 @@ class Track(object):
             return None
         prev_label = None
         for l in self.labels:
-            if l.time > t: break
+            if l.time > t:
+                break
             prev_label = l
-        if prev_label is None: return None
+        if prev_label is None:
+            return None
         return prev_label.name
 
     def _extract_labels(self, filename):
-        if not LIBXMP: return None
+        if not LIBXMP:
+            return None
 
         xmp = libxmp.utils.file_to_dict(filename)
         meta = libxmp.XMPMeta()
         ns = libxmp.consts.XMP_NS_DM
         p = meta.get_prefix_for_namespace(ns)
 
-        track_re = re.compile("^" + p + r"Tracks\[(\d+)\]$")
-        n_tracks = 0
+        #track_re = re.compile("^" + p + r"Tracks\[(\d+)\]$")
+        #n_tracks = 0
         cp_track = None
         new_xmp = {}
         for prop in xmp[ns]:
@@ -257,9 +259,11 @@ class Track(object):
                     cp_track = match.group(1)
 
         # get all the markers from it
-        cp_path = re.compile(r"^%sTracks\[%s\]/%smarkers\[(\d+)\]$"  % (p, cp_track, p))
+        cp_path = re.compile(r"^%sTracks\[%s\]/%smarkers\[(\d+)\]$" %
+                             (p, cp_track, p))
         markers = []
-        sr = float(new_xmp["%sTracks[%s]/%sframeRate" % (p, cp_track, p)][0].replace('f', ''))
+        sr = float(new_xmp["%sTracks[%s]/%sframeRate" %
+                   (p, cp_track, p)][0].replace('f', ''))
 
         for prop, val in new_xmp.iteritems():
             match = cp_path.match(prop)
@@ -271,4 +275,3 @@ class Track(object):
         if len(markers) is 0:
             return None
         return markers
-

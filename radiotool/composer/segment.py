@@ -1,6 +1,3 @@
-import numpy as N
-
-
 class Segment(object):
     """A slice of a :py:class:`radiotool.composer.Track`
     """

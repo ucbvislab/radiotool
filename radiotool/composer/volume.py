@@ -1,4 +1,4 @@
-import numpy as N
+import numpy as np
 
 from dynamic import Dynamic
 
@@ -28,7 +28,7 @@ class Volume(Dynamic):
         
     def to_array(self, channels=2):
         """Generate the array of multipliers for the dynamic"""
-        return N.linspace(self.volume, self.volume, 
+        return np.linspace(self.volume, self.volume,
             self.duration * channels).reshape(self.duration, channels)
 
     @staticmethod

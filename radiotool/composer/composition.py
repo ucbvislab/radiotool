@@ -1,7 +1,7 @@
 import sys
 from math import sqrt
 
-import numpy as N
+import numpy as np
 
 from scikits.audiolab import Sndfile, Format
 try:
@@ -454,15 +454,15 @@ class Composition(object):
 
         segments = segment_array(frames, subwindow_n_frames, overlap=.5)
 
-        volumes = N.apply_along_axis(RMS_energy, 1, segments)
+        volumes = np.apply_along_axis(RMS_energy, 1, segments)
 
-        min_subwindow_vol = min(N.sum(N.abs(segments), 1) /\
+        min_subwindow_vol = min(np.sum(np.abs(segments), 1) /\
                             subwindow_n_frames)
         min_subwindow_vol = min(volumes)
 
         # some threshold? what if there are no zeros?
     
-        min_subwindow_vol_index = N.where(volumes <= 2.0 * 
+        min_subwindow_vol_index = np.where(volumes <= 2.0 *
                                           min_subwindow_vol)
     
         # find longest span of "silence" and set to the beginning
@@ -515,9 +515,9 @@ class Composition(object):
         starts = {}
         
         # for universal volume adjustment
-        all_frames = N.array([])
-        song_frames = N.array([])
-        speech_frames = N.array([])
+        all_frames = np.array([])
+        song_frames = np.array([])
+        speech_frames = np.array([])
         
         longest_part = max([x.comp_location + x.duration
                             for x in self.segments])
@@ -543,7 +543,7 @@ class Composition(object):
                 
                 starts[track] = start_loc
 
-                parts[track] = N.zeros((end_loc - start_loc, channels))
+                parts[track] = np.zeros((end_loc - start_loc, channels))
                 
                 for s in segments:
 
@@ -552,13 +552,13 @@ class Composition(object):
                     
                     # for universal volume adjustment
                     if adjust_dynamics:
-                        all_frames = N.append(all_frames,
+                        all_frames = np.append(all_frames,
                             self._remove_end_silence(frames.flatten()))
                         if isinstance(track, Song):
-                            song_frames = N.append(song_frames, 
+                            song_frames = np.append(song_frames,
                                 self._remove_end_silence(frames.flatten()))
                         elif isinstance(track, Speech):
-                            speech_frames = N.append(speech_frames,
+                            speech_frames = np.append(speech_frames,
                                 self._remove_end_silence(frames.flatten()))
                                 
                     parts[track][s.comp_location - start_loc:
@@ -581,7 +581,7 @@ class Composition(object):
         # dyn_adj = 0.10 / total_energy
         # dyn_adj = speech_energy / sqrt(song_energy) * 5
         if adjust_dynamics:
-            if not N.isnan(speech_energy) and not N.isnan(song_energy):
+            if not np.isnan(speech_energy) and not np.isnan(song_energy):
                 dyn_adj = sqrt(speech_energy / song_energy) * 1.15
             else:
                 dyn_adj = 1
@@ -590,7 +590,7 @@ class Composition(object):
 
         if longest_part < min_length:
             longest_part = min_length
-        out = N.zeros((longest_part, channels))
+        out = np.zeros((longest_part, channels))
         for track, part in parts.iteritems():
             out[starts[track]:starts[track] + len(part)] += part
 
@@ -619,7 +619,7 @@ class Composition(object):
         min_length = kwargs.pop('min_length', None)
         
         if samplerate is None:
-            samplerate = N.min([track.samplerate for track in self.tracks])
+            samplerate = np.min([track.samplerate for track in self.tracks])
 
         encoding = 'pcm16'
         to_mp3 = False
