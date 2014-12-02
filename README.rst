@@ -1,6 +1,18 @@
 radiotool - tools for constructing audio
 ========================================
 
+Important note
+--------------
+
+Some parts of this codebase have had significant changes since the
+last revision of the documentation- so the current documentation is
+wrong in some places. I will try to update the documentation as soon
+as I can, but for now, feel free to ask me questions if anything is
+not clear.
+
+Description
+-----------
+
 Radiotool is a python library that aims to make it easy to create
 audio by piecing together bits of other audio files. This library was
 originally written to enable my research in audio editing user
