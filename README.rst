@@ -27,6 +27,9 @@ Requirements
 
 libsndfile_, numpy, scikits.audiolab_, and librosa_.
 
+exempi_ for writing Audition/Premiere-readable labels to audio files.
+
+.. _exempi: http://libopenraw.freedesktop.org/wiki/Exempi/
 .. _librosa: https://github.com/bmcfee/librosa/
 
 Composition
