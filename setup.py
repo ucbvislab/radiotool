@@ -22,6 +22,7 @@ setup(
     description='Tools for constructing and retargeting audio',
     long_description=open('README.rst').read(),
     url='https://github.com/ucbvislab/radiotool',
+    download_url='http://github.com/ucbvislab/radiotool/tarball/v0.4',
     author='Steve Rubin',
     author_email='srubin@cs.berkeley.edu',
     packages=[
