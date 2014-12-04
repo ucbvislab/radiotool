@@ -121,9 +121,19 @@ class Composition(object):
         self.dynamics.extend(dyns)
 
     def add_label(self, label):
+        """Add a label to the composition
+
+        :param label: Label to add to composition
+        :type label: :py:class:`radiotool.composer.Label`
+        """
         self.labels.append(label)
 
     def add_labels(self, labels):
+        """Add a list of labels to the composition
+
+        :param labels: List of labels to add to composition
+        :type label: list of :py:class:`radiotool.composer.Label`
+        """
         self.labels.extend(labels)
 
     def fade_in(self, segment, duration, fade_type="linear"):
@@ -304,6 +314,15 @@ class Composition(object):
                 % (seg1.comp_location + seg1.duration, seg2.comp_location))
 
     def empty_over_span(self, time, duration):
+        """Helper method that tests whether composition contains any segments
+        at a given time for a given duration. 
+
+        :param time: Time (in seconds) to start span
+        :param duration: Duration (in seconds) of span
+        :returns: `True` if there are no segments in the composition that
+        overlap the span starting at `time` and lasting for `duration`
+        seconds. `False` otherwise.
+        """
         for seg in self.segments:
             # starts in range
             if seg.comp_location_in_seconds >= time and\
@@ -320,6 +339,13 @@ class Composition(object):
         return True
 
     def contract(self, time, duration, min_contraction=0.0):
+        """Remove empty gaps from the composition starting at a given
+        time for a given duration.
+
+        
+
+        """
+
         # remove audio from the composition starting at time
         # for duration
 
@@ -389,7 +415,8 @@ class Composition(object):
                     dur_samples = int(seg.samplerate * contract_dur)
                     dyn.comp_location -= dur_samples
             return contract_start, contract_dur
-        else: return 0.0, 0.0
+        else:
+            return 0.0, 0.0
 
     def add_music_cue(self, track, comp_cue, song_cue, duration=6.0,
                       padding_before=12.0, padding_after=12.0):
