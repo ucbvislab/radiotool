@@ -23,7 +23,7 @@ class Mock(MagicMock):
         return Mock()
 
 MOCK_MODULES = ['numpy', 'scipy', 'scikits.audiolab',
-                'librosa', 'Cython', 'scipy.signal',
+                'librosa', 'scipy.signal',
                 'scipy.spatial.distance', 'scipy.linalg',
                 'scipy.special']
 sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
