@@ -1,1 +1,5 @@
 Cython
+numpy
+scipy
+scikits.audiolab
+librosa
