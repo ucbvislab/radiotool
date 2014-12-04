@@ -20,9 +20,12 @@ from mock import Mock as MagicMock
 class Mock(MagicMock):
     @classmethod
     def __getattr__(cls, name):
-            return Mock()
+        return Mock()
 
-MOCK_MODULES = ['numpy', 'scipy', 'sckits.audiolab', 'librosa', 'Cython']
+MOCK_MODULES = ['numpy', 'scipy', 'scikits.audiolab',
+                'librosa', 'Cython', 'scipy.signal',
+                'scipy.spatial.distance', 'scipy.linalg',
+                'scipy.special']
 sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
 
 # If extensions (or modules to document with autodoc) are in another directory,

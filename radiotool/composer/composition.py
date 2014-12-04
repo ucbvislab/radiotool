@@ -319,9 +319,7 @@ class Composition(object):
 
         :param time: Time (in seconds) to start span
         :param duration: Duration (in seconds) of span
-        :returns: `True` if there are no segments in the composition that
-        overlap the span starting at `time` and lasting for `duration`
-        seconds. `False` otherwise.
+        :returns: `True` if there are no segments in the composition that overlap the span starting at `time` and lasting for `duration` seconds. `False` otherwise.
         """
         for seg in self.segments:
             # starts in range

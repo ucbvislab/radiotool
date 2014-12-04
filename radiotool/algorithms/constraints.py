@@ -7,7 +7,7 @@ import copy
 
 import numpy as np
 from scipy.special import binom
-import scipy.spatial.distance
+import scipy
 
 import librosa_analysis
 import novelty

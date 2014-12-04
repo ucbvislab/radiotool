@@ -1,5 +1,5 @@
 Utility functions
 =================
 
-.. automodule:: radiotool.composer.utils
+.. automodule:: radiotool.utils
     :members:

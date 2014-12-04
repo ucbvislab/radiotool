@@ -119,6 +119,7 @@ Dynamics
   radiotool.composer.Volume
   radiotool.composer.Fade
   radiotool.composer.RawVolume
+  radiotool.composer.VolumeBreakpoint
 
 Algorithms
 ----------
@@ -128,7 +129,6 @@ Algorithms
   radiotool.algorithms.retarget.retarget_with_change_points
   radiotool.algorithms.retarget.retarget
   radiotool.algorithms.novelty
-  radiotool.algorithms.librosa_analysis
 
 Utilities
 ---------

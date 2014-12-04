@@ -3,8 +3,7 @@
 import sys
 
 import numpy as np
-import scipy.spatial.distance as scidist
-import scipy.signal
+import scipy
 
 from ..utils import RMS_energy
 
@@ -61,8 +60,8 @@ def novelty(song, k=64, wlen_ms=100, start=0, duration=None, nchangepoints=5, fe
         energies_list = np.array(analysis["timbres"])
     
     # Compute similarities
-    S_matrix = 1 - scidist.squareform(
-                    scidist.pdist(energies_list, 'euclidean'))
+    S_matrix = 1 - scipy.spatial.distance.squareform(
+        scipy.spatial.distance.pdist(energies_list, 'euclidean'))
                     
     # smooth the C matrix with a gaussian taper
     C_matrix = np.kron(np.eye(2), np.ones((k,k))) -\
