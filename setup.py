@@ -1,9 +1,15 @@
 from setuptools import setup, Extension
-from Cython.Distutils import build_ext
-
 import sys
 
-script_args = ['build_ext']
+on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
+script_args = []
+if not on_rtd:
+    from Cython.Distutils import build_ext
+    script_args.append('build_ext')
+    cmd_class = {'build_ext': build_ext}
+else:
+    cmd_class = {}
+
 script_args.extend(sys.argv[1:])
 
 build_table_mem_efficient = Extension(
@@ -34,7 +40,7 @@ setup(
         build_table_mem_efficient,
         build_table_full_backtrace
     ],
-    cmdclass={'build_ext': build_ext},
+    cmdclass=cmd_class,
     script_args=script_args,
     license='ISC',
     install_requires=[
