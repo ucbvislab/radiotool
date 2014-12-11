@@ -25,11 +25,11 @@ build_table_full_backtrace = Extension(
 
 setup(
     name='radiotool',
-    version='0.4.0',
+    version='0.4.1',
     description='Tools for constructing and retargeting audio',
     long_description=open('README.rst').read(),
     url='https://github.com/ucbvislab/radiotool',
-    download_url='http://github.com/ucbvislab/radiotool/tarball/v0.4',
+    #download_url='http://github.com/ucbvislab/radiotool/tarball/v0.4',
     author='Steve Rubin',
     author_email='srubin@cs.berkeley.edu',
     packages=[
