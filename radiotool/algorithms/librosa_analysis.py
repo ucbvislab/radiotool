@@ -59,10 +59,10 @@ def analyze_frames(y, sr, debug=False):
     S = np.abs(librosa.stft(y, hop_length=hop_length))
 
     # Grab the harmonic component
-    H = librosa.decompose.hpss(S)[0]
+    # H = librosa.decompose.hpss(S)[0]
 
     # trying this without the HPSS for now because it's slow
-    # H = S
+    H = S
 
     # H = librosa.hpss.hpss_median(S, win_P=31, win_H=31, p=1.0)[0]
     A['chroma'] = librosa.feature.sync(librosa.feature.chromagram(S=H, sr=sr),
