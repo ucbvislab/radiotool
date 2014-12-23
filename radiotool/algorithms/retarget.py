@@ -67,12 +67,13 @@ def retarget_to_length(song, duration, start=True, end=True, slack=5,
         fade_in_len=None, fade_out_len=None)
 
     # force the new track to extend to the end of the song
-    if end == "end":
+    if end:
         last_seg = sorted(
             comp.segments,
             key=lambda seg:
             seg.comp_location_in_seconds + seg.duration_in_seconds
         )[-1]
+
         last_seg.duration_in_seconds = (
             song.duration_in_seconds - last_seg.start_in_seconds)
 
