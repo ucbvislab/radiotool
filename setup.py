@@ -3,9 +3,15 @@ from setuptools import setup, Extension
 import sys
 
 on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
+have_cython = False
 script_args = []
 if not on_rtd:
-    from Cython.Distutils import build_ext
+    try:
+        from Cython.Distutils import build_ext
+        have_cython = True
+    except ImportError:
+        from distutils.command.build_ext import build_ext
+
     script_args.append('build_ext')
     cmd_class = {'build_ext': build_ext}
 else:
@@ -13,15 +19,26 @@ else:
 
 script_args.extend(sys.argv[1:])
 
-build_table_mem_efficient = Extension(
-    'radiotool.algorithms.build_table_mem_efficient',
-    ['radiotool/algorithms/build_table_mem_efficient.pyx'],
-    extra_compile_args=['-O3'])
+if have_cython:
+    build_table_mem_efficient = Extension(
+        'radiotool.algorithms.build_table_mem_efficient',
+        ['radiotool/algorithms/build_table_mem_efficient.pyx'],
+        extra_compile_args=['-O3'])
 
-build_table_full_backtrace = Extension(
-    'radiotool.algorithms.build_table_full_backtrace',
-    ['radiotool/algorithms/build_table_full_backtrace.pyx'],
-    extra_compile_args=['-O3'])
+    build_table_full_backtrace = Extension(
+        'radiotool.algorithms.build_table_full_backtrace',
+        ['radiotool/algorithms/build_table_full_backtrace.pyx'],
+        extra_compile_args=['-O3'])
+else:
+    build_table_mem_efficient = Extension(
+        'radiotool.algorithms.build_table_mem_efficient',
+        ['radiotool/algorithms/build_table_mem_efficient.c'],
+        extra_compile_args=['-O3'])
+
+    build_table_full_backtrace = Extension(
+        'radiotool.algorithms.build_table_full_backtrace',
+        ['radiotool/algorithms/build_table_full_backtrace.c'],
+        extra_compile_args=['-O3'])
 
 setup(
     name='radiotool',
