@@ -25,7 +25,7 @@ build_table_full_backtrace = Extension(
 
 setup(
     name='radiotool',
-    version='0.4.1',
+    version='0.4.2',
     description='Tools for constructing and retargeting audio',
     long_description=open('README.rst').read(),
     url='https://github.com/ucbvislab/radiotool',
