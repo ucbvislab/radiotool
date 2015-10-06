@@ -262,8 +262,9 @@ class Track(object):
         cp_path = re.compile(r"^%sTracks\[%s\]/%smarkers\[(\d+)\]$" %
                              (p, cp_track, p))
         markers = []
-        sr = float(new_xmp["%sTracks[%s]/%sframeRate" %
-                   (p, cp_track, p)][0].replace('f', ''))
+        #sr = float(new_xmp["%sTracks[%s]/%sframeRate" %
+        #           (p, cp_track, p)][0].replace('f', ''))
+        sr = float(self.samplerate)
 
         for prop, val in new_xmp.iteritems():
             match = cp_path.match(prop)
